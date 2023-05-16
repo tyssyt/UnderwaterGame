@@ -11,5 +11,7 @@ class XD_API AXActor : public AActor {
     GENERATED_BODY()
 
 public:
+    
+    UFUNCTION(BlueprintCallable)
     class UGameInstanceX* GetGameInstance() const;
 };

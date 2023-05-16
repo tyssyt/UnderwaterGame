@@ -27,7 +27,7 @@ public:
     UPROPERTY(EditAnywhere)
     UBillboardComponent* DisabledSymbol;
 
-    PowerState GetState();
+    PowerState GetState() const;
     void SetState(PowerState newState);
 
 protected:

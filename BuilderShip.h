@@ -24,9 +24,6 @@ public:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-    ShipState State = ShipState::IDLE;
-    ConstructionSite* TargetSite;
-
     static float Speed;
     static float SlowSpeed;
     static float RotationSpeed;
@@ -35,10 +32,23 @@ public:
 
 
 protected:
+
+    ShipState State = ShipState::IDLE;
+    AActor* NextStop;
+    
+    ConstructionSite* TargetSite;
+    Material Inventory;
+
+    APickupPad* PickupFrom;
+    Material PickupMaterial;
+
+    
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 
     void Idle();
     void Fly();
+
+    void DoNextStop();
 
 };

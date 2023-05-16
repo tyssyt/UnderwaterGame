@@ -12,11 +12,11 @@
 #include "XD/Buildings/Depot.h"
 #include "XD/Buildings/Smelter.h"
 #include "XD/Buildings/Conveyor.h"
-
-#include "CoreMinimal.h"
 #include "Buildings/Habitat.h"
 #include "Buildings/WorkerHouse.h"
-#include "UObject/NoExportTypes.h"
+#include "XD/Buildings/PickupPad.h"
+
+#include "CoreMinimal.h"
 #include "BlueprintHolder.generated.h"
 
 
@@ -84,6 +84,11 @@ public:
     TSubclassOf<UWorkerHouseUI> WorkerHouseUIClass;
     UPROPERTY()
     UWorkerHouseUI* WorkerHouseUI;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UPickupPadUI> PickupPadUIClass;
+    UPROPERTY()
+    UPickupPadUI* PickupPadUI;
 
     void Init(APlayerController* controller);
     USelectedUI* GetUI(AActor* actor) const;

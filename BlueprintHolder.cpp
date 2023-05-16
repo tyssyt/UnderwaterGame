@@ -17,6 +17,7 @@ void UBlueprintHolder::Init(APlayerController* controller) {
     SmelterUI = CreateWidget<USmelterUI>(controller, SmelterUIClass);
     HabitatUI = CreateWidget<UHabitatUI>(controller, HabitatUIClass);
     WorkerHouseUI = CreateWidget<UWorkerHouseUI>(controller, WorkerHouseUIClass);
+    PickupPadUI = CreateWidget<UPickupPadUI>(controller, PickupPadUIClass);
 }
 
 USelectedUI* UBlueprintHolder::GetUI(AActor* actor) const {
@@ -63,6 +64,10 @@ USelectedUI* UBlueprintHolder::GetUI(AActor* actor) const {
     if (actor->IsA(AWorkerHouse::StaticClass())) {
         WorkerHouseUI->House = Cast<AWorkerHouse>(actor);
         return WorkerHouseUI;
+    }
+    if (actor->IsA(APickupPad::StaticClass())) {
+        PickupPadUI->PickupPad = Cast<APickupPad>(actor);
+        return PickupPadUI;
     }
     return nullptr;
 }

@@ -4,6 +4,7 @@
 
 #include "Resources/ResourceBook.h"
 #include "Recipes/RecipeBook.h"
+#include "Buildings/BuildingBook.h"
 #include "ConstructionManager.h"
 
 #include "CoreMinimal.h"
@@ -22,13 +23,19 @@ class XD_API UGameInstanceX : public UGameInstance {
 public:
     UGameInstanceX();
 
-    UPROPERTY(EditAnywhere)
+    // TODO we could also consider using subsystems for some of the below things
+    // https://docs.unrealengine.com/4.26/en-US/ProgrammingAndScripting/Subsystems/
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     UResourceBook* TheResourceBook;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     URecipeBook* TheRecipeBook;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UBuildingBook* TheBuildingBook;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     UConstructionManager* TheConstructionManager;
 
 };

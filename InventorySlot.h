@@ -19,12 +19,12 @@ public:
     FInventorySlot(int max, const UResource* resource = nullptr);
     ~FInventorySlot();
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int Current = 0;
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int Max;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     const UResource* Resource = nullptr;
 
     int PushInto(int amount);

@@ -28,7 +28,7 @@ public:
     virtual void BeginPlay() override;
     virtual void AcknowledgePossession(APawn* p) override;
 
-    void TickUI();
+    void TickUI() const;
 
     void ShowMouseCursor(bool isControlledByMouse);
     void UpdateSelected(AActor* actor);
@@ -37,11 +37,11 @@ public:
     template <class T> T* GetUnderCursor() {
         FHitResult hitResult;
         if (GetUnderCursor(&hitResult))
-            return Cast<T>(hitResult.Actor.Get());
+            return Cast<T>(hitResult.GetActor());
         return nullptr;
     }
 
-    bool GetUnderCursor(FHitResult*);
+    bool GetUnderCursor(FHitResult*) const;
 
 
 };

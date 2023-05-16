@@ -39,9 +39,9 @@ void UHardOreDepositUI::Tick() {
 
 void UHardOreDepositUI::OnClickConstruct() {
     if (Deposit) {
-        UWorld* world = Deposit->GetWorld();
-        auto mine = world->SpawnActor<AHardOreMine>(Deposit->GetActorLocation() - FVector(.0f, .0f, 50.f), Deposit->GetActorRotation()); // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
-        world->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(mine);
+        const UGameInstanceX* gameInstance = Deposit->GetGameInstance();
+        const auto mine = Deposit->GetWorld()->SpawnActor<AHardOreMine>(Deposit->GetActorLocation() - FVector(.0f, .0f, 50.f), Deposit->GetActorRotation()); // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
+        gameInstance->TheConstructionManager->AddConstruction(new ConstructionSite(mine, gameInstance->TheBuildingBook->HardOreMine));
         Deposit->Destroy();
         Deposit = nullptr;
         // TODO unselect UI (maybe select the MineUI or sth idk)

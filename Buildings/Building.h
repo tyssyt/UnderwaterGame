@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "XActor.h"
-#include "GameFramework/Actor.h"
-#include "XD/GameInstanceX.h"
 #include "Building.generated.h"
 
 
@@ -25,5 +23,6 @@ protected:
 
 public:
     virtual void Tick(float DeltaTime) override;
+    virtual void OnConstructionComplete(); // TODO maybe there is some unreal lifecycle method we can hook into?
 
 };

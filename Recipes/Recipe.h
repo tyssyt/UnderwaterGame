@@ -8,7 +8,7 @@
 
 
 struct XD_API Ingredient {
-    Ingredient(int amount, const UResource* const resource);
+    Ingredient(int amount, const UResource* resource);
     ~Ingredient();
 
     const int amount;

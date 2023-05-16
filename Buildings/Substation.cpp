@@ -40,3 +40,32 @@ void ASubstation::ConnectNoRecompute(UElectricComponent* building) {
     }
     ConnectedBuildings.Add(building);
 }
+
+void ASubstation::OnConstructionComplete() {
+    Super::OnConstructionComplete();
+
+    // TODO extract common submethod with the electrical component part
+    const static float MAX_WIRE_DISTANCE = 500.f; // TODO propably should be a constant in Substation or ElectricityNetwork
+    static FName NAME_QUERY_PARAMS = FName(TEXT(""));
+    FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, this);
+    FCollisionObjectQueryParams objectqueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects); // TODO make a custom collision channel with substations and maybe electricComponents
+
+    TArray<FOverlapResult> overlaps;
+    GetWorld()->OverlapMultiByObjectType(overlaps, GetActorLocation(), FQuat::Identity, objectqueryParams, FCollisionShape::MakeSphere(MAX_WIRE_DISTANCE), queryParams);
+
+    for (const FOverlapResult& overlap : overlaps) {
+        ASubstation* nearbySubstation = Cast<ASubstation>(overlap.GetActor());
+        if (nearbySubstation && nearbySubstation->constructionState == ConstructionState::Done) {
+            // we found a Substation nearby, connect
+            Network->mergeNetworkNoRecompute(nearbySubstation->Network);
+        }
+
+        UElectricComponent* nearbyElec = overlap.GetActor()->FindComponentByClass<UElectricComponent>();
+        if (nearbyElec && nearbyElec->GetState() != PowerState::Initial && !nearbyElec->Substation) {
+            ConnectNoRecompute(nearbyElec);
+        }
+
+    }
+
+    Network->recomputeStats();
+}

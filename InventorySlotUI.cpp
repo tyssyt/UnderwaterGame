@@ -14,7 +14,10 @@ void UInventorySlotUI::Set(const FInventorySlot* inventorySlot) {
 void UInventorySlotUI::Set(int current, int max, const UResource* resource) {
     Current->SetText(FText::AsNumber(current));
     Max->SetText(FText::AsNumber(max));
-    SetFillPercent(static_cast<float>(current) / max);
+    if (max > 0) 
+        SetFillPercent(static_cast<float>(current) / max);
+    else
+        SetFillPercent(.0f);
 
     ResourceImage->SetOpacity(1.f);
     ResourceImage->SetBrushFromTexture(resource->Image);
@@ -30,7 +33,7 @@ void UInventorySlotUI::Clear() {
 }
 
 void UInventorySlotUI::SetFillPercent(float fill) const {
-    // TODO this can propably be optimized to use a single point of branching which could be faster...
+    // TODO this can probably be optimized to use a single point of branching which could be faster...
     fill = fill * 4.f;
 
     if (fill < 1.f) {

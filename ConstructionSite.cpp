@@ -2,16 +2,13 @@
 
 #include "ConstructionSite.h"
 
-#include "Components/ElectricComponent.h"
-#include "Buildings/Substation.h"
+#include "ConstructionManager.h"
+#include "Buildings/Building.h"
 
-ConstructionSite::ConstructionSite(AActor* building, UMaterial* ghostMaterial) : Building(building) {
-    // set material to ghost 
-    UStaticMeshComponent* mesh = Building->FindComponentByClass<UStaticMeshComponent>();
 
-    OldMaterial = mesh->GetMaterial(0)->GetMaterial();
-    mesh->SetMaterial(0, ghostMaterial);
+ConstructionSite::ConstructionSite(AActor* building, UConstructionPlan* constructionPlan) : ConstructionSite(building, constructionPlan->Time, constructionPlan->Materials) {}
 
+ConstructionSite::ConstructionSite(AActor* building, int time, std::vector<Material> materials) : Building(building), Time(time), Materials(materials) {
     Building->SetActorTickEnabled(false);
     ABuilding* bbuilding = Cast<ABuilding>(building); // TODO eventually we want the input of this function to be some kind of common class...
     if (bbuilding) {
@@ -21,72 +18,63 @@ ConstructionSite::ConstructionSite(AActor* building, UMaterial* ghostMaterial) :
 
 ConstructionSite::~ConstructionSite() {}
 
-void ConstructionSite::BeginConstruction() {
+void ConstructionSite::SetGhostMaterial(UMaterial* ghostMaterial) const {
     UStaticMeshComponent* mesh = Building->FindComponentByClass<UStaticMeshComponent>();
-    mesh->SetMaterial(0, OldMaterial);
+    if (mesh) {
+        for (int i=0; i<mesh->GetMaterials().Num(); ++i) {
+            mesh->SetMaterial(i, ghostMaterial);
+        }
+    }
+}
+
+void ConstructionSite::BeginConstruction() const {
+    // for now, construction is instant so we complete it here
+    UStaticMeshComponent* mesh = Building->FindComponentByClass<UStaticMeshComponent>();
+    if (mesh) {
+        for (int i=0; i<mesh->GetMaterials().Num(); ++i) {
+            mesh->SetMaterial(i, nullptr);
+        }
+    }
     Building->SetActorTickEnabled(true);
-    ABuilding* bbuilding = Cast<ABuilding>(Building); // TODO eventually we want the input of this function to be some kind of common class...
-    if (bbuilding) {
-        bbuilding->constructionState = ConstructionState::Done;
+    
+    ABuilding* building = Cast<ABuilding>(Building); // TODO eventually we want the input of this function to be some kind of common class...
+    if (building) {
+        building->OnConstructionComplete();
     }
+}
 
-    const static float MAX_WIRE_DISTANCE = 500.f; // TODO propably should be a constant in Substation or ElectricityNetwork
-    static FName NAME_QUERY_PARAMS = FName(TEXT(""));
+std::pair<APickupPad*, Material> ConstructionSite::GetNextDelivery(std::vector<ConstructionResource>* constructionResources) const {
+    for (auto& neededMaterial : Materials) {
+        int needed = neededMaterial.amount;
 
-    // if it has an Electric Component, try to connect it to a substation
-    UElectricComponent* elec = Building->FindComponentByClass<UElectricComponent>();
-    if (elec) {
-
-        // TODO extract common submethod
-        FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, Building);
-        FCollisionObjectQueryParams objectqueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects); // TODO make a custom collision channel with substations and maybe electricComponents
-
-        TArray<FOverlapResult> overlaps;
-        Building->GetWorld()->OverlapMultiByObjectType(overlaps, Building->GetActorLocation(), FQuat::Identity, objectqueryParams, FCollisionShape::MakeSphere(MAX_WIRE_DISTANCE), queryParams);
-
-        bool connected = false;
-        for (const FOverlapResult& overlap : overlaps) {
-            ASubstation* nearbySubstation = Cast<ASubstation>(overlap.GetActor());
-            if (nearbySubstation && nearbySubstation->constructionState == ConstructionState::Done) {
-                // we found a Substation nearby, connect
-                nearbySubstation->Connect(elec);
-                connected = true;
-                break;
+        // subtract already delivered material
+        for (auto& deliveredMaterial : DeliveredMaterial) {
+            if (neededMaterial.resource == deliveredMaterial.resource) {
+                needed -= deliveredMaterial.amount;
             }
         }
 
-        if (!connected) {
-            elec->SetState(PowerState::Disconnected);
+        if (needed <= 0)
+            continue;
+
+        for (auto& constructionResource : *constructionResources) {
+            if (neededMaterial.resource == constructionResource.Resource) {
+                // TODO there is place for many optimization here, like preferring a resource that can be delivered in one trip or picking the nearest pad!
+                return std::make_pair(constructionResource.Pads.back().second,Material(needed, neededMaterial.resource));
+            }
+        }
+    }
+    // no delivery found
+    return std::make_pair(nullptr, Material(0, nullptr));
+}
+
+void ConstructionSite::DeliverMaterial(Material material) {
+    for (auto& mat : DeliveredMaterial) {
+        if (mat.resource == material.resource) {
+            mat.amount += material.amount;
+            return;
         }
     }
 
-    // TODO move this into substation, propably make a "construction finished" function on Building I can call
-    // if it is a substation, connect to nearby Buildings & Substations
-    ASubstation* substation = Cast<ASubstation>(Building);
-    if (substation) {
-
-        // TODO extract common submethod
-        FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, Building);
-        FCollisionObjectQueryParams objectqueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects); // TODO make a custom collision channel with substations and maybe electricComponents
-
-        TArray<FOverlapResult> overlaps;
-        Building->GetWorld()->OverlapMultiByObjectType(overlaps, Building->GetActorLocation(), FQuat::Identity, objectqueryParams, FCollisionShape::MakeSphere(MAX_WIRE_DISTANCE), queryParams);
-
-        for (const FOverlapResult& overlap : overlaps) {
-            ASubstation* nearbySubstation = Cast<ASubstation>(overlap.GetActor());
-            if (nearbySubstation && nearbySubstation->constructionState == ConstructionState::Done) {
-                // we found a Substation nearby, connect
-                substation->Network->mergeNetworkNoRecompute(nearbySubstation->Network);
-            }
-
-            UElectricComponent* nearbyElec = overlap.GetActor()->FindComponentByClass<UElectricComponent>();
-            if (nearbyElec && nearbyElec->GetState() != PowerState::Initial && !nearbyElec->Substation) {
-                substation->ConnectNoRecompute(nearbyElec);
-            }
-
-        }
-
-        substation->Network->recomputeStats();
-    }
-
+    DeliveredMaterial.push_back(material);
 }

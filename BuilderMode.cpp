@@ -1,25 +1,17 @@
 #include "BuilderMode.h"
+
+#include "GameInstanceX.h"
 #include "PlayerControllerX.h"
 #include "Buildings/Conveyor.h"
 #include "Buildings/Habitat.h"
 
 #include "Kismet/GameplayStatics.h"
 
-BuilderMode::~BuilderMode() {}
-void BuilderMode::Tick(const ACameraPawn& camera) {}
-
-AActor* BuilderMode::Confirm(const ACameraPawn& camera) {
-    return nullptr;
-}
-
-UClass* BuilderMode::IDK() {
-    return nullptr;
-}
-
 // BuildingBuilderMode
 
-BuildingBuilderMode::BuildingBuilderMode(ABuilding* preview) : Preview(preview) {
-    preview->SetActorTickEnabled(false);
+BuildingBuilderMode::BuildingBuilderMode(UConstructionPlan* constructionPlan, UWorld* world)
+        : ConstructionPlan(constructionPlan), Preview(world->SpawnActor<ABuilding>(constructionPlan->BuildingClass)) {
+    Preview->SetActorTickEnabled(false);    
 }
 
 BuildingBuilderMode::~BuildingBuilderMode() {
@@ -40,7 +32,7 @@ void BuildingBuilderMode::Tick(const ACameraPawn& camera) {
     }
 }
 
-void BuildingBuilderMode::Position(const ACameraPawn& camera) {
+void BuildingBuilderMode::Position(const ACameraPawn& camera) const {
     APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
     if (!playerController || !playerController->bShowMouseCursor) {
         Preview->SetActorHiddenInGame(true);
@@ -100,7 +92,7 @@ void BuildingBuilderMode::Rotate(const ACameraPawn& camera) {
     //Preview->SetActorRotation(rotator, ETeleportType::TeleportPhysics);
 }
 
-AActor* BuildingBuilderMode::Confirm(const ACameraPawn& camera) {
+ConstructionSite* BuildingBuilderMode::Confirm(const ACameraPawn& camera) {
     switch (Phase) {
     case Positioning:
         if (!Preview->IsHidden())
@@ -108,17 +100,19 @@ AActor* BuildingBuilderMode::Confirm(const ACameraPawn& camera) {
         return nullptr;
     case Rotating:
         Phase = Done;
-    // TODO remove color coding
-        return Preview; // TODO
+        // TODO remove color coding
+        return new ConstructionSite(Preview, ConstructionPlan);
     case Done:
-        return Preview;
+        checkNoEntry();
+        return new ConstructionSite(Preview, ConstructionPlan);
+    default:
+        checkNoEntry();
+        return nullptr;
     }
-    // TODO abort in dev, do nothing in prod, macro?
-    return Preview;
 }
 
 UClass* BuildingBuilderMode::IDK() {
-    return Preview->GetClass();
+    return ConstructionPlan->BuildingClass;
 }
 
 // ConveyorBuilderMode
@@ -127,7 +121,7 @@ ConveyorBuilderMode::ConveyorBuilderMode() {}
 
 void ConveyorBuilderMode::Tick(const ACameraPawn& camera) {}
 
-AActor* ConveyorBuilderMode::Confirm(const ACameraPawn& camera) {
+ConstructionSite* ConveyorBuilderMode::Confirm(const ACameraPawn& camera) {
     //TODO return logs once we have visual feedback
     APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
     if (!playerController)
@@ -150,11 +144,11 @@ AActor* ConveyorBuilderMode::Confirm(const ACameraPawn& camera) {
 
     UInventoryComponent* inventory = underCursor->FindComponentByClass<UInventoryComponent>();
     if (inventory && inventory->GetInputs().Num()) {
-
-        //TODO do the more complex check in the connect before creating the conveyor, possibly leading to the resource selection dialog
-
         UE_LOG(LogTemp, Warning, TEXT("Target Selected"));
-        return AConveyor::Create(camera.GetWorld(), Source, underCursor, 100); // TODO where should the throughput actually be configured?
+        
+        //TODO do the more complex check in the connect before creating the conveyor, possibly leading to the resource selection dialog
+        AConveyor* conveyor = AConveyor::Create(camera.GetWorld(), Source, underCursor, 100); // TODO where should the throughput actually be configured?
+        return new ConstructionSite(conveyor, 1, {Material(10, conveyor->GetGameInstance<UGameInstanceX>()->TheResourceBook->LargeParts)}); // TODO make cost & time scale with length
     } else {
         UE_LOG(LogTemp, Warning, TEXT("Target does not have an Inventory that can be pushed into."));
         return nullptr;
@@ -167,10 +161,10 @@ UClass* ConveyorBuilderMode::IDK() {
 
 
 // IndoorBuilderMode
-
-IndoorBuilderMode::IndoorBuilderMode(AIndoorBuilding* preview) : Preview(preview) {
-    preview->SetActorTickEnabled(false);
-    OldMaterial = preview->FindComponentByClass<UStaticMeshComponent>()->GetMaterial(0)->GetMaterial();
+IndoorBuilderMode::IndoorBuilderMode(UConstructionPlan* constructionPlan, UWorld* world)
+        : ConstructionPlan(constructionPlan), Preview(world->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass)) {    
+    Preview->SetActorTickEnabled(false);
+    OldMaterial = Preview->FindComponentByClass<UStaticMeshComponent>()->GetMaterial(0)->GetMaterial();    
 }
 
 IndoorBuilderMode::~IndoorBuilderMode() {
@@ -193,7 +187,7 @@ void IndoorBuilderMode::Tick(const ACameraPawn& camera) {
     Preview->SetActorLocation(hitResult.ImpactPoint);
 
     // check if mouse is over habitat
-    AHabitat* habitat = Cast<AHabitat>(hitResult.Actor.Get());
+    AHabitat* habitat = Cast<AHabitat>(hitResult.GetActor());
     if (!habitat) {
         setNotBuildable(camera.RedGhostMaterial);
         return;
@@ -217,7 +211,7 @@ void IndoorBuilderMode::Tick(const ACameraPawn& camera) {
     setBuildable();
 }
 
-AActor* IndoorBuilderMode::Confirm(const ACameraPawn& camera) {
+ConstructionSite* IndoorBuilderMode::Confirm(const ACameraPawn& camera) {
     if (!Buildable) {
         return nullptr;
     }
@@ -225,11 +219,11 @@ AActor* IndoorBuilderMode::Confirm(const ACameraPawn& camera) {
     Preview = nullptr;
 
     building->Habitat->placeBuilding(building);
-    return building;
+    return new ConstructionSite(building, ConstructionPlan);
 }
 
 UClass* IndoorBuilderMode::IDK() {
-    return Preview->GetClass();
+    return ConstructionPlan->BuildingClass;
 }
 
 void IndoorBuilderMode::setInvisible() {

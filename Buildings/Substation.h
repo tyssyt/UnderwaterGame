@@ -28,6 +28,7 @@ public:
 
     void Connect(UElectricComponent* building);
     void ConnectNoRecompute(UElectricComponent* building);
+    virtual void OnConstructionComplete() override;
 
 
 protected:

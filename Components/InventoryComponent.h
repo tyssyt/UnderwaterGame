@@ -15,10 +15,10 @@ class XD_API UInventoryComponent : public UActorComponent {
     GENERATED_BODY()
 
 protected:
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FInventorySlot> Inputs;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FInventorySlot> Outputs;
 
 public:

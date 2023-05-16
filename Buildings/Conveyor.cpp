@@ -22,8 +22,7 @@ AConveyor::AConveyor() {
     // Structure to hold one-time initialization
     struct FConstructorStatics {
         ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        ConstructorHelpers::FObjectFinderOptional<UMaterial> BaseMaterial;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Cube")), BaseMaterial(TEXT("/Game/BasicShapeMaterial")) {}
+        FConstructorStatics() : PlaneMesh(TEXT("/Game/Cube")) {}
     };
     static FConstructorStatics ConstructorStatics;
 
@@ -31,7 +30,6 @@ AConveyor::AConveyor() {
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
     Mesh->SetRelativeScale3D(FVector(1.f, .1f, 0.1f));
-    Mesh->SetMaterial(0, ConstructorStatics.BaseMaterial.Get());
 }
 
 void AConveyor::BeginPlay() {
@@ -73,55 +71,63 @@ void AConveyor::Connect() {
     if (!sourceInventory)
         return;
     auto& outputs = sourceInventory->GetOutputs();
+    
+    // find matching in/outputs
+    std::vector<std::pair<FInventorySlot*, FInventorySlot*>> matches;
+    bool hasUntypedInput = false;
+    bool hasUntypedOutput = false;
 
-    // when there is only 1 input and 1 ouput, and one of them is untyped we type it
-    if (inputs.Num() == 1 && outputs.Num() == 1) {
-        FInventorySlot* input = &inputs[0];
-        FInventorySlot* output = &outputs[0];
+    for (auto& output : outputs) {
+        if (!output.Resource) {
+            hasUntypedOutput = true;
+            continue;
+        }
+        for (auto& input : inputs) {
+            if (!input.Resource)
+                hasUntypedInput = true;
+            if (input.Resource == output.Resource)
+                matches.push_back(std::make_pair(&output, &input));
+        }
+    }
 
-        if (input->Resource && !output->Resource) {
-            output->Resource = input->Resource;
-        } else if (output->Resource && !input->Resource) {
-            input->Resource = output->Resource;
-        } else if (input->Resource && input->Resource == output->Resource) {
-            // Resources already match perfectly
+    if (matches.size() == 0) { // no matches found, check for untyped in- or outputs
+        if (hasUntypedInput && outputs.Num() == 1) {
+            for (auto& input : inputs) {
+                if (!input.Resource) {
+                    FInventorySlot* output = &outputs[0];
+                    input.Resource = output->Resource;
+                    SourceInv = output;
+                    TargetInv = &input;
+                    break;
+                }
+            }
+        } else if (hasUntypedOutput && inputs.Num() == 1) {
+            for (auto& output : outputs) {
+                if (!output.Resource) {
+                    FInventorySlot* input = &inputs[0];
+                    output.Resource = input->Resource;
+                    SourceInv = &output;
+                    TargetInv = input;
+                    break;
+                }
+            }
         } else {
-            UE_LOG(LogTemp, Warning, TEXT("Could not match Resource types, %d and %d"), input->Resource, output->Resource);
-            return; // could not match resource types
-        }
-        SourceInv = output;
-        TargetInv = input;
-
-    } else {
-        // otherwise we only accept input output pair with matching types
-        std::vector<std::pair<FInventorySlot*, FInventorySlot*>> matches;
-
-        for (auto& output : outputs) {
-            if (!output.Resource)
-                continue;
-            for (auto& input : inputs)
-                if (input.Resource == output.Resource)
-                    matches.push_back(std::make_pair(&output, &input));
-        }
-
-        if (matches.size() == 0) {
             UE_LOG(LogTemp, Warning, TEXT("No Matches found"));
             return;
         }
-        if (matches.size() == 1) {
-            SourceInv = matches[0].first;
-            TargetInv = matches[0].second;
-        } else {
-            UE_LOG(LogTemp, Warning, TEXT("Multiple Matches found"));
-            return; // TODO show a dialog to select the input
-        }
+    } else if (matches.size() == 1) { // exactly one match found, connect them
+        SourceInv = matches[0].first;
+        TargetInv = matches[0].second;
+    } else { // multiple matches found, show a dialog
+        UE_LOG(LogTemp, Warning, TEXT("Multiple Matches found"));
+        return; // TODO show a dialog to select the input
     }
     // TODO if the input/target is untyped, and there are multiple outputs/sources, also prompt
     // TODO think about if we want the vice versa of the above
     // TODO think about depot to depot connections... if neither of them is conneected to something else in the chain...
 
     // Visually Connect Source to Target
-    FVector sourceToTarget = Target->GetActorLocation() - Source->GetActorLocation();
+    const FVector sourceToTarget = Target->GetActorLocation() - Source->GetActorLocation();
     SetActorLocation((Source->GetActorLocation() + Target->GetActorLocation()) * .5f);
     SetActorRotation(FRotationMatrix::MakeFromX(sourceToTarget).Rotator());
     SetActorRelativeScale3D(FVector(sourceToTarget.Size() / 100.f, .1f, 0.1f));

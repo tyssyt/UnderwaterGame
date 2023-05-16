@@ -10,6 +10,7 @@
 #include "Buildings/Habitat.h"
 #include "Buildings/Solar.h"
 #include "Buildings/Substation.h"
+#include "Buildings/PickupPad.h"
 
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
@@ -176,11 +177,11 @@ void ACameraPawn::ShowMouseCursor(bool showMouseCursor) {
 void ACameraPawn::SelectUnderCursor() {
 
     if (BuilderMode) {
-        AActor* building = BuilderMode->Confirm(*this);
-        if (building) {
+        ConstructionSite* constructionSite = BuilderMode->Confirm(*this);
+        if (constructionSite) {
             delete BuilderMode;
             BuilderMode = nullptr;
-            GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(building);
+            GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(constructionSite);
             //GetController<APlayerControllerX>()->UpdateSelected(building);
         }
         return;
@@ -233,7 +234,7 @@ void ACameraPawn::Hotbar1() {
             delete BuilderMode; // cancel existing Builder Mode
     }
 
-    BuilderMode = new BuildingBuilderMode(GetWorld()->SpawnActor<ADepot>(GetActorLocation(), FRotator::ZeroRotator));
+    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Depot, GetWorld());
 }
 
 void ACameraPawn::Hotbar2() {
@@ -248,8 +249,7 @@ void ACameraPawn::Hotbar2() {
             delete BuilderMode; // cancel existing Builder Mode
     }
 
-    auto smelter = GetWorld()->SpawnActor<ASmelter>(GetActorLocation(), FRotator::ZeroRotator);
-    BuilderMode = new BuildingBuilderMode(smelter);
+    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Smelter, GetWorld());
 }
 
 void ACameraPawn::Hotbar3() {
@@ -278,8 +278,7 @@ void ACameraPawn::Hotbar4() {
             delete BuilderMode; // cancel existing Builder Mode
     }
 
-    auto habitat = GetWorld()->SpawnActor<AHabitat>(GetActorLocation(), FRotator::ZeroRotator);
-    BuilderMode = new BuildingBuilderMode(habitat);
+    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Habitat, GetWorld());
 }
 
 void ACameraPawn::Hotbar5() {
@@ -294,8 +293,7 @@ void ACameraPawn::Hotbar5() {
             delete BuilderMode; // cancel existing Builder Mode
     }
 
-    auto house = GetWorld()->SpawnActor<AWorkerHouse>(GetActorLocation(), FRotator::ZeroRotator);
-    BuilderMode = new IndoorBuilderMode(house);
+    BuilderMode = new IndoorBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->WorkerHouse, GetWorld());
 }
 
 void ACameraPawn::Hotbar6() {
@@ -310,8 +308,7 @@ void ACameraPawn::Hotbar6() {
             delete BuilderMode; // cancel existing Builder Mode
     }
 
-    auto solar = GetWorld()->SpawnActor<ASolar>(GetActorLocation(), FRotator::ZeroRotator);
-    BuilderMode = new BuildingBuilderMode(solar);
+    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Solar, GetWorld());
 }
 
 void ACameraPawn::Hotbar7() {
@@ -326,10 +323,23 @@ void ACameraPawn::Hotbar7() {
             delete BuilderMode; // cancel existing Builder Mode
     }
 
-    auto substation = GetWorld()->SpawnActor<ASubstation>(GetActorLocation(), FRotator::ZeroRotator);
-    BuilderMode = new BuildingBuilderMode(substation);
+    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Substation, GetWorld());
 }
 
-void ACameraPawn::Hotbar8() {}
+void ACameraPawn::Hotbar8() {
+    APlayerControllerX* playerController = GetController<APlayerControllerX>();
+    if (!playerController || !playerController->bShowMouseCursor)
+        return;
+
+    if (BuilderMode) {
+        if (BuilderMode->IDK() == APickupPad::StaticClass())
+            return; // right Builder Mode is already active
+        else
+            delete BuilderMode; // cancel existing Builder Mode
+    }
+
+    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->PickupPad, GetWorld());
+}
+
 void ACameraPawn::Hotbar9() {}
 void ACameraPawn::Hotbar0() {}

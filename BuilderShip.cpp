@@ -53,7 +53,7 @@ void ABuilderShip::Fly() {
     FVector location = GetActorLocation();
     FRotator rotation = GetActorRotation();
 
-    FVector target = TargetSite->Building->GetActorLocation();
+    FVector target = NextStop->GetActorLocation();
     target.Z = 150.f;
     FVector toTarget = target - location;
     float targetRotation = FRotationMatrix::MakeFromX(toTarget).Rotator().Yaw; // TODO there are some toRotator function in vector, try them instead?
@@ -87,20 +87,61 @@ void ABuilderShip::Fly() {
 
     float distance = toTarget.Size();
     if (distance < speed) {
+        // We arrived
         SetActorLocation(target);
-        TargetSite->BeginConstruction();
-        State = ShipState::IDLE;
+
+        if (NextStop == PickupFrom) {
+            // collect resource
+            for (auto& input : PickupFrom->Inventory->GetInputs()) {
+                if (input.Resource == PickupMaterial.resource) {
+                    Inventory.amount = input.PullFrom(PickupMaterial.amount);
+                    Inventory.resource = PickupMaterial.resource;
+                    GetGameInstance()->TheConstructionManager->UnreserveResource(Inventory.resource, Inventory.amount);
+                }
+            }            
+            
+            NextStop = TargetSite->Building;
+        } else if (PickupMaterial.resource) {
+            // deliver resource
+            TargetSite->DeliverMaterial(Inventory);
+            Inventory.amount = 0;
+            Inventory.resource = nullptr;
+            DoNextStop();
+        } else {
+            // start construction
+            TargetSite->BeginConstruction();
+            State = ShipState::IDLE;
+        }
+        
         return;
     }
 
     FVector move = (speed / distance) * toTarget;
     SetActorLocation(location + move);
-
 }
+
 
 void ABuilderShip::StartConstructing(ConstructionSite* constructionSite) {
     SetActorTickEnabled(true);
     TargetSite = constructionSite;
     State = ShipState::FLYING;
     logasd = true;
+
+    DoNextStop();
+}
+
+void ABuilderShip::DoNextStop() {    
+    auto nextDelivery = TargetSite->GetNextDelivery(&GetGameInstance()->TheConstructionManager->constructionResources);
+
+    if (nextDelivery.first) {
+        NextStop = nextDelivery.first;
+        PickupFrom = nextDelivery.first;
+        PickupMaterial = nextDelivery.second;        
+    } else {
+        // all Material is delivered, go to Build Site and finish it
+        NextStop = TargetSite->Building;
+        PickupFrom = nullptr;
+        PickupMaterial.amount = 0;
+        PickupMaterial.resource = nullptr;
+    }
 }

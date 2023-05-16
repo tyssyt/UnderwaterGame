@@ -7,7 +7,7 @@ UElectricComponent::UElectricComponent() : State(PowerState::Initial) {
 }
 
 
-PowerState UElectricComponent::GetState() {
+PowerState UElectricComponent::GetState() const {
     return State;
 }
 

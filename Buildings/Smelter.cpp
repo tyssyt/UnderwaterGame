@@ -12,15 +12,13 @@ ASmelter::ASmelter() {
     // Structure to hold one-time initialization
     struct FConstructorStatics {
         ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        ConstructorHelpers::FObjectFinderOptional<UMaterial> BaseMaterial;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/SM_Smelter")), BaseMaterial(TEXT("/Game/BasicShapeMaterial")) {}
+        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/SM_Smelter")) {}
     };
     static FConstructorStatics ConstructorStatics;
 
     // Create static mesh component
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
-    Mesh->SetMaterial(0, ConstructorStatics.BaseMaterial.Get());
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
     Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));

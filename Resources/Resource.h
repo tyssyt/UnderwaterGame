@@ -13,7 +13,7 @@ class XD_API UResource : public UObject {
 
 public:
     UResource();
-    ~UResource();
+    virtual ~UResource() override;
     UResource* Init(FText name, int relativeInventorySize, const TCHAR* image);
 
 

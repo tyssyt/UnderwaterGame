@@ -2,6 +2,8 @@
 
 #include "PlayerControllerX.h"
 
+#include "GameInstanceX.h"
+
 APlayerControllerX::APlayerControllerX() {}
 
 void APlayerControllerX::BeginPlay() {
@@ -29,9 +31,11 @@ void APlayerControllerX::ShowMouseCursor(bool showMouseCursor) {
         SetInputMode(FInputModeGameOnly());
 }
 
-void APlayerControllerX::TickUI() {
+void APlayerControllerX::TickUI() const {
     if (SelectedUI)
         SelectedUI->Tick();
+
+    GetGameInstance<UGameInstanceX>()->TheConstructionManager->UpdateUI(BlueprintHolder->MainUI->WBP_RessourcesUI);
 }
 
 void APlayerControllerX::UpdateSelected(AActor* actor) {
@@ -48,12 +52,12 @@ void APlayerControllerX::Deselect() {
     BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), nullptr);
 }
 
-bool APlayerControllerX::GetUnderCursor(FHitResult* hitResult) {
+bool APlayerControllerX::GetUnderCursor(FHitResult* hitResult) const {
     if (!bShowMouseCursor)
         return false;
 
     float mouseX, mouseY;
-    if (GetMousePosition(mouseX, mouseY) && GetHitResultAtScreenPosition(FVector2D(mouseX, mouseY), ECollisionChannel::ECC_Visibility, true, *hitResult) && hitResult->Actor.IsValid())
+    if (GetMousePosition(mouseX, mouseY) && GetHitResultAtScreenPosition(FVector2D(mouseX, mouseY), ECollisionChannel::ECC_Visibility, true, *hitResult) && hitResult->HasValidHitObjectHandle())
         return true;
 
     return false;
