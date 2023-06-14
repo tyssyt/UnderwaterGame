@@ -4,14 +4,14 @@
 
 #include "BuilderShip.h"
 #include "ConstructionSite.h"
-#include "Buildings/PickupPad.h"
-#include "Tickable.h"
-#include "MainUI.h"
-#include "Resources/ResourceBook.h"
+#include "XD/Buildings/PickupPad.h"
+#include "XD/MainUI.h"
+#include "XD/Resources/ResourceBook.h"
 
 #include <vector>
 #include <deque>
 
+#include "Tickable.h"
 #include "ConstructionManager.generated.h"
 
 

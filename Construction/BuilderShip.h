@@ -3,10 +3,9 @@
 #pragma once
 
 #include "ConstructionSite.h"
+#include "XD/Buildings/XActor.h"
 
 #include "CoreMinimal.h"
-#include "Buildings/XActor.h"
-#include "GameFramework/Actor.h"
 #include "BuilderShip.generated.h"
 
 enum class ShipState {
@@ -32,7 +31,6 @@ public:
 
 
 protected:
-
     ShipState State = ShipState::IDLE;
     AActor* NextStop;
     

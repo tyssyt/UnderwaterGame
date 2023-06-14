@@ -1,28 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BuilderShip.h"
-#include "GameInstanceX.h"
+#include "XD/GameInstanceX.h"
+
 #include "Math/UnrealMathUtility.h"
 
-float ABuilderShip::Speed = 1.f; // why c++ be like this?
-float ABuilderShip::SlowSpeed = .333f;
+float ABuilderShip::Speed = 10.f; // why c++ be like this?
+float ABuilderShip::SlowSpeed = 3.333f;
 float ABuilderShip::RotationSpeed = 1.f;
 
 ABuilderShip::ABuilderShip() {
     PrimaryActorTick.bCanEverTick = true;
 
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        ConstructorHelpers::FObjectFinderOptional<UMaterial> BaseMaterial;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/BuilderShip")), BaseMaterial(TEXT("/Game/BasicShapeMaterial")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
     // Create static mesh component
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
-    Mesh->SetMaterial(0, ConstructorStatics.BaseMaterial.Get());
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/BuilderShip"));
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 }
 
 void ABuilderShip::BeginPlay() {
@@ -50,13 +44,13 @@ void ABuilderShip::Idle() {
 
 static bool logasd = false; // TODO remove ince turn bug is fixed
 void ABuilderShip::Fly() {
-    FVector location = GetActorLocation();
+    const FVector location = GetActorLocation();
     FRotator rotation = GetActorRotation();
 
     FVector target = NextStop->GetActorLocation();
     target.Z = 150.f;
-    FVector toTarget = target - location;
-    float targetRotation = FRotationMatrix::MakeFromX(toTarget).Rotator().Yaw; // TODO there are some toRotator function in vector, try them instead?
+    const FVector toTarget = target - location;
+    const float targetRotation = toTarget.Rotation().Yaw; // TODO there are some toRotator function in vector, try them instead?
 
     float diff = targetRotation - rotation.Yaw;
 
@@ -85,7 +79,7 @@ void ABuilderShip::Fly() {
     }
     SetActorRotation(rotation);
 
-    float distance = toTarget.Size();
+    const float distance = toTarget.Size();
     if (distance < speed) {
         // We arrived
         SetActorLocation(target);
@@ -116,7 +110,7 @@ void ABuilderShip::Fly() {
         return;
     }
 
-    FVector move = (speed / distance) * toTarget;
+    const FVector move = (speed / distance) * toTarget;
     SetActorLocation(location + move);
 }
 
@@ -130,8 +124,8 @@ void ABuilderShip::StartConstructing(ConstructionSite* constructionSite) {
     DoNextStop();
 }
 
-void ABuilderShip::DoNextStop() {    
-    auto nextDelivery = TargetSite->GetNextDelivery(&GetGameInstance()->TheConstructionManager->constructionResources);
+void ABuilderShip::DoNextStop() {
+    const auto nextDelivery = TargetSite->GetNextDelivery(&GetGameInstance()->TheConstructionManager->constructionResources);
 
     if (nextDelivery.first) {
         NextStop = nextDelivery.first;

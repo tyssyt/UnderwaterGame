@@ -4,7 +4,6 @@
 
 #include "Building.h"
 #include "XD/SelectedUI.h"
-#include "XD/Components/InventoryComponent.h"
 
 #include "Components/TextBlock.h"
 #include "Components/Image.h"

@@ -32,5 +32,4 @@ public:
 
 protected:
     PowerState State;
-
 };

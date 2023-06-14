@@ -3,12 +3,12 @@
 #include "ConstructionSite.h"
 
 #include "ConstructionManager.h"
-#include "Buildings/Building.h"
+#include "XD/Buildings/Building.h"
 
 
-ConstructionSite::ConstructionSite(AActor* building, UConstructionPlan* constructionPlan) : ConstructionSite(building, constructionPlan->Time, constructionPlan->Materials) {}
+ConstructionSite::ConstructionSite(AXActor* building, UConstructionPlan* constructionPlan) : ConstructionSite(building, constructionPlan->Time, constructionPlan->Materials) {}
 
-ConstructionSite::ConstructionSite(AActor* building, int time, std::vector<Material> materials) : Building(building), Time(time), Materials(materials) {
+ConstructionSite::ConstructionSite(AXActor* building, int time, std::vector<Material> materials) : Building(building), Time(time), Materials(materials) {
     Building->SetActorTickEnabled(false);
     ABuilding* bbuilding = Cast<ABuilding>(building); // TODO eventually we want the input of this function to be some kind of common class...
     if (bbuilding) {
@@ -19,22 +19,12 @@ ConstructionSite::ConstructionSite(AActor* building, int time, std::vector<Mater
 ConstructionSite::~ConstructionSite() {}
 
 void ConstructionSite::SetGhostMaterial(UMaterial* ghostMaterial) const {
-    UStaticMeshComponent* mesh = Building->FindComponentByClass<UStaticMeshComponent>();
-    if (mesh) {
-        for (int i=0; i<mesh->GetMaterials().Num(); ++i) {
-            mesh->SetMaterial(i, ghostMaterial);
-        }
-    }
+    Building->SetAllMaterials(ghostMaterial);
 }
 
 void ConstructionSite::BeginConstruction() const {
     // for now, construction is instant so we complete it here
-    UStaticMeshComponent* mesh = Building->FindComponentByClass<UStaticMeshComponent>();
-    if (mesh) {
-        for (int i=0; i<mesh->GetMaterials().Num(); ++i) {
-            mesh->SetMaterial(i, nullptr);
-        }
-    }
+    Building->SetAllMaterials(nullptr);
     Building->SetActorTickEnabled(true);
     
     ABuilding* building = Cast<ABuilding>(Building); // TODO eventually we want the input of this function to be some kind of common class...

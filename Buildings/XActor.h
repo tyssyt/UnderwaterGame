@@ -14,4 +14,7 @@ public:
     
     UFUNCTION(BlueprintCallable)
     class UGameInstanceX* GetGameInstance() const;
+    
+    UFUNCTION(BlueprintCallable)
+    void SetAllMaterials(UMaterialInterface* material) const;
 };

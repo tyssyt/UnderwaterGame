@@ -6,17 +6,10 @@
 
 
 APickupPad::APickupPad() {
-
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/Pickup_Pad")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/Pickup_Pad"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
     Inventory->GetInputs().Emplace(50000);

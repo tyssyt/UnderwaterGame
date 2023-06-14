@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "XD/InventorySlot.h"
+#include "InventorySlot.h"
 
 #include "CoreMinimal.h"
 #include "Containers/Array.h"
@@ -14,6 +14,8 @@ UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class XD_API UInventoryComponent : public UActorComponent {
     GENERATED_BODY()
 
+    friend class AConveyor; // to access the outputs when it's a Buffer
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FInventorySlot> Inputs;
@@ -21,12 +23,13 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FInventorySlot> Outputs;
 
+    bool IsBuffer = false;
+    
 public:
     UInventoryComponent();
 
-    bool IsBuffer = false;
+    void SetBuffer();
     TArray<FInventorySlot>& GetInputs();
     TArray<FInventorySlot>& GetOutputs();
 
-public:
 };

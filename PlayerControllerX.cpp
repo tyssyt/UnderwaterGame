@@ -51,14 +51,3 @@ void APlayerControllerX::Deselect() {
     SelectedUI = nullptr;
     BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), nullptr);
 }
-
-bool APlayerControllerX::GetUnderCursor(FHitResult* hitResult) const {
-    if (!bShowMouseCursor)
-        return false;
-
-    float mouseX, mouseY;
-    if (GetMousePosition(mouseX, mouseY) && GetHitResultAtScreenPosition(FVector2D(mouseX, mouseY), ECollisionChannel::ECC_Visibility, true, *hitResult) && hitResult->HasValidHitObjectHandle())
-        return true;
-
-    return false;
-}

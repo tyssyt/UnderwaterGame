@@ -5,7 +5,7 @@
 #include "Building.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "XD/Components/ElectricComponent.h"
+#include "XD/Electricity/ElectricComponent.h"
 #include "CoreMinimal.h"
 #include "Solar.generated.h"
 

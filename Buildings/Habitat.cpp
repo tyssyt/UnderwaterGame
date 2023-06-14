@@ -35,18 +35,10 @@ AHabitat::AHabitat() : PopulationManager(new HabitatPopulationManager(this)),
 {
     PrimaryActorTick.bCanEverTick = true;
 
-
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/SM_Habitat")) { }
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/SM_Habitat"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 }

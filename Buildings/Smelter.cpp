@@ -9,16 +9,10 @@
 ASmelter::ASmelter() {
     PrimaryActorTick.bCanEverTick = true;
 
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/SM_Smelter")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
-    Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/SM_Smelter"));
+    Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh"));
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
     Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));

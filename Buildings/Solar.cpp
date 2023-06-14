@@ -4,17 +4,10 @@
 
 
 ASolar::ASolar() {
-
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/Solar")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/Solar"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 
     Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
     Electricity->Consumption = -200;

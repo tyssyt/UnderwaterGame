@@ -2,28 +2,25 @@
 
 #pragma once
 
+#include "XActor.h"
 #include "Building.h"
-#include "XD/InventorySlot.h"
 #include "XD/SelectedUI.h"
-#include "XD/InventorySlotUI.h"
+#include "XD/Inventory/InventorySlot.h"
+#include "XD/Inventory/InventorySlotUI.h"
 
 #include "Components/TextBlock.h"
 #include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "XD/Resources/Resource.h"
 #include "Conveyor.generated.h"
 
 UCLASS()
-class XD_API AConveyor : public AActor {
+class XD_API AConveyor : public AXActor {
     GENERATED_BODY()
 
 public:
-    static AConveyor* Create(UWorld* world, ABuilding* source, ABuilding* target, int maxThroughput);
+    static AConveyor* Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, const UResource* resource);
     AConveyor();
-
-
-    UPROPERTY(EditAnywhere)
-    UStaticMeshComponent* Mesh;
 
     UPROPERTY(VisibleAnywhere)
     int Buffer = 0;
@@ -31,13 +28,15 @@ public:
     int CurrentThroughput = 0;
 
     UPROPERTY(EditAnywhere)
-    int MaxThroughput;
+    int MaxThroughput = 100;
 
     // TODO assert that Source can be pulled from, Target can be pushed into and that Source and Target have the same Item type
     UPROPERTY(EditAnywhere)
     ABuilding* Source;
     UPROPERTY(EditAnywhere)
     ABuilding* Target;
+    UPROPERTY(EditAnywhere)
+    TArray<FVector> Nodes;
 
     FInventorySlot* SourceInv;
     FInventorySlot* TargetInv;
@@ -45,12 +44,40 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    void MakeNode(FVector location);
+    void MakeLink(FVector start, FVector end);
+    void DisconnectFromSplitter(class ASplitter* splitter) const;
+    void DisconnectFromMerger(class AMerger* merger) const;
+
 public:
     virtual void Tick(float DeltaTime) override;
 
     UFUNCTION(CallInEditor, Category="Conveyor")
-    void Connect();
+    void Connect(const UResource* resource = nullptr);
 
+    static const UResource* FindCommonResource(UInventoryComponent* source, UInventoryComponent* target);
+
+    std::pair<AConveyor*, AConveyor*> SplitAt(UStaticMeshComponent* mesh, ABuilding* building);
+
+};
+
+UCLASS()
+class XD_API UConveyorLink : public UStaticMeshComponent {
+    GENERATED_BODY()
+
+public:
+    UConveyorLink();
+
+    void Connect(FVector start, FVector end);
+    
+};
+
+UCLASS()
+class XD_API UConveyorNode : public UStaticMeshComponent {
+    GENERATED_BODY()
+
+public:
+    UConveyorNode();    
 };
 
 UCLASS(Abstract)

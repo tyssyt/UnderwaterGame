@@ -2,13 +2,10 @@
 
 #pragma once
 
-#include "Buildings/Substation.h"
+#include "XD/Buildings/Substation.h"
 
 #include <vector>
 
-/**
- * 
- */
 class XD_API ElectricityNetwork {
 
 public:

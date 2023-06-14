@@ -17,6 +17,7 @@
 #include "XD/Buildings/PickupPad.h"
 
 #include "CoreMinimal.h"
+#include "ImageUI.h"
 #include "BlueprintHolder.generated.h"
 
 
@@ -89,6 +90,9 @@ public:
     TSubclassOf<UPickupPadUI> PickupPadUIClass;
     UPROPERTY()
     UPickupPadUI* PickupPadUI;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UImageUI> ImageUIClass;
 
     void Init(APlayerController* controller);
     USelectedUI* GetUI(AActor* actor) const;

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Recipes/Recipe.h"
+#include "Recipe.h"
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -57,7 +57,6 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void OnClickRecipeSelect();
-
 };
 
 UCLASS(Abstract)

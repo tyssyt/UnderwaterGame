@@ -2,21 +2,14 @@
 
 #include "Substation.h"
 
-#include "XD/ElectricityNetwork.h"
+#include "XD/Electricity/ElectricityNetwork.h"
 
 
 ASubstation::ASubstation() {
-
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/Substation")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/Substation"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 
     Network = new ElectricityNetwork(this);
 }
@@ -46,7 +39,7 @@ void ASubstation::OnConstructionComplete() {
 
     // TODO extract common submethod with the electrical component part
     const static float MAX_WIRE_DISTANCE = 500.f; // TODO propably should be a constant in Substation or ElectricityNetwork
-    static FName NAME_QUERY_PARAMS = FName(TEXT(""));
+    const static FName NAME_QUERY_PARAMS = FName(TEXT(""));
     FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, this);
     FCollisionObjectQueryParams objectqueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects); // TODO make a custom collision channel with substations and maybe electricComponents
 

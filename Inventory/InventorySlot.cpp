@@ -4,7 +4,7 @@
 #include "InventorySlot.h"
 
 FInventorySlot::FInventorySlot(): Max(0) {}
-FInventorySlot::FInventorySlot(int max, const UResource* resource) : Max(max), Resource(resource) {}
+FInventorySlot::FInventorySlot(int max, const UResource* resource, AConveyor* AConveyor) : Max(max), Resource(resource), Conveyor(AConveyor) {}
 
 FInventorySlot::~FInventorySlot() {}
 

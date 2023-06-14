@@ -5,26 +5,14 @@
 
 
 ADepot::ADepot() {
-
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/SM_Depot")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/SM_Depot"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
-    //Mesh->SetRelativeScale3D(FVector(1.f, 1.f, 0.25f));
-    //Mesh->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
-    //Mesh->SetupAttachment(DummyRoot);
-    //Mesh->OnClicked.AddDynamic(this, &AP1Block::BlockClicked);
-    //Mesh->OnInputTouchBegin.AddDynamic(this, &AP1Block::OnFingerPressedBlock);
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Inventory->IsBuffer = true;
     Inventory->GetInputs().Emplace(50000);
+    Inventory->SetBuffer();
 }
 
 void ADepot::BeginPlay() {

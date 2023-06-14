@@ -6,6 +6,13 @@ UInventoryComponent::UInventoryComponent() {
     PrimaryComponentTick.bCanEverTick = false;
 }
 
+void UInventoryComponent::SetBuffer() {
+    check(Inputs.Num() == 1);
+    check(Outputs.Num() == 0);
+    IsBuffer = true;
+    Outputs.Emplace(0); // only for storing the outgoing connection
+}
+
 TArray<FInventorySlot>& UInventoryComponent::GetInputs() {
     return Inputs;
 }

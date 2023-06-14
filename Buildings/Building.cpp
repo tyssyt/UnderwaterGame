@@ -2,7 +2,7 @@
 
 #include "Building.h"
 
-#include "XD/Components/ElectricComponent.h"
+#include "XD/Electricity/ElectricComponent.h"
 #include "Substation.h"
 
 ABuilding::ABuilding() : constructionState(ConstructionState::BuilderMode) {}
@@ -23,7 +23,7 @@ void ABuilding::OnConstructionComplete() {
     if (elec) {
         // TODO extract common submethod with Substation
         const static float MAX_WIRE_DISTANCE = 500.f; // TODO propably should be a constant in Substation or ElectricityNetwork
-        static FName NAME_QUERY_PARAMS = FName(TEXT(""));
+        const static FName NAME_QUERY_PARAMS = FName(TEXT(""));
         FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, this);
         FCollisionObjectQueryParams objectqueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects); // TODO make a custom collision channel with substations and maybe electricComponents
 

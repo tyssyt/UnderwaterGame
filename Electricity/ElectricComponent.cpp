@@ -27,7 +27,7 @@ void UElectricComponent::SetState(PowerState newState) {
 
             DisabledSymbol->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Unpowered"))); // TODO probably want to load this in another way?
             DisabledSymbol->SetRelativeLocation(FVector(.0f, .0f, 60.f));
-            DisabledSymbol->SetHiddenInGame(false);
+            DisabledSymbol->SetVisibility(false);
         }
         break;
     case PowerState::Powered:

@@ -15,9 +15,6 @@ class XD_API ACameraPawn : public APawn {
 public:
     ACameraPawn();
 
-    UPROPERTY(EditAnywhere)
-    UMaterial* RedGhostMaterial;
-
 protected:
     virtual void BeginPlay() override;
 
@@ -27,8 +24,8 @@ protected:
     UPROPERTY(EditAnywhere)
     UPawnMovementComponent* MovementComponent;
 
-
-    class BuilderMode* BuilderMode;
+    UPROPERTY(EditAnywhere)
+    class UBuilderMode* BuilderMode;
 
 public:
     virtual void Tick(float DeltaTime) override;
@@ -40,8 +37,8 @@ public:
     void Turn(float val);
     void LookUp(float val);
 
-    bool IsShowMouseCursor();
-    void ShowMouseCursor(bool isControlledByMouse);
+    bool IsShowMouseCursor() const;
+    void ShowMouseCursor(bool isControlledByMouse) const;
     void ShowMouseCursorTrue();
     void ShowMouseCursorFalse();
 

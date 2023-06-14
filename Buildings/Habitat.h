@@ -5,15 +5,13 @@
 #include "Building.h"
 #include "IndoorBuilding.h"
 #include "XD/SelectedUI.h"
+#include "XD/Inventory/InventorySlotUI.h"
+#include "XD/Inventory/InventoryComponent.h"
+#include "XD/PopulationManager/HabitatPopulationManager.h"
 
 #include <utility>
-#include <vector>
 
-#include "Components/Image.h"
 #include "CoreMinimal.h"
-#include "XD/InventorySlotUI.h"
-#include "XD/Components/InventoryComponent.h"
-#include "XD/PopulationManager/HabitatPopulationManager.h"
 #include "Habitat.generated.h"
 
 UCLASS()

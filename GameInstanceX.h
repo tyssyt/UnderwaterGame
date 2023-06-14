@@ -5,7 +5,7 @@
 #include "Resources/ResourceBook.h"
 #include "Recipes/RecipeBook.h"
 #include "Buildings/BuildingBook.h"
-#include "ConstructionManager.h"
+#include "Construction/ConstructionManager.h"
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"

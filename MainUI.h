@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "InventorySlotUI.h"
+#include "Inventory/InventorySlotUI.h"
 #include "MainUI.generated.h"
 
 UCLASS(Abstract)

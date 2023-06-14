@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "XD/Resources/ResourceBook.h"
 #include "ConstructionPlan.h"
+
 #include "UObject/Object.h"
 #include "BuildingBook.generated.h"
 
@@ -33,4 +35,8 @@ public:
     UConstructionPlan* Substation;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UConstructionPlan* WorkerHouse;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UConstructionPlan* Splitter;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UConstructionPlan* Merger;
 };

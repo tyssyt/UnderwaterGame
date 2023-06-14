@@ -3,9 +3,7 @@
 #pragma once
 
 #include "XD/SelectedUI.h"
-#include "XD/Components/InventoryComponent.h"
 
-#include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "CoreMinimal.h"
 #include "XD/Buildings/XActor.h"

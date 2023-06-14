@@ -4,8 +4,8 @@
 
 #include "Building.h"
 #include "XD/SelectedUI.h"
-#include "XD/Components/InventoryComponent.h"
-#include "XD/InventorySlotUI.h"
+#include "XD/Inventory/InventoryComponent.h"
+#include "XD/Inventory/InventorySlotUI.h"
 
 #include "CoreMinimal.h"
 #include "PickupPad.generated.h"

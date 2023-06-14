@@ -3,7 +3,7 @@
 
 #include "CameraPawn.h"
 #include "PlayerControllerX.h"
-#include "BuilderMode.h"
+#include "Construction/BuilderMode.h"
 #include "GameInstanceX.h"
 
 #include "Buildings/WorkerHouse.h"
@@ -34,16 +34,6 @@ ACameraPawn::ACameraPawn() {
 
     CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
     CameraComponent->SetupAttachment(RootComponent);
-
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UMaterial> RedGhostMaterial;
-        FConstructorStatics() : RedGhostMaterial(TEXT("/Game/RedGhostMaterial")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
-    RedGhostMaterial = ConstructorStatics.RedGhostMaterial.Get();
 }
 
 // Called when the game starts or when spawned
@@ -56,14 +46,10 @@ void ACameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
     //TODO scale isn't working in some places, fix!
-    UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveForward", EKeys::W, 1.f));
-    UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveForward", EKeys::S, -1.f));
     UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveForward", EKeys::Up, 1.f));
     UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveForward", EKeys::Down, -1.f));
     PlayerInputComponent->BindAxis("MoveForward", this, &ACameraPawn::MoveForward);
 
-    UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveRight", EKeys::A, -1.f));
-    UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveRight", EKeys::D, 1.f));
     UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveRight", EKeys::Left, -1.f));
     UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("MoveRight", EKeys::Right, 1.f));
     PlayerInputComponent->BindAxis("MoveRight", this, &ACameraPawn::MoveRight);
@@ -109,6 +95,15 @@ void ACameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
     PlayerInputComponent->BindAction("Hotbar9", EInputEvent::IE_Pressed, this, &ACameraPawn::Hotbar9);
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("Hotbar0", EKeys::Zero));
     PlayerInputComponent->BindAction("Hotbar0", EInputEvent::IE_Pressed, this, &ACameraPawn::Hotbar0);
+
+    // Actions of BuilderMode
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("PushBlueprintUp", EKeys::W));
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("PushBlueprintDown", EKeys::S));
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("PushBlueprintLeft", EKeys::A));
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("PushBlueprintRight", EKeys::D));
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("RotateBlueprintLeft", EKeys::Q));
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("RotateBlueprintRight", EKeys::E));
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("RotateBlueprint90", EKeys::R));
 }
 
 // Called every frame
@@ -119,8 +114,8 @@ void ACameraPawn::Tick(float DeltaTime) {
     if (playerController)
         playerController->TickUI();
 
-    if (BuilderMode)
-        BuilderMode->Tick(*this);
+    if (BuilderMode && BuilderMode->Tick(*this))
+        BuilderMode = nullptr;
 }
 
 void ACameraPawn::MoveForward(float val) {
@@ -155,7 +150,7 @@ void ACameraPawn::LookUp(float val) {
 }
 
 
-bool ACameraPawn::IsShowMouseCursor() {
+bool ACameraPawn::IsShowMouseCursor() const {
     APlayerControllerX* playerController = GetController<APlayerControllerX>();
     return playerController && playerController->bShowMouseCursor;
 }
@@ -168,45 +163,19 @@ void ACameraPawn::ShowMouseCursorFalse() {
     ShowMouseCursor(false);
 }
 
-void ACameraPawn::ShowMouseCursor(bool showMouseCursor) {
+void ACameraPawn::ShowMouseCursor(bool showMouseCursor) const {
     APlayerControllerX* playerController = GetController<APlayerControllerX>();
     if (playerController)
         playerController->ShowMouseCursor(showMouseCursor);
 }
 
 void ACameraPawn::SelectUnderCursor() {
-
-    if (BuilderMode) {
-        ConstructionSite* constructionSite = BuilderMode->Confirm(*this);
-        if (constructionSite) {
-            delete BuilderMode;
-            BuilderMode = nullptr;
-            GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(constructionSite);
-            //GetController<APlayerControllerX>()->UpdateSelected(building);
-        }
-        return;
-    }
-
     APlayerControllerX* playerController = GetController<APlayerControllerX>();
     if (playerController) {
         AActor* underCursor = playerController->GetUnderCursor<AActor>();
         if (underCursor)
             playerController->UpdateSelected(underCursor);
     }
-
-    /*
-
-    if (playerController && playerController->bShowMouseCursor) {
-        float mouseX, mouseY;
-        FHitResult hitResult;
-        if (playerController->GetMousePosition(mouseX, mouseY) && playerController->GetHitResultAtScreenPosition(FVector2D(mouseX, mouseY), ECollisionChannel::ECC_Visibility, false, hitResult)) {
-            if (hitResult.Actor.IsValid()) {
-                playerController->UpdateSelected(hitResult.Actor.Get());
-            }
-        }
-    }
-
-    */
 }
 
 void ACameraPawn::Deselect() {
@@ -216,7 +185,7 @@ void ACameraPawn::Deselect() {
     }
 
     if (BuilderMode) {
-        delete BuilderMode;
+        BuilderMode->Stop();
         BuilderMode = nullptr;
     }
 }
@@ -231,10 +200,10 @@ void ACameraPawn::Hotbar1() {
         if (BuilderMode->IDK() == ADepot::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop();
     }
 
-    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Depot, GetWorld());
+    BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Depot, GetWorld());
 }
 
 void ACameraPawn::Hotbar2() {
@@ -246,10 +215,10 @@ void ACameraPawn::Hotbar2() {
         if (BuilderMode->IDK() == ASmelter::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
 
-    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Smelter, GetWorld());
+    BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Smelter, GetWorld());
 }
 
 void ACameraPawn::Hotbar3() {
@@ -261,9 +230,9 @@ void ACameraPawn::Hotbar3() {
         if (BuilderMode->IDK() == AConveyor::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
-    BuilderMode = new ConveyorBuilderMode();
+    BuilderMode = NewObject<UConveyorBuilderMode>(this)->Init();
 }
 
 void ACameraPawn::Hotbar4() {
@@ -275,10 +244,10 @@ void ACameraPawn::Hotbar4() {
         if (BuilderMode->IDK() == AHabitat::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
 
-    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Habitat, GetWorld());
+    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Habitat, GetWorld());
 }
 
 void ACameraPawn::Hotbar5() {
@@ -290,10 +259,10 @@ void ACameraPawn::Hotbar5() {
         if (BuilderMode->IDK() == AWorkerHouse::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
 
-    BuilderMode = new IndoorBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->WorkerHouse, GetWorld());
+    BuilderMode = NewObject<UIndoorBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->WorkerHouse, GetWorld());
 }
 
 void ACameraPawn::Hotbar6() {
@@ -305,10 +274,10 @@ void ACameraPawn::Hotbar6() {
         if (BuilderMode->IDK() == ASolar::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
 
-    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Solar, GetWorld());
+    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Solar, GetWorld());
 }
 
 void ACameraPawn::Hotbar7() {
@@ -320,10 +289,10 @@ void ACameraPawn::Hotbar7() {
         if (BuilderMode->IDK() == ASubstation::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
 
-    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Substation, GetWorld());
+    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Substation, GetWorld());
 }
 
 void ACameraPawn::Hotbar8() {
@@ -335,10 +304,10 @@ void ACameraPawn::Hotbar8() {
         if (BuilderMode->IDK() == APickupPad::StaticClass())
             return; // right Builder Mode is already active
         else
-            delete BuilderMode; // cancel existing Builder Mode
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
 
-    BuilderMode = new BuildingBuilderMode(GetGameInstance<UGameInstanceX>()->TheBuildingBook->PickupPad, GetWorld());
+    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->PickupPad, GetWorld());
 }
 
 void ACameraPawn::Hotbar9() {}

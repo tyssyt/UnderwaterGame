@@ -4,17 +4,10 @@
 #include "Habitat.h"
 
 AWorkerHouse::AWorkerHouse() {
-
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh;
-        FConstructorStatics() : PlaneMesh(TEXT("/Game/Assets/Meshes/WorkerHouse")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
+    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/WorkerHouse"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(ConstructorStatics.PlaneMesh.Get());
+    Mesh->SetStaticMesh(PlaneMesh.Get());
+    SetRootComponent(Mesh);
 }
 
 void AWorkerHouse::BeginPlay() {
@@ -40,7 +33,6 @@ const std::vector<Coordinate>* AWorkerHouse::getGridOffsets() {
     }
     return nullptr;
 }
-
 
 
 void UWorkerHouseUI::Tick() {

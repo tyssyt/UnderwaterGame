@@ -10,6 +10,8 @@
 #include "GameFramework/PlayerController.h"
 #include "PlayerControllerX.generated.h"
 
+#define COLLISION_LANDSCAPE ECC_GameTraceChannel1
+
 UCLASS(Abstract)
 class XD_API APlayerControllerX : public APlayerController {
     GENERATED_BODY()
@@ -34,14 +36,11 @@ public:
     void UpdateSelected(AActor* actor);
     void Deselect();
 
-    template <class T> T* GetUnderCursor() {
+    template <class T> T* GetUnderCursor() const {
         FHitResult hitResult;
-        if (GetUnderCursor(&hitResult))
+        if (GetHitResultUnderCursor(ECC_Visibility, true, hitResult))
             return Cast<T>(hitResult.GetActor());
         return nullptr;
     }
-
-    bool GetUnderCursor(FHitResult*) const;
-
 
 };

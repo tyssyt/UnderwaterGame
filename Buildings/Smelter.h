@@ -4,12 +4,11 @@
 
 #include "Building.h"
 #include "XD/SelectedUI.h"
-#include "XD/InventorySlotUI.h"
-#include "XD/Components/InventoryComponent.h"
-#include "XD/Components/ElectricComponent.h"
+#include "XD/Inventory/InventorySlotUI.h"
+#include "XD/Inventory/InventoryComponent.h"
+#include "XD/Electricity/ElectricComponent.h"
 #include "XD/Recipes/Recipe.h"
-#include "XD/Recipes/RecipeBook.h"
-#include "XD/RecipeSelectorUI.h"
+#include "XD/Recipes/RecipeSelectorUI.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"

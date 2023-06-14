@@ -2,20 +2,20 @@
 
 #pragma once
 
-#include "Buildings/ConstructionPlan.h"
-#include "Buildings/PickupPad.h"
+#include "XD/Buildings/ConstructionPlan.h"
+#include "XD/Buildings/PickupPad.h"
 #include "GameFramework/Actor.h"
 
 class XD_API ConstructionSite {
 public:
-    ConstructionSite(AActor* building, UConstructionPlan* constructionPlan); 
-    ConstructionSite(AActor* building, int time, std::vector<Material> materials);
+    ConstructionSite(AXActor* building, UConstructionPlan* constructionPlan); 
+    ConstructionSite(AXActor* building, int time, std::vector<Material> materials);
     ~ConstructionSite();
     
     void SetGhostMaterial(UMaterial* ghostMaterial) const;
     void BeginConstruction() const;
 
-    AActor* Building;
+    AXActor* Building;
     int Time;    
     std::vector<Material> Materials;
     //class ABuilderShip* BuilderShip;

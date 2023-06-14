@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Building.h"
-#include "XD/Components/ElectricComponent.h"
+#include "XD/Electricity/ElectricComponent.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"

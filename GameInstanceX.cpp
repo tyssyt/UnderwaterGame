@@ -9,8 +9,8 @@ UGameInstanceX::UGameInstanceX() {
 
 void UGameInstanceX::Init() {
     UE_LOG(LogTemp, Warning, TEXT("GameInstanceX Init"));
-    TheResourceBook = NewObject<UResourceBook>();
-    TheRecipeBook = NewObject<URecipeBook>()->Init(TheResourceBook);
-    TheBuildingBook = NewObject<UBuildingBook>()->Init(TheResourceBook);
-    TheConstructionManager = NewObject<UConstructionManager>()->Init(TheResourceBook);
+    TheResourceBook = NewObject<UResourceBook>(this);
+    TheRecipeBook = NewObject<URecipeBook>(this)->Init(TheResourceBook);
+    TheBuildingBook = NewObject<UBuildingBook>(this)->Init(TheResourceBook);
+    TheConstructionManager = NewObject<UConstructionManager>(this)->Init(TheResourceBook);
 }

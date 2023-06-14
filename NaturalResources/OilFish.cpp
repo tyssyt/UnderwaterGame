@@ -23,6 +23,7 @@ AOilFish::AOilFish() {
     Mesh->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
     Mesh->SetRelativeScale3D(FVector(1.f, 1.f, .25f));
     Mesh->SetMaterial(0, ConstructorStatics.BaseMaterial.Get());
+    SetRootComponent(Mesh);
 }
 
 void AOilFish::BeginPlay() {
