@@ -22,12 +22,26 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* ConductiveOre;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    UResource* Cable;
+    UResource* ConductiveParts;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* Oil;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* Rubber;
+
+    // TODO Sand
+    // TODO Glass
+
+    // TODO Food
+    // TODO Algae
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UResource* MechanicalComponents;    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UResource* ElectricalComponents;    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UResource* Cable;
+    // TODO LSE
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* People;

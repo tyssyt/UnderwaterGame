@@ -67,6 +67,7 @@ void UArrowMover::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
     if (!playerController || !playerController->bShowMouseCursor || !playerController->IsInputKeyDown(EKeys::LeftMouseButton)) {
         SetComponentTickEnabled(false);
         Lowlight();
+        EndMove();
         return;
     }
 
@@ -83,12 +84,6 @@ UArrowMoverLine::UArrowMoverLine() {
 }
 
 void UArrowMoverLine::Move() {
-    /* TODO
-     * Currently, this always centers the model such that the middle of the arrow is under the Mouse.
-     * That means if we don't click in the exact center of the arrow, everything will shift right at the beginning of the move.
-     * Instead, on the start of the move we should remember the offset of the initial click and use that when moving the arrow.
-     */
-    
     const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
     
     // Get Mouse in World
@@ -110,10 +105,19 @@ void UArrowMoverLine::Move() {
     FVector projection = (intersect - arrowLocation).ProjectOnToNormal(GetComponentRotation().Vector()) + arrowLocation;
     projection.Z = arrowLocation.Z; // fix rounding
     
-    // Move Arrow to Projected Mouse Pos
-    GetAttachParent()->AddWorldOffset(projection - arrowLocation);
 
-    OnArrowMoved.ExecuteIfBound();
+    if (FMath::IsNaN(MouseOffset.X)) {
+        // On first call to move, compute Offset
+        MouseOffset = projection - arrowLocation;
+    } else {
+        // Move Arrow to Projected Mouse Pos
+        GetAttachParent()->AddWorldOffset(projection - (arrowLocation + MouseOffset));
+        OnArrowMoved.ExecuteIfBound();
+    }
+}
+
+void UArrowMoverLine::EndMove() {
+    MouseOffset.X = NAN;
 }
 
 
@@ -197,4 +201,6 @@ void UArrowMoverRotate::Move() {
     FRotator buildingToMouseRot = buildingToMouse.Rotation(); // TODO check if there is a 2D variant of this, should not be to hard
     buildingToMouseRot.Yaw += playerController->PlayerCameraManager->GetCameraRotation().Yaw;
     GetAttachParent()->SetWorldRotation(buildingToMouseRot);
+    
+    OnArrowMoved.ExecuteIfBound();
 }

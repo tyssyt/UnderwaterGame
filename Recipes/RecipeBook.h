@@ -16,5 +16,6 @@ public:
     URecipeBook* Init(UResourceBook* resourceBook);
 
     TArray<Recipe*> SmelterRecipes;
+    TArray<Recipe*> AssemblyLineRecipes;
 
 };

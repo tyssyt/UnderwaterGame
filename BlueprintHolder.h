@@ -15,6 +15,7 @@
 #include "Buildings/Habitat.h"
 #include "Buildings/WorkerHouse.h"
 #include "XD/Buildings/PickupPad.h"
+#include "XD/Buildings/AssemblyLine.h"
 
 #include "CoreMinimal.h"
 #include "ImageUI.h"
@@ -90,6 +91,11 @@ public:
     TSubclassOf<UPickupPadUI> PickupPadUIClass;
     UPROPERTY()
     UPickupPadUI* PickupPadUI;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UAssemblyLineUI> AssemblyLineUIClass;
+    UPROPERTY()
+    UAssemblyLineUI* AssemblyLineUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UImageUI> ImageUIClass;

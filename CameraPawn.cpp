@@ -310,5 +310,18 @@ void ACameraPawn::Hotbar8() {
     BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->PickupPad, GetWorld());
 }
 
-void ACameraPawn::Hotbar9() {}
+void ACameraPawn::Hotbar9() {
+    APlayerControllerX* playerController = GetController<APlayerControllerX>();
+    if (!playerController || !playerController->bShowMouseCursor)
+        return;
+
+    if (BuilderMode) {
+        if (BuilderMode->IDK() == AAssemblyLine::StaticClass())
+            return; // right Builder Mode is already active
+        else
+            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
+    }
+
+    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->AssemblyLine, GetWorld());    
+}
 void ACameraPawn::Hotbar0() {}

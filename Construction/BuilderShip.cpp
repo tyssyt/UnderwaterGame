@@ -5,9 +5,9 @@
 
 #include "Math/UnrealMathUtility.h"
 
-float ABuilderShip::Speed = 10.f; // why c++ be like this?
-float ABuilderShip::SlowSpeed = 3.333f;
-float ABuilderShip::RotationSpeed = 1.f;
+double ABuilderShip::Speed = 10.f; // why c++ be like this?
+double ABuilderShip::SlowSpeed = 3.333f;
+double ABuilderShip::RotationSpeed = 1.f;
 
 ABuilderShip::ABuilderShip() {
     PrimaryActorTick.bCanEverTick = true;
@@ -42,76 +42,65 @@ void ABuilderShip::Idle() {
 }
 
 
-static bool logasd = false; // TODO remove ince turn bug is fixed
 void ABuilderShip::Fly() {
     const FVector location = GetActorLocation();
-    FRotator rotation = GetActorRotation();
 
     FVector target = NextStop->GetActorLocation();
     target.Z = 150.f;
     const FVector toTarget = target - location;
-    const float targetRotation = toTarget.Rotation().Yaw; // TODO there are some toRotator function in vector, try them instead?
+    const double targetRotation = toTarget.Rotation().Yaw;
 
-    float diff = targetRotation - rotation.Yaw;
+    double rotDiff = targetRotation - GetActorRotation().Yaw;
+    while (rotDiff < -180.)
+        rotDiff += 360.;
+    while (rotDiff > 180.)
+        rotDiff -= 360.;
 
-    // TODO still sometimes rotates the wrong way round, this actually doen't fix it
-    if (diff > 180.f) {
-        diff -= 360.f;
-    } else if (diff < -180.f) {
-        diff += 360.f;
-    }
-
-    float speed;
-    if (FMath::Abs(diff) < RotationSpeed) {
+    double speed;
+    if (FMath::Abs(rotDiff) < RotationSpeed) {
         speed = Speed;
-        rotation.Yaw = targetRotation;
+        SetActorRotation(FRotator(0., targetRotation, 0.));
     } else {
-        if (logasd) {
-            UE_LOG(LogTemp, Warning, TEXT("Rotation: %f"), diff);
-            logasd = false;
-        }
         speed = SlowSpeed;
-        if (targetRotation > 0.f) {
-            rotation.Yaw += RotationSpeed;
+        if (rotDiff > 0.f) {
+            AddActorWorldRotation(FRotator(0., RotationSpeed, 0.));
         } else {
-            rotation.Yaw -= RotationSpeed;
+            AddActorWorldRotation(FRotator(0., -RotationSpeed, 0.));
         }
     }
-    SetActorRotation(rotation);
 
-    const float distance = toTarget.Size();
-    if (distance < speed) {
-        // We arrived
-        SetActorLocation(target);
-
-        if (NextStop == PickupFrom) {
-            // collect resource
-            for (auto& input : PickupFrom->Inventory->GetInputs()) {
-                if (input.Resource == PickupMaterial.resource) {
-                    Inventory.amount = input.PullFrom(PickupMaterial.amount);
-                    Inventory.resource = PickupMaterial.resource;
-                    GetGameInstance()->TheConstructionManager->UnreserveResource(Inventory.resource, Inventory.amount);
-                }
-            }            
-            
-            NextStop = TargetSite->Building;
-        } else if (PickupMaterial.resource) {
-            // deliver resource
-            TargetSite->DeliverMaterial(Inventory);
-            Inventory.amount = 0;
-            Inventory.resource = nullptr;
-            DoNextStop();
-        } else {
-            // start construction
-            TargetSite->BeginConstruction();
-            State = ShipState::IDLE;
-        }
-        
+    const double distance = toTarget.Size();
+    if (distance > speed) {
+        AddActorWorldOffset(speed / distance * toTarget);
         return;
     }
+    
+    // We arrived
+    SetActorLocation(target);
 
-    const FVector move = (speed / distance) * toTarget;
-    SetActorLocation(location + move);
+    if (NextStop == PickupFrom) {
+        // collect resource
+        for (auto& input : PickupFrom->Inventory->GetInputs()) {
+            if (input.Resource == PickupMaterial.resource) {
+                Inventory.resource = PickupMaterial.resource;
+                Inventory.amount = input.PullFrom(PickupMaterial.amount);
+                GetGameInstance()->TheConstructionManager->UnreserveResource(Inventory.resource, Inventory.amount);
+            }
+        }
+        
+        NextStop = TargetSite->Building;
+    } else if (PickupMaterial.resource) {
+        // deliver resource
+        TargetSite->DeliverMaterial(Inventory);
+        Inventory.amount = 0;
+        Inventory.resource = nullptr;
+        DoNextStop();
+    } else {
+        // start construction
+        TargetSite->BeginConstruction();
+        State = ShipState::IDLE;
+    }
+
 }
 
 
@@ -119,7 +108,6 @@ void ABuilderShip::StartConstructing(ConstructionSite* constructionSite) {
     SetActorTickEnabled(true);
     TargetSite = constructionSite;
     State = ShipState::FLYING;
-    logasd = true;
 
     DoNextStop();
 }

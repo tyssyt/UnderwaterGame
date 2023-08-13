@@ -15,6 +15,8 @@ class XD_API UArrowMover : public UStaticMeshComponent {
 public:
     UArrowMover();
 
+    FOnArrowMovedEvent OnArrowMoved;
+
 protected:
     virtual void BeginPlay() override;
 
@@ -31,6 +33,7 @@ protected:
     void Lowlight() const;
 
     virtual void Move() {}
+    virtual void EndMove() {}
 
 public:
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -42,13 +45,14 @@ UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class XD_API UArrowMoverLine : public UArrowMover {
     GENERATED_BODY()
 
+    FVector MouseOffset = FVector(NAN);
+
 public:
     UArrowMoverLine();
 
-    FOnArrowMovedEvent OnArrowMoved;
-
 protected:
     virtual void Move() override;
+    virtual void EndMove() override;
 };
 
 
@@ -62,8 +66,6 @@ public:
     UArrowMoverUp();
 
     virtual void BeginPlay() override;
-
-    FOnArrowMovedEvent OnArrowMoved;
 
 protected:
     virtual void Move() override;

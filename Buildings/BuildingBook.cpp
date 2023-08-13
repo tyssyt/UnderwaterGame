@@ -3,6 +3,7 @@
 
 #include "BuildingBook.h"
 
+#include "AssemblyLine.h"
 #include "ConductiveOreMine.h"
 #include "Depot.h"
 #include "Habitat.h"
@@ -31,6 +32,7 @@ UBuildingBook* UBuildingBook::Init(const UResourceBook* resourceBook) {
     WorkerHouse = NewObject<UConstructionPlan>(this)->Init(AWorkerHouse::StaticClass(), FText::FromString(TEXT("Worker House")), TEXT("/Game/Assets/Resources/Unpowered"), 1, {Material(10, resourceBook->LargeParts)});
     Splitter = NewObject<UConstructionPlan>(this)->Init(ASplitter::StaticClass(), FText::FromString(TEXT("Splitter")), TEXT("/Game/Assets/Resources/Unpowered"), 1, {Material(10, resourceBook->LargeParts)});
     Merger = NewObject<UConstructionPlan>(this)->Init(AMerger::StaticClass(), FText::FromString(TEXT("Merger")), TEXT("/Game/Assets/Resources/Unpowered"), 1, {Material(10, resourceBook->LargeParts)});
+    AssemblyLine = NewObject<UConstructionPlan>(this)->Init(AAssemblyLine::StaticClass(), FText::FromString(TEXT("Assembly Line")), TEXT("/Game/Assets/Resources/Unpowered"), 1, {Material(10, resourceBook->LargeParts)});
     
     return this;
 }

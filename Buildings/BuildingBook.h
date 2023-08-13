@@ -39,4 +39,6 @@ public:
     UConstructionPlan* Splitter;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UConstructionPlan* Merger;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UConstructionPlan* AssemblyLine;
 };

@@ -23,9 +23,9 @@ public:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-    static float Speed;
-    static float SlowSpeed;
-    static float RotationSpeed;
+    static double Speed;
+    static double SlowSpeed;
+    static double RotationSpeed;
 
     void StartConstructing(ConstructionSite* constructionSite);
 

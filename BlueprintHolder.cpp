@@ -18,6 +18,7 @@ void UBlueprintHolder::Init(APlayerController* controller) {
     HabitatUI = CreateWidget<UHabitatUI>(controller, HabitatUIClass);
     WorkerHouseUI = CreateWidget<UWorkerHouseUI>(controller, WorkerHouseUIClass);
     PickupPadUI = CreateWidget<UPickupPadUI>(controller, PickupPadUIClass);
+    AssemblyLineUI = CreateWidget<UAssemblyLineUI>(controller, AssemblyLineUIClass);
 }
 
 USelectedUI* UBlueprintHolder::GetUI(AActor* actor) const {
@@ -68,6 +69,10 @@ USelectedUI* UBlueprintHolder::GetUI(AActor* actor) const {
     if (actor->IsA(APickupPad::StaticClass())) {
         PickupPadUI->PickupPad = Cast<APickupPad>(actor);
         return PickupPadUI;
+    }
+    if (actor->IsA(AAssemblyLine::StaticClass())) {
+        AssemblyLineUI->AssemblyLine = Cast<AAssemblyLine>(actor);
+        return AssemblyLineUI;
     }
     return nullptr;
 }
