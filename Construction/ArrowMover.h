@@ -61,14 +61,14 @@ class XD_API UArrowMoverUp : public UArrowMover {
     GENERATED_BODY()
 
     double MinZ = NAN;
+    double MouseOffset = NAN;
 
 public:
     UArrowMoverUp();
 
-    virtual void BeginPlay() override;
-
 protected:
     virtual void Move() override;
+    virtual void EndMove() override;
 };
 
 
@@ -76,9 +76,12 @@ UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class XD_API UArrowMoverRotate : public UArrowMover {
     GENERATED_BODY()
 
+    double MouseOffset = NAN;
+
 public:
     UArrowMoverRotate();
 
 protected:
     virtual void Move() override;    
+    virtual void EndMove() override;
 };

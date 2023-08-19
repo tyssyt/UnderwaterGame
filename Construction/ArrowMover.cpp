@@ -3,6 +3,7 @@
 
 #include "ArrowMover.h"
 
+#include "Kismet/KismetMathLibrary.h"
 #include "XD/PlayerControllerX.h"
 
 
@@ -62,7 +63,7 @@ void UArrowMover::Lowlight() const {
 void UArrowMover::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    APlayerController* playerController = GetWorld()->GetFirstPlayerController();
+    const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
     // check if left mouse button is pressed, otherwise stop ticking
     if (!playerController || !playerController->bShowMouseCursor || !playerController->IsInputKeyDown(EKeys::LeftMouseButton)) {
         SetComponentTickEnabled(false);
@@ -92,11 +93,13 @@ void UArrowMoverLine::Move() {
         return;
     }
 
-    // Intersect mouse with z-Plane of arrow
     if (FMath::IsNearlyZero(mouseDir.Z))
         return;
-    FVector arrowLocation = GetComponentLocation();
-    double distance = (arrowLocation.Z - mouseOrigin.Z) / mouseDir.Z;
+
+    const FVector arrowLocation = GetComponentLocation();
+    
+    // Intersect mouse with z-Plane of arrow
+    const double distance = (arrowLocation.Z - mouseOrigin.Z) / mouseDir.Z;
     FVector intersect = mouseOrigin + mouseDir * distance;
     intersect.Z = arrowLocation.Z; // fix rounding
 
@@ -109,11 +112,12 @@ void UArrowMoverLine::Move() {
     if (FMath::IsNaN(MouseOffset.X)) {
         // On first call to move, compute Offset
         MouseOffset = projection - arrowLocation;
-    } else {
-        // Move Arrow to Projected Mouse Pos
-        GetAttachParent()->AddWorldOffset(projection - (arrowLocation + MouseOffset));
-        OnArrowMoved.ExecuteIfBound();
+        return;
     }
+    
+    // Move Arrow to Projected Mouse Pos
+    GetAttachParent()->AddWorldOffset(projection - (arrowLocation + MouseOffset));
+    OnArrowMoved.ExecuteIfBound();
 }
 
 void UArrowMoverLine::EndMove() {
@@ -127,17 +131,7 @@ UArrowMoverUp::UArrowMoverUp() {
     SetRelativeRotation(FRotator(90, 0, 0));
 }
 
-void UArrowMoverUp::BeginPlay() {
-    Super::BeginPlay();
-}
-
 void UArrowMoverUp::Move() {
-    /* TODO
-     * Currently, this always centers the model such that the middle of the arrow is under the Mouse.
-     * That means if we don't click in the exact center of the arrow, everything will shift right at the beginning of the move.
-     * Instead, on the start of the move we should remember the offset of the initial click and use that when moving the arrow.
-     */    
-
     const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
     
     // Get Mouse in World
@@ -153,9 +147,9 @@ void UArrowMoverUp::Move() {
     
     if (FMath::IsNaN(MinZ)) {
         // find the height of the landscape below this
-        FHitResult hitResult;
         FCollisionQueryParams queryParams;
         queryParams.bTraceComplex = true;
+        FHitResult hitResult;
         if (!GetWorld()->LineTraceSingleByChannel(hitResult, arrowLocation, arrowLocation + FVector(0., 0., -1.) * playerController->HitResultTraceDistance, COLLISION_LANDSCAPE, queryParams))
             return;
 
@@ -165,8 +159,14 @@ void UArrowMoverUp::Move() {
 
     const double intersectZ = FMath::LinePlaneIntersection(mouseOrigin, mouseOrigin + mouseDir, arrowLocation, FVector(mouseDir.X, mouseDir.Y, 0)).Z;
 
+    if (FMath::IsNaN(MouseOffset)) {
+        // On first call to move, compute Offset
+        MouseOffset = intersectZ - arrowLocation.Z;
+        return;
+    }
+    
     const FVector parentLoc = GetAttachParent()->GetComponentLocation();
-    const double newParentZ = intersectZ + (parentLoc.Z - arrowLocation.Z);
+    const double newParentZ = intersectZ + (parentLoc.Z - arrowLocation.Z - MouseOffset);
     
     double heightOverMinZ = FMath::Max(newParentZ - MinZ, 0.);
     static double HEIGHT_STEPS = 25;
@@ -178,29 +178,54 @@ void UArrowMoverUp::Move() {
     OnArrowMoved.ExecuteIfBound();
 }
 
+void UArrowMoverUp::EndMove() {
+    MouseOffset = NAN;
+}
+
 UArrowMoverRotate::UArrowMoverRotate() {    
     static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/RoundArrow"));
     UStaticMeshComponent::SetStaticMesh(PlaneMesh.Get());
 }
 
 void UArrowMoverRotate::Move() {
-    /* TODO
-     * The Movement is non intuitive. We move in such a way that the Building faces the mouse, however this means that the mouse
-     * does not "Grab" the hovering arrow, which is what most people would expect, especially since thats the way the Line mover works
-     */
     const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
+    
+    // Get Mouse in World
+    FVector mouseOrigin, mouseDir;
+    if (!playerController->DeprojectMousePositionToWorld(mouseOrigin, mouseDir)) {
+        return;
+    }
 
-    // project building into screenspace
-    float mouseX, mouseY;
-    FVector2D screenLocation;
-    if (!playerController->GetMousePosition(mouseX, mouseY) || !playerController->ProjectWorldLocationToScreen(GetAttachmentRoot()->GetComponentLocation(), screenLocation))
+    if (FMath::IsNearlyZero(mouseDir.Z))
         return;
 
-    // X and Y are swapped from Screen to World Space, and the sign is also not right, so the order of terms below gets quite confusing
-    const FVector buildingToMouse = -FVector(mouseY - screenLocation.Y, screenLocation.X - mouseX, 0.f);
-    FRotator buildingToMouseRot = buildingToMouse.Rotation(); // TODO check if there is a 2D variant of this, should not be to hard
-    buildingToMouseRot.Yaw += playerController->PlayerCameraManager->GetCameraRotation().Yaw;
-    GetAttachParent()->SetWorldRotation(buildingToMouseRot);
+    const FVector arrowLocation = GetComponentLocation();
+    
+    // Intersect mouse with z-Plane of arrow
+    const double distance = (arrowLocation.Z - mouseOrigin.Z) / mouseDir.Z;
+    FVector intersect = mouseOrigin + mouseDir * distance;
+    intersect.Z = arrowLocation.Z; // fix rounding
+
+    // compute angle between mouse and arrow
+    const FVector parentLoc = GetAttachParent()->GetComponentLocation();
+    const FVector centerToMouse = parentLoc - intersect;
+    const FVector centerToArrow = parentLoc - arrowLocation;    
+    const double angle = FMath::Atan2(centerToMouse.Y, centerToMouse.X) - FMath::Atan2(centerToArrow.Y, centerToArrow.X);    
+    if (!FMath::IsFinite(angle))
+        return;
+
+    if (FMath::IsNaN(MouseOffset)) {
+        // On first call to move, compute Offset
+        MouseOffset = angle;
+        return;
+    }
+
+    // rotate by angle
+    GetAttachParent()->AddWorldRotation(FRotator(0., FMath::RadiansToDegrees(angle - MouseOffset), 0.));
     
     OnArrowMoved.ExecuteIfBound();
+}
+
+void UArrowMoverRotate::EndMove() {
+    MouseOffset = NAN;
 }
