@@ -41,4 +41,11 @@ public:
     UConstructionPlan* Merger;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UConstructionPlan* AssemblyLine;
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UConstructionPlan* ConveyorNode;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UConstructionPlan* ConveyorLink;
+
+    inline static constexpr double ConveyorLinkDistanceScale = 13.37;
 };

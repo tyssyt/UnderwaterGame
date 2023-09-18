@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Internationalization/Text.h"
-#include "Engine/DataTable.h"
 #include "Engine/Texture2D.h"
 #include "Resource.generated.h"
 
@@ -14,7 +13,7 @@ class XD_API UResource : public UObject {
 public:
     UResource();
     virtual ~UResource() override;
-    UResource* Init(FText name, int relativeInventorySize, const TCHAR* image);
+    UResource* Init(FText name, int relativeInventorySize, const TCHAR* image, bool constructionResource);
 
 
     UPROPERTY(VisibleAnywhere)
@@ -28,4 +27,7 @@ public:
 
     UPROPERTY(VisibleAnywhere)
     int RelativeInventorySize;
+
+    UPROPERTY(VisibleAnywhere)
+    bool ConstructionResource;
 };

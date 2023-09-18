@@ -19,6 +19,10 @@ public:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
+    // TODO I need a special kind of electric component for indoors, because it should connect to the habitat
+    // UPROPERTY(EditAnywhere)
+    // UElectricComponent* Electricity;
+
     UPROPERTY(EditAnywhere)
     int Residents;
     

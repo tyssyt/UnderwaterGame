@@ -6,9 +6,10 @@
 UResource::UResource() {}
 UResource::~UResource() {}
 
-UResource* UResource::Init(FText name, int relativeInventorySize, const TCHAR* image) {
+UResource* UResource::Init(FText name, int relativeInventorySize, const TCHAR* image, bool constructionResource) {
     Name = name;
     RelativeInventorySize = relativeInventorySize;
+    ConstructionResource = constructionResource;
     Image = LoadObject<UTexture2D>(nullptr, image);
     if (!Image) {
         UE_LOG(LogTemp, Error, TEXT("Failed to load %s"), image);

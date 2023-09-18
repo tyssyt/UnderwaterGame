@@ -35,12 +35,15 @@ AHabitat::AHabitat() : PopulationManager(new HabitatPopulationManager(this)),
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/SM_Habitat"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/SM_Habitat"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
+    
+    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
+    Electricity->Consumption = 1000;
 }
 
 AHabitat::~AHabitat() {

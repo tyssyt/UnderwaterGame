@@ -8,9 +8,9 @@
 AAssemblyLine::AAssemblyLine() {
     PrimaryActorTick.bCanEverTick = true;
 
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/AssemblyLine"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/AssemblyLine"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));

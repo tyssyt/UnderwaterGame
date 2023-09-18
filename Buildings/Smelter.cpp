@@ -3,15 +3,14 @@
 #include "Smelter.h"
 
 #include "XD/GameInstanceX.h"
-#include "XD/Resources/ResourceBook.h"
 #include "XD/Recipes/Recipe.h"
 
 ASmelter::ASmelter() {
     PrimaryActorTick.bCanEverTick = true;
 
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/SM_Smelter"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/SM_Smelter"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));

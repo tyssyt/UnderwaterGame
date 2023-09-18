@@ -4,9 +4,9 @@
 
 
 ADepot::ADepot() {
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/Depot"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Depot"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));

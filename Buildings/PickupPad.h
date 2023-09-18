@@ -29,7 +29,7 @@ protected:
 
 public:
 
-    virtual void OnConstructionComplete() override;
+    virtual void OnConstructionComplete(FConstructionFlags flags) override;
 };
 
 

@@ -19,9 +19,16 @@ void UBlueprintHolder::Init(APlayerController* controller) {
     WorkerHouseUI = CreateWidget<UWorkerHouseUI>(controller, WorkerHouseUIClass);
     PickupPadUI = CreateWidget<UPickupPadUI>(controller, PickupPadUIClass);
     AssemblyLineUI = CreateWidget<UAssemblyLineUI>(controller, AssemblyLineUIClass);
+    SubstationUI = CreateWidget<USubstationUI>(controller, SubstationUIClass);
+    PowerOverlayUI = CreateWidget<UPowerOverlayUI>(controller, PowerOverlayUIClass);
+    ConstructionUI = CreateWidget<UConstructionUI>(controller, ConstructionUIClass);
 }
 
-USelectedUI* UBlueprintHolder::GetUI(AActor* actor) const {
+USelectedUI* UBlueprintHolder::GetUI(AXActor* actor) const {
+    if (const auto building = Cast<ABuilding>(actor))
+        if (building->constructionState != EConstructionState::Done)
+            return nullptr; // TODO construction site UI
+    
     if (actor->IsA(AHardOreDeposit::StaticClass())) {
         HardOreDepositUI->Deposit = Cast<AHardOreDeposit>(actor);
         return HardOreDepositUI;
@@ -73,6 +80,10 @@ USelectedUI* UBlueprintHolder::GetUI(AActor* actor) const {
     if (actor->IsA(AAssemblyLine::StaticClass())) {
         AssemblyLineUI->AssemblyLine = Cast<AAssemblyLine>(actor);
         return AssemblyLineUI;
+    }
+    if (actor->IsA(ASubstation::StaticClass())) {
+        SubstationUI->Substation = Cast<ASubstation>(actor);
+        return SubstationUI;
     }
     return nullptr;
 }

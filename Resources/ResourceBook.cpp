@@ -3,21 +3,32 @@
 
 #include "ResourceBook.h"
 
+UResource* UResourceBook::MakeResource(FName name, int relativeInventorySize, const TCHAR* image, bool constructionResource) {
+    const auto res = CreateDefaultSubobject<UResource>(name)->Init(FText::FromName(name), relativeInventorySize, image, constructionResource);
+    All.Add(res);
+    return res;
+}
+
 UResourceBook::UResourceBook() {
-    HardOre = CreateDefaultSubobject<UResource>(TEXT("Hard Ore"))->Init(FText::FromString(TEXT("Hard Ore")), 1, TEXT("/Game/Assets/Resources/Hard_Ore"));
-    LargeParts = CreateDefaultSubobject<UResource>(TEXT("Large Parts"))->Init(FText::FromString(TEXT("Large Parts")), 1000, TEXT("/Game/Assets/Resources/Large_parts"));
-    SmallParts = CreateDefaultSubobject<UResource>(TEXT("Small Parts"))->Init(FText::FromString(TEXT("Small Parts")), 100, TEXT("/Game/Assets/Resources/Small_parts"));
+    HardOre = MakeResource(TEXT("Hard Ore"), 1, TEXT("/Game/Assets/Resources/Hard_Ore"), false);
+    LargeParts = MakeResource(TEXT("Large Parts"), 1000, TEXT("/Game/Assets/Resources/Large_parts"), true);
+    SmallParts = MakeResource(TEXT("Small Parts"), 100, TEXT("/Game/Assets/Resources/Small_parts"), false);
 
-    ConductiveOre = CreateDefaultSubobject<UResource>(TEXT("Conductive Ore"))->Init(FText::FromString(TEXT("Conductive Ore")), 1, TEXT("/Game/Assets/Resources/Conductive_Ore"));
-    ConductiveParts = CreateDefaultSubobject<UResource>(TEXT("Conductive parts"))->Init(FText::FromString(TEXT("Conductive parts")), 100, TEXT("/Game/Assets/Resources/Conductive_Parts"));
+    ConductiveOre = MakeResource(TEXT("Conductive Ore"), 1, TEXT("/Game/Assets/Resources/Conductive_Ore"), false);
+    ConductiveParts = MakeResource(TEXT("Conductive parts"), 100, TEXT("/Game/Assets/Resources/Conductive_Parts"), false);
 
-    Oil = CreateDefaultSubobject<UResource>(TEXT("Oil"))->Init(FText::FromString(TEXT("Oil")), 1, TEXT("/Game/Assets/Resources/Oil"));
-    Rubber = CreateDefaultSubobject<UResource>(TEXT("Rubber"))->Init(FText::FromString(TEXT("Rubber")), 100, TEXT("/Game/Assets/Resources/Rubber"));
+    Oil = MakeResource(TEXT("Oil"), 1, TEXT("/Game/Assets/Resources/Oil"), false);
+    Rubber = MakeResource(TEXT("Rubber"), 100, TEXT("/Game/Assets/Resources/Rubber"), true);
+
+    Sand = MakeResource(TEXT("Sand"), 1, TEXT("/Game/Assets/Resources/Placeholder"), false); // TODO Image
+    Glass = MakeResource(TEXT("Glass"), 100, TEXT("/Game/Assets/Resources/Placeholder"), true); // TODO Image
     
-    MechanicalComponents = CreateDefaultSubobject<UResource>(TEXT("Mechanical Components"))->Init(FText::FromString(TEXT("Mechanical Components")), 1, TEXT("/Game/Assets/Resources/Mechanical_Components"));
-    ElectricalComponents = CreateDefaultSubobject<UResource>(TEXT("Electrical Components"))->Init(FText::FromString(TEXT("Electrical Components")), 1, TEXT("/Game/Assets/Resources/Electrical_Components"));
-    Cable = CreateDefaultSubobject<UResource>(TEXT("Cable"))->Init(FText::FromString(TEXT("Cable")), 1, TEXT("/Game/Assets/Resources/Cable"));    
+    MechanicalComponents = MakeResource(TEXT("Mechanical Components"), 100, TEXT("/Game/Assets/Resources/Mechanical_Components"), true);
+    ElectricalComponents = MakeResource(TEXT("Electrical Components"), 100, TEXT("/Game/Assets/Resources/Electrical_Components"), true);
+    Cable = MakeResource(TEXT("Cable"), 100, TEXT("/Game/Assets/Resources/Cable"), true);
+    LifeSupportEquipment = MakeResource(TEXT("Life Support Equipment"), 100, TEXT("/Game/Assets/Resources/Placeholder"), true); // TODO Image
 
-    People = CreateDefaultSubobject<UResource>(TEXT("People"))->Init(FText::FromString(TEXT("People")), 1, TEXT("/Game/Assets/Resources/Peeps"));
-    Workforce = CreateDefaultSubobject<UResource>(TEXT("Workforce"))->Init(FText::FromString(TEXT("Workforce")), 1, TEXT("/Game/Assets/Resources/Peeps"));
+    People = MakeResource(TEXT("People"), 1, TEXT("/Game/Assets/Resources/Peeps"), false);
+    Workforce = MakeResource(TEXT("Workforce"), 1, TEXT("/Game/Assets/Resources/Peeps"), false);
+    Electricity = MakeResource(TEXT("Electricity"), 1, TEXT("/Game/Assets/Resources/Electricity"), false);
 }

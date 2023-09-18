@@ -12,10 +12,9 @@ double ABuilderShip::RotationSpeed = 1.f;
 ABuilderShip::ABuilderShip() {
     PrimaryActorTick.bCanEverTick = true;
 
-    // Create static mesh component
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/BuilderShip"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/BuilderShip"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
 }
 
@@ -113,7 +112,7 @@ void ABuilderShip::StartConstructing(ConstructionSite* constructionSite) {
 }
 
 void ABuilderShip::DoNextStop() {
-    const auto nextDelivery = TargetSite->GetNextDelivery(&GetGameInstance()->TheConstructionManager->constructionResources);
+    const auto nextDelivery = TargetSite->GetNextDelivery(GetGameInstance()->TheConstructionManager->constructionResources);
 
     if (nextDelivery.first) {
         NextStop = nextDelivery.first;

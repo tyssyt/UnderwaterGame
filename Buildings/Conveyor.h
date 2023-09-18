@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "XActor.h"
 #include "Building.h"
 #include "XD/SelectedUI.h"
@@ -11,14 +13,21 @@
 #include "Components/TextBlock.h"
 #include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"
+#include "BuildingBook.h"
+#include "XD/Inventory/InventoryComponent.h"
 #include "XD/Resources/Resource.h"
 #include "Conveyor.generated.h"
+
+struct Material;
 
 UCLASS()
 class XD_API AConveyor : public AXActor {
     GENERATED_BODY()
 
 public:
+
+    enum class ESourceTargetType { Building, ConveyorNode, ConveyorLink };
+
     static AConveyor* Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, const UResource* resource);
     AConveyor();
 
@@ -56,6 +65,8 @@ public:
     void Connect(const UResource* resource = nullptr);
 
     static const UResource* FindCommonResource(UInventoryComponent* source, UInventoryComponent* target);
+    static std::vector<Material> ComputeCosts(FVector start, FVector* end, TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook);
+    static std::vector<Material> ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook);
 
     std::pair<AConveyor*, AConveyor*> SplitAt(UStaticMeshComponent* mesh, ABuilding* building);
 

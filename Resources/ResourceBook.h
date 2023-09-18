@@ -9,6 +9,8 @@ UCLASS()
 class UResourceBook : public UObject {
     GENERATED_BODY()
 
+    UResource* MakeResource(FName name, int relativeInventorySize, const TCHAR* image, bool constructionResource);
+
 public:
     UResourceBook();
 
@@ -29,8 +31,10 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* Rubber;
 
-    // TODO Sand
-    // TODO Glass
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UResource* Sand;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UResource* Glass;
 
     // TODO Food
     // TODO Algae
@@ -41,11 +45,17 @@ public:
     UResource* ElectricalComponents;    
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* Cable;
-    // TODO LSE
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UResource* LifeSupportEquipment;
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* People;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UResource* Workforce;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UResource* Electricity;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TArray<UResource*> All;
 
 };

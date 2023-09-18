@@ -19,6 +19,10 @@
 
 #include "CoreMinimal.h"
 #include "ImageUI.h"
+#include "TextUI.h"
+#include "Buildings/Substation.h"
+#include "Construction/ConstructionUI.h"
+#include "Electricity/PowerOverlay.h"
 #include "BlueprintHolder.generated.h"
 
 
@@ -98,9 +102,28 @@ public:
     UAssemblyLineUI* AssemblyLineUI;
 
     UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<USubstationUI> SubstationUIClass;
+    UPROPERTY()
+    USubstationUI* SubstationUI;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UPowerOverlayUI> PowerOverlayUIClass;
+    UPROPERTY()
+    UPowerOverlayUI* PowerOverlayUI;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UConstructionUI> ConstructionUIClass;
+    UPROPERTY()
+    UConstructionUI* ConstructionUI;
+
+    UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UImageUI> ImageUIClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UTextUI> TextUIClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UPowerUI> PowerUIClass;
 
     void Init(APlayerController* controller);
-    USelectedUI* GetUI(AActor* actor) const;
+    USelectedUI* GetUI(AXActor* actor) const;
 
 };

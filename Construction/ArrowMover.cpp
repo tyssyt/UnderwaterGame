@@ -80,8 +80,8 @@ void UArrowMover::SetMaterial(int32 ElementIndex, UMaterialInterface* Material) 
 }
 
 UArrowMoverLine::UArrowMoverLine() {
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/Arrow"));
-    UStaticMeshComponent::SetStaticMesh(PlaneMesh.Get());
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Arrow"));
+    UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
 }
 
 void UArrowMoverLine::Move() {
@@ -126,8 +126,8 @@ void UArrowMoverLine::EndMove() {
 
 
 UArrowMoverUp::UArrowMoverUp() {
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/Arrow"));
-    UStaticMeshComponent::SetStaticMesh(PlaneMesh.Get());
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Arrow"));
+    UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
     SetRelativeRotation(FRotator(90, 0, 0));
 }
 
@@ -183,8 +183,8 @@ void UArrowMoverUp::EndMove() {
 }
 
 UArrowMoverRotate::UArrowMoverRotate() {    
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Assets/Meshes/RoundArrow"));
-    UStaticMeshComponent::SetStaticMesh(PlaneMesh.Get());
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/RoundArrow"));
+    UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
 }
 
 void UArrowMoverRotate::Move() {

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "CoreMinimal.h"
+#include "Building.h"
 #include "XActor.h"
 #include "GameFramework/Actor.h"
 #include "IndoorBuilding.generated.h"
@@ -14,7 +15,7 @@ typedef std::pair<int, int> Coordinate;
 enum class EGridOrientation { North, East, West, South };
 
 UCLASS()
-class XD_API AIndoorBuilding : public AXActor {
+class XD_API AIndoorBuilding : public ABuilding {
     GENERATED_BODY()
 
 public:

@@ -12,7 +12,7 @@
 #include "Components/Image.h"
 #include "InventorySlotUI.generated.h"
 
-UCLASS()
+UCLASS(Abstract)
 class XD_API UInventorySlotUI : public UUserWidget {
     GENERATED_BODY()
 

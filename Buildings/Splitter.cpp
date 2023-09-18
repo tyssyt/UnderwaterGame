@@ -5,7 +5,6 @@
 
 #include "Conveyor.h"
 
-
 ASplitter::ASplitter() {
     PrimaryActorTick.bCanEverTick = true;
     

@@ -7,6 +7,7 @@
 #include "XD/SelectedUI.h"
 #include "XD/Inventory/InventorySlotUI.h"
 #include "XD/Inventory/InventoryComponent.h"
+#include "XD/Electricity/ElectricComponent.h"
 #include "XD/PopulationManager/HabitatPopulationManager.h"
 
 #include <utility>
@@ -27,6 +28,9 @@ public:
 
     UPROPERTY(EditAnywhere)
     UInventoryComponent* Inventory;
+
+    UPROPERTY(EditAnywhere)
+    UElectricComponent* Electricity;
 
     UPROPERTY(EditAnywhere)
     TArray<AIndoorBuilding*> Buildings;

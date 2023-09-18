@@ -34,11 +34,9 @@ void APlayerControllerX::ShowMouseCursor(bool showMouseCursor) {
 void APlayerControllerX::TickUI() const {
     if (SelectedUI)
         SelectedUI->Tick();
-
-    GetGameInstance<UGameInstanceX>()->TheConstructionManager->UpdateUI(BlueprintHolder->MainUI->WBP_RessourcesUI);
 }
 
-void APlayerControllerX::UpdateSelected(AActor* actor) {
+void APlayerControllerX::UpdateSelected(AXActor* actor) {
     USelectedUI* ui = BlueprintHolder->GetUI(actor);
     if (ui && SelectedUI != ui) {
         SelectedUI = ui;

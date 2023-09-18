@@ -6,8 +6,12 @@
 #include "XActor.h"
 #include "Building.generated.h"
 
+UENUM(BlueprintType)
+enum class EConstructionState { BuilderMode, ConstructionSite, Done };
 
-enum class ConstructionState { BuilderMode, ConstructionSite, Done };
+struct XD_API FConstructionFlags {
+    bool autoConnectWires;
+};
 
 UCLASS()
 class XD_API ABuilding : public AXActor {
@@ -16,13 +20,14 @@ class XD_API ABuilding : public AXActor {
 public:
     ABuilding();
 
-    ConstructionState constructionState;
+    UPROPERTY(EditAnywhere)
+    EConstructionState constructionState;
 
 protected:
     virtual void BeginPlay() override;
 
 public:
     virtual void Tick(float DeltaTime) override;
-    virtual void OnConstructionComplete(); // TODO maybe there is some unreal lifecycle method we can hook into?
+    virtual void OnConstructionComplete(FConstructionFlags flags); // TODO maybe there is some unreal lifecycle method we can hook into?
 
 };

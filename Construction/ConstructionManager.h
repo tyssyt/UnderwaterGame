@@ -52,8 +52,6 @@ public:
         RETURN_QUICK_DECLARE_CYCLE_STAT( FMyTickableThing, STATGROUP_Tickables );
     }
 
-    void UpdateUI(URessourcesUI* ui) const;
-
     UPROPERTY(EditAnywhere)
     UMaterial* GhostMaterial;
     

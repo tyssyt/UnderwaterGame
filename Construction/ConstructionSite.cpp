@@ -5,15 +5,15 @@
 #include "ConstructionManager.h"
 #include "XD/Buildings/Building.h"
 
+ConstructionSite::ConstructionSite(AXActor* building, const UConstructionPlan* constructionPlan, FConstructionFlags flags)
+        : ConstructionSite(building, constructionPlan->Time, constructionPlan->Materials, flags) {}
 
-ConstructionSite::ConstructionSite(AXActor* building, UConstructionPlan* constructionPlan) : ConstructionSite(building, constructionPlan->Time, constructionPlan->Materials) {}
-
-ConstructionSite::ConstructionSite(AXActor* building, int time, std::vector<Material> materials) : Building(building), Time(time), Materials(materials) {
+ConstructionSite::ConstructionSite(AXActor* building, int time, const std::vector<Material>& materials, FConstructionFlags flags)
+        : Building(building), Time(time), Materials(materials), Flags(flags) {
     Building->SetActorTickEnabled(false);
     ABuilding* bbuilding = Cast<ABuilding>(building); // TODO eventually we want the input of this function to be some kind of common class...
-    if (bbuilding) {
-        bbuilding->constructionState = ConstructionState::ConstructionSite;
-    }
+    if (bbuilding)
+        bbuilding->constructionState = EConstructionState::ConstructionSite;
 }
 
 ConstructionSite::~ConstructionSite() {}
@@ -26,33 +26,23 @@ void ConstructionSite::BeginConstruction() const {
     // for now, construction is instant so we complete it here
     Building->SetAllMaterials(nullptr);
     Building->SetActorTickEnabled(true);
-    
-    ABuilding* building = Cast<ABuilding>(Building); // TODO eventually we want the input of this function to be some kind of common class...
-    if (building) {
-        building->OnConstructionComplete();
-    }
+
+    if (ABuilding* building = Cast<ABuilding>(Building))
+        building->OnConstructionComplete(Flags);
 }
 
-std::pair<APickupPad*, Material> ConstructionSite::GetNextDelivery(std::vector<ConstructionResource>* constructionResources) const {
+std::pair<APickupPad*, Material> ConstructionSite::GetNextDelivery(std::vector<ConstructionResource>& constructionResources) const {
     for (auto& neededMaterial : Materials) {
         int needed = neededMaterial.amount;
-
-        // subtract already delivered material
-        for (auto& deliveredMaterial : DeliveredMaterial) {
-            if (neededMaterial.resource == deliveredMaterial.resource) {
-                needed -= deliveredMaterial.amount;
-            }
-        }
-
+        if (const auto delivered = Material::Find(DeliveredMaterial, neededMaterial.resource))
+            needed -= delivered->amount;
         if (needed <= 0)
             continue;
 
-        for (auto& constructionResource : *constructionResources) {
-            if (neededMaterial.resource == constructionResource.Resource) {
+        for (auto& constructionResource : constructionResources)
+            if (neededMaterial.resource == constructionResource.Resource)
                 // TODO there is place for many optimization here, like preferring a resource that can be delivered in one trip or picking the nearest pad!
                 return std::make_pair(constructionResource.Pads.back().second,Material(needed, neededMaterial.resource));
-            }
-        }
     }
     // no delivery found
     return std::make_pair(nullptr, Material(0, nullptr));

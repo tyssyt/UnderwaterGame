@@ -8,9 +8,9 @@
 AHardOreMine::AHardOreMine() {
     PrimaryActorTick.bCanEverTick = true;
 
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh(TEXT("/Game/Cylinder"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Cylinder"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     Mesh->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
     Mesh->SetRelativeScale3D(FVector(1.f, 1.f, .25f));
     SetRootComponent(Mesh);

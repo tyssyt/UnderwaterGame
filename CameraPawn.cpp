@@ -3,7 +3,6 @@
 
 #include "CameraPawn.h"
 #include "PlayerControllerX.h"
-#include "Construction/BuilderMode.h"
 #include "GameInstanceX.h"
 
 #include "Buildings/WorkerHouse.h"
@@ -13,9 +12,14 @@
 #include "Buildings/PickupPad.h"
 
 #include "Camera/CameraComponent.h"
+#include "Construction/BuilderModeExtension.h"
+#include "Construction/BuildingBuilderMode.h"
+#include "Construction/ConveyorBuilderMode.h"
+#include "Construction/IndoorBuilderMode.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/PlayerInput.h"
+#include "Electricity//PowerOverlay.h"
 
 // Sets default values
 ACameraPawn::ACameraPawn() {
@@ -39,6 +43,8 @@ ACameraPawn::ACameraPawn() {
 // Called when the game starts or when spawned
 void ACameraPawn::BeginPlay() {
     Super::BeginPlay();
+    
+    PowerOverlay = NewObject<UPowerOverlay>(this);
 }
 
 // Called to bind functionality to input
@@ -74,6 +80,9 @@ void ACameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("Deselect", EKeys::Escape));
     PlayerInputComponent->BindAction("Deselect", EInputEvent::IE_Pressed, this, &ACameraPawn::Deselect);
+
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TogglePowerOverlay", EKeys::P));
+    PlayerInputComponent->BindAction("TogglePowerOverlay", EInputEvent::IE_Pressed, this, &ACameraPawn::TogglePowerOverlay);
 
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("Hotbar1", EKeys::One));
     PlayerInputComponent->BindAction("Hotbar1", EInputEvent::IE_Pressed, this, &ACameraPawn::Hotbar1);
@@ -170,10 +179,10 @@ void ACameraPawn::ShowMouseCursor(bool showMouseCursor) const {
 }
 
 void ACameraPawn::SelectUnderCursor() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (playerController) {
-        AActor* underCursor = playerController->GetUnderCursor<AActor>();
-        if (underCursor)
+    if (PowerOverlay->IsActive() || BuilderMode)
+        return;
+    if (APlayerControllerX* playerController = GetController<APlayerControllerX>()) {
+        if (const auto underCursor = playerController->GetUnderCursor<AXActor>())
             playerController->UpdateSelected(underCursor);
     }
 }
@@ -184,144 +193,70 @@ void ACameraPawn::Deselect() {
         playerController->Deselect();
     }
 
+    PowerOverlay->Deactivate();
     if (BuilderMode) {
-        BuilderMode->Stop();
+        BuilderMode->Stop(false);
         BuilderMode = nullptr;
     }
 }
 
+void ACameraPawn::TogglePowerOverlay() {
+    if (BuilderMode)
+        return; // no overlays allowed when in Builder Mode
+    PowerOverlay->Toggle();
+}
+
 void ACameraPawn::Hotbar1() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor) {
-        return;
-    }
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == ADepot::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop();
-    }
-
-    BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Depot, GetWorld());
+    if (PrepBuilderMode(ADepot::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Depot, nullptr);
 }
-
 void ACameraPawn::Hotbar2() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == ASmelter::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-
-    BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Smelter, GetWorld());
+    if (PrepBuilderMode(ASmelter::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Smelter, nullptr);
 }
-
 void ACameraPawn::Hotbar3() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == AConveyor::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-    BuilderMode = NewObject<UConveyorBuilderMode>(this)->Init();
+    if (PrepBuilderMode(AConveyor::StaticClass()))
+        BuilderMode = NewObject<UConveyorBuilderMode>(this)->Init();
 }
-
 void ACameraPawn::Hotbar4() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == AHabitat::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-
-    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Habitat, GetWorld());
+    if (PrepBuilderMode(AHabitat::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Habitat, nullptr);
 }
-
 void ACameraPawn::Hotbar5() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == AWorkerHouse::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-
-    BuilderMode = NewObject<UIndoorBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->WorkerHouse, GetWorld());
+    if (PrepBuilderMode(AWorkerHouse::StaticClass()))
+        BuilderMode = NewObject<UIndoorBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->WorkerHouse, nullptr);
 }
-
 void ACameraPawn::Hotbar6() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == ASolar::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-
-    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Solar, GetWorld());
+    if (PrepBuilderMode(ASolar::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Solar, nullptr);
 }
-
 void ACameraPawn::Hotbar7() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == ASubstation::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-
-    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Substation, GetWorld());
+    if (PrepBuilderMode(ASubstation::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Substation, NewObject<USubstationBuilderModeExtension>(this));
 }
 
 void ACameraPawn::Hotbar8() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == APickupPad::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-
-    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->PickupPad, GetWorld());
+    if (PrepBuilderMode(APickupPad::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->PickupPad, nullptr);
 }
 
 void ACameraPawn::Hotbar9() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor)
-        return;
-
-    if (BuilderMode) {
-        if (BuilderMode->IDK() == AAssemblyLine::StaticClass())
-            return; // right Builder Mode is already active
-        else
-            BuilderMode->Stop(); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
-    }
-
-    BuilderMode = NewObject<UBuildingBuilderMode>()->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->AssemblyLine, GetWorld());    
+    if (PrepBuilderMode(AAssemblyLine::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->AssemblyLine, nullptr);
 }
 void ACameraPawn::Hotbar0() {}
+
+bool ACameraPawn::PrepBuilderMode(UClass* newThing) const {
+    const APlayerControllerX* playerController = GetController<APlayerControllerX>();
+    if (!playerController || !playerController->bShowMouseCursor)
+        return false;
+
+    if (BuilderMode) {
+        if (BuilderMode->IDK() == newThing)
+            return false; // right Builder Mode is already active
+        BuilderMode->Stop(false); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
+    }
+
+    PowerOverlay->Deactivate();
+    return true;
+}

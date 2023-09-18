@@ -8,6 +8,7 @@
 #include "Construction/ConstructionManager.h"
 
 #include "CoreMinimal.h"
+#include "Electricity/ElectricityManager.h"
 #include "Engine/GameInstance.h"
 #include "GameInstanceX.generated.h"
 
@@ -37,5 +38,8 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     UConstructionManager* TheConstructionManager;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UElectricityManager* TheElectricityManager;
 
 };

@@ -11,10 +11,6 @@ UCLASS()
 class XD_API ACameraPawn : public APawn {
     GENERATED_BODY()
 
-
-public:
-    ACameraPawn();
-
 protected:
     virtual void BeginPlay() override;
 
@@ -28,8 +24,12 @@ protected:
     class UBuilderMode* BuilderMode;
 
 public:
+    ACameraPawn();
     virtual void Tick(float DeltaTime) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    
+    UPROPERTY(EditAnywhere)
+    class UPowerOverlay* PowerOverlay;
 
     void MoveForward(float val);
     void MoveRight(float val);
@@ -44,6 +44,8 @@ public:
 
     void SelectUnderCursor();
     void Deselect();
+    
+    void TogglePowerOverlay();
 
     void Hotbar1();
     void Hotbar2();
@@ -55,4 +57,7 @@ public:
     void Hotbar8();
     void Hotbar9();
     void Hotbar0();
+
+private:
+    bool PrepBuilderMode(UClass* newThing) const;
 };

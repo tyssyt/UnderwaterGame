@@ -7,6 +7,32 @@ Material::Material() : amount(0), resource(nullptr) {}
 Material::Material(int amount, UResource* resource) : amount(amount), resource(resource) {}
 Material::~Material() {}
 
+Material* Material::Find(std::vector<Material>& in, const UResource* resource) {
+    for (auto& mat : in)
+        if (mat.resource == resource)
+            return &mat;
+    return nullptr;
+}
+
+const Material* Material::Find(const std::vector<Material>& in, const UResource* resource) {
+    for (auto& mat : in)
+        if (mat.resource == resource)
+            return &mat;
+    return nullptr;
+}
+
+void Material::AddTo(std::vector<Material>& to, const Material& mat, int factor) {    
+    if (const auto into = Find(to, mat.resource))
+        into->amount += factor * mat.amount;
+    else
+        to.emplace_back(factor * mat.amount, mat.resource);
+}
+
+void Material::AddTo(std::vector<Material>& to, const std::vector<Material>& from, int factor) {
+    for (const auto& mat : from)
+        AddTo(to, mat, factor);
+}
+
 UConstructionPlan* UConstructionPlan::Init(UClass* buildingClass, FText name, const TCHAR* image, int time, std::initializer_list<Material> materials) {
     BuildingClass = buildingClass;
     Name = name;

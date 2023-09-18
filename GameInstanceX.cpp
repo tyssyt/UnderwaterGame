@@ -13,4 +13,5 @@ void UGameInstanceX::Init() {
     TheRecipeBook = NewObject<URecipeBook>(this)->Init(TheResourceBook);
     TheBuildingBook = NewObject<UBuildingBook>(this)->Init(TheResourceBook);
     TheConstructionManager = NewObject<UConstructionManager>(this)->Init(TheResourceBook);
+    TheElectricityManager = NewObject<UElectricityManager>(this);
 }

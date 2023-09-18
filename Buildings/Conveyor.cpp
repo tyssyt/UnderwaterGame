@@ -202,7 +202,55 @@ const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInv
     return nullptr; // TODO show a dialog to select the input
     // TODO if the input/target is untyped, and there are multiple outputs/sources, also prompt
     // TODO think about if we want the vice versa of the above
-    // TODO think about depot to depot connections... if neither of them is conneected to something else in the chain...
+    // TODO think about depot to depot connections... if neither of them is connected to something else in the chain...
+}
+
+std::vector<Material> AConveyor::ComputeCosts(FVector start, FVector* end, TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook) {
+    double linkDist = 0.;    
+    FVector last = start;
+    for (auto node : nodes) {
+        linkDist += FVector::Distance(last, node);
+        last = node;
+    }
+    if (end)
+        linkDist += FVector::Distance(last, *end);
+
+    return ComputeCosts(linkDist, nodes.Num(), splitter, merger, theBuildingBook);
+}
+
+std::vector<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook) {
+    std::vector<Material> materials;
+
+    Material::AddTo(materials, theBuildingBook->ConveyorLink->Materials, static_cast<int>(linkDist / UBuildingBook::ConveyorLinkDistanceScale));
+    Material::AddTo(materials, theBuildingBook->ConveyorNode->Materials, numNodes);
+
+    switch (splitter) {
+    case ESourceTargetType::Building:
+        break;
+    case ESourceTargetType::ConveyorNode:
+        Material::AddTo(materials, theBuildingBook->ConveyorNode->Materials, -1);
+        // fallthrough
+    case ESourceTargetType::ConveyorLink:
+        Material::AddTo(materials, theBuildingBook->Splitter->Materials);
+        break;
+    default:
+        checkNoEntry();
+    }
+
+    switch (merger) {
+    case ESourceTargetType::Building:
+        break;
+    case ESourceTargetType::ConveyorNode:
+        Material::AddTo(materials, theBuildingBook->ConveyorNode->Materials, -1);
+        // fallthrough
+    case ESourceTargetType::ConveyorLink:
+        Material::AddTo(materials, theBuildingBook->Merger->Materials);
+        break;
+    default:
+        checkNoEntry();
+    }
+
+    return materials;
 }
 
 std::pair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABuilding* building) {
@@ -295,8 +343,8 @@ void AConveyor::DisconnectFromMerger(AMerger* merger) const {
 }
 
 UConveyorLink::UConveyorLink() {    
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> Mesh(TEXT("/Game/Cube"));
-    UStaticMeshComponent::SetStaticMesh(Mesh.Get());
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Cube"));
+    UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
 }
 
 void UConveyorLink::Connect(FVector start, FVector end) {     
@@ -316,8 +364,8 @@ void UConveyorLink::Connect(FVector start, FVector end) {
 }
 
 UConveyorNode::UConveyorNode() {    
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> Mesh(TEXT("/Game/Cylinder"));
-    UStaticMeshComponent::SetStaticMesh(Mesh.Get());
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Cylinder"));
+    UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
     SetWorldScale3D(FVector(.3, .3, .1));
 }
 

@@ -2,6 +2,12 @@
 
 #include "ElectricComponent.h"
 
+#include "XD/CameraPawn.h"
+#include "XD/GameInstanceX.h"
+#include "XD/PlayerControllerX.h"
+#include "PowerOverlay.h"
+#include "Components/BillboardComponent.h"
+
 UElectricComponent::UElectricComponent() : State(PowerState::Initial) {
     PrimaryComponentTick.bCanEverTick = false;
 }
@@ -15,11 +21,28 @@ void UElectricComponent::SetState(PowerState newState) { // TODO understand comp
     check(newState != PowerState::Initial);
     if (State == newState)
         return;
+
+    // TODO there is too much logic inside this setter, extract that
+
+    if (State == PowerState::Disconnected) {
+        GetOwner()->GetGameInstance<UGameInstanceX>()->TheElectricityManager->Disconnected.Remove(this);
+    } else if (newState == PowerState::Disconnected) {
+        GetOwner()->GetGameInstance<UGameInstanceX>()->TheElectricityManager->Disconnected.Add(this);
+
+        // Weird special case, when going from Initial to Disconnected we don't trigger an UI Update, so we need to catch and handle it here
+        if (State == PowerState::Initial) {
+            State = newState;
+            const UPowerOverlay* powerOverlay = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->GetPawn<ACameraPawn>()->PowerOverlay;
+            powerOverlay->AddDisconnected(this);
+        }
+    }
+    
     State = newState;
 
     // update symbol if necessary
     switch (State) {
     case PowerState::Disconnected:
+    case PowerState::Deactivated:
     case PowerState::Unpowered:
         GetOwner()->SetActorTickEnabled(false); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
         if (!DisabledSymbol) {

@@ -9,23 +9,17 @@ ConstructionResource::ConstructionResource(const UResource* resource) : Resource
 ConstructionResource::~ConstructionResource() {}
 
 UConstructionManager::UConstructionManager() {
-    // Structure to hold one-time initialization
-    struct FConstructorStatics {
-        ConstructorHelpers::FObjectFinderOptional<UMaterial> GhostMaterial;
-        FConstructorStatics() : GhostMaterial(TEXT("/Game/GhostMaterial")) {}
-    };
-    static FConstructorStatics ConstructorStatics;
-
-    // Create static mesh component
-    GhostMaterial = ConstructorStatics.GhostMaterial.Get();
+    const static ConstructorHelpers::FObjectFinder<UMaterial> GhostMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostMaterial"));
+    GhostMaterial = GhostMaterialFinder.Object;
 }
 
 UConstructionManager::~UConstructionManager() {}
 
 UConstructionManager* UConstructionManager::Init(UResourceBook* theResourceBook) {
-    constructionResources.emplace_back(theResourceBook->LargeParts);
-    constructionResources.emplace_back(theResourceBook->Cable);
-    constructionResources.emplace_back(theResourceBook->Rubber);
+
+    for (UResource* resource : theResourceBook->All)
+      if (resource->ConstructionResource)
+          constructionResources.emplace_back(resource);
     return this;
 }
 
@@ -136,25 +130,5 @@ bool UConstructionManager::HasResourcesFor(const std::vector<Material>* material
         }
     }
     return true;
-}
-
-void UConstructionManager::UpdateUI(URessourcesUI* ui) const {
-    UInventorySlotUI* slots[] { ui->InventorySlot_1, ui->InventorySlot_2, ui->InventorySlot_3 };
-    for (int i=0; i<3; ++i) {
-        const UResource* resource = constructionResources[i].Resource;
-
-        int max = 0;
-        for (auto& pad : constructionResources[i].Pads) {
-            for (auto& input : pad.second->Inventory->GetInputs()) {
-                if (input.Resource == resource) {
-                    max += input.Max;
-                }
-            }
-        }
-        
-        slots[i]->Set(constructionResources[i].Total - constructionResources[i].Reserved, max, resource);
-    }
-    
-    ui->InventorySlot_4->Clear();
 }
 

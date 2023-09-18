@@ -6,9 +6,9 @@
 
 
 APickupPad::APickupPad() {
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/Pickup_Pad"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Pickup_Pad"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
@@ -22,8 +22,8 @@ void APickupPad::BeginPlay() {
     Super::BeginPlay();
 }
 
-void APickupPad::OnConstructionComplete() {
-    Super::OnConstructionComplete();
+void APickupPad::OnConstructionComplete(FConstructionFlags flags) {
+    Super::OnConstructionComplete(flags);
 
     GetGameInstance()->TheConstructionManager->AddPickupPad(this);
 }

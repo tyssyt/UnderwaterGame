@@ -4,10 +4,13 @@
 #include "Habitat.h"
 
 AWorkerHouse::AWorkerHouse() {
-    static ConstructorHelpers::FObjectFinderOptional<UStaticMesh> PlaneMesh (TEXT("/Game/Assets/Meshes/WorkerHouse"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/WorkerHouse"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(PlaneMesh.Get());
+    Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
+    
+    // Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
+    // Electricity->Consumption = 20;
 }
 
 void AWorkerHouse::BeginPlay() {

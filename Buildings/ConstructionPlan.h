@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "XD/Resources/Resource.h"
 
 #include <vector>
 
@@ -16,6 +17,11 @@ struct XD_API Material {
 
     int amount;
     UResource* resource;
+
+    static Material* Find(std::vector<Material>& in, const UResource* resource);
+    static const Material* Find(const std::vector<Material>& in, const UResource* resource);
+    static void AddTo(std::vector<Material>& to, const Material& mat, int factor = 1);
+    static void AddTo(std::vector<Material>& to, const std::vector<Material>& from, int factor = 1);
 };
 
 UCLASS()

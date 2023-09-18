@@ -4,7 +4,6 @@
 
 #include "BlueprintHolder.h"
 #include "SelectedUI.h"
-#include "Buildings/Building.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
@@ -33,7 +32,7 @@ public:
     void TickUI() const;
 
     void ShowMouseCursor(bool isControlledByMouse);
-    void UpdateSelected(AActor* actor);
+    void UpdateSelected(AXActor* actor);
     void Deselect();
 
     template <class T> T* GetUnderCursor() const {

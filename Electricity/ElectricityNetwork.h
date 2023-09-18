@@ -2,35 +2,41 @@
 
 #pragma once
 
-#include "XD/Buildings/Substation.h"
-
 #include <vector>
+
+class UElectricComponent;
+class ASubstation;
 
 class XD_API ElectricityNetwork {
 
 public:
-    ElectricityNetwork(ASubstation* substation);
+    inline static constexpr double MAX_WIRE_DISTANCE = 500.f;
+
+    explicit ElectricityNetwork(ASubstation* substation);
     ~ElectricityNetwork();
+
+    TArray<ASubstation*> substations;
 
     /*
     * Calculates total Production and Consumption
     * Will shutdown Consumers if Production is not high enough
     */
-    void recomputeStats();
+    void RecomputeStats();
 
-    void mergeNetworkNoRecompute(ElectricityNetwork* otherNetwork);
+    void CheckForNetworkSplit();
 
-    /*
-    * Remove a Substation from this Network
-    * This might cause the Network to split into multiple disconnected Networks.
-    */
-    void removeSubstation(ASubstation* substation);
+    void MergeNetwork(ElectricityNetwork* otherNetwork);
+    void MergeNetworkNoRecompute(ElectricityNetwork* otherNetwork);
 
+    int GetTotalConstantProduction() const {return TotalConstantProduction;}
+    int GetTotalConstantConsumption() const {return TotalConstantConsumption;}
 
 protected:
-    std::vector<ASubstation*> substations;
 
     int TotalConstantProduction;
     int TotalConstantConsumption;
+    
+    std::vector<UElectricComponent*> CollectStats();
+    auto UnpowerBuildings(std::vector<UElectricComponent*>& unpowered) -> void;
 
 };

@@ -1,336 +1,74 @@
-#include "BuilderMode.h"
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#include "ConveyorBuilderMode.h"
+
+#include <optional>
 
 #include "ArrowMover.h"
-#include "Components/WidgetComponent.h"
+#include "BuilderModeExtension.h"
+#include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Conveyor.h"
-#include "XD/Buildings/Habitat.h"
-
 #include "XD/GameInstanceX.h"
 #include "XD/Buildings/Splitter.h"
 
-// BuildingBuilderMode
+#include "Components/WidgetComponent.h"
 
-UBuildingBuilderMode::UBuildingBuilderMode() {
-    static const FName name = FName(TEXT("Base Material Dynamic"));
-    static ConstructorHelpers::FObjectFinderOptional<UMaterial> GhostMaterial(TEXT("/Game/GhostMaterial"));
-    HighlightMaterial = UMaterialInstanceDynamic::Create(GhostMaterial.Get(), this, name);
-    static const FName ParameterNameColor = FName(TEXT("BaseColor"));
-    HighlightMaterial->SetVectorParameterValue(ParameterNameColor, FLinearColor::Red);
-}
-
-UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* constructionPlan, UWorld* world) {
-    ConstructionPlan = constructionPlan;
-    Preview = world->SpawnActor<ABuilding>(constructionPlan->BuildingClass);
-    Preview->SetActorTickEnabled(false);
-
-    TInlineComponentArray<UStaticMeshComponent*> meshes;
-    Preview->GetComponents<UStaticMeshComponent>(meshes, true);
-    for (auto mesh : meshes) {
-        const static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
-        mesh->SetCollisionProfileName(CollisionProfileName, true);
-    }
-
-    // bind keys
-    const auto inputComponent = world->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->BindAction("Select", IE_Pressed, this, &UBuildingBuilderMode::ConfirmPosition);
-    inputComponent->BindAction("RotateBlueprint90", IE_Pressed, this, &UBuildingBuilderMode::Rotate90);
-    return this;
-}
-
-bool UBuildingBuilderMode::Tick(const ACameraPawn& camera) {
-    switch (Phase) {
-    case Positioning:
-        Position(camera);
-        CheckOverlap();
-        return false;
-    case Waiting:
-        Wait();
-        CheckOverlap();
-        return false;
-    case Done:
-        return true;
-    default: checkNoEntry();
-        return true;
+AConveyor::ESourceTargetType ToESourceTargetType(UConveyorBuilderMode::SourceTarget::EType type) {
+    switch (type) {
+    case UConveyorBuilderMode::SourceTarget::EType::Building:
+        return AConveyor::ESourceTargetType::Building;
+    case UConveyorBuilderMode::SourceTarget::EType::ConveyorLink:
+        return AConveyor::ESourceTargetType::ConveyorLink;
+    case UConveyorBuilderMode::SourceTarget::EType::ConveyorNode:
+        return AConveyor::ESourceTargetType::ConveyorNode;
+    case UConveyorBuilderMode::SourceTarget::EType::NotSet:
+    default:
+        checkNoEntry();
+        return AConveyor::ESourceTargetType::Building;
     }
 }
 
-
-void UBuildingBuilderMode::Position(const ACameraPawn& camera) const {
-    const APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor) {
-        Preview->SetActorHiddenInGame(true);
-        return;
-    }
-    
-    FHitResult landscapeUnderCursor;
-    if (!playerController->GetHitResultUnderCursorByChannel(UEngineTypes::ConvertToTraceType(COLLISION_LANDSCAPE), false, landscapeUnderCursor)) {
-        Preview->SetActorHiddenInGame(true);        
-        return;
-    }
-    
-    Preview->SetActorLocation(landscapeUnderCursor.ImpactPoint + FVector(0, 0, 1));
-    Preview->SetActorHiddenInGame(false);
-}
-
-void UBuildingBuilderMode::Wait() const {
-    if (ArrowForward->IsComponentTickEnabled()) {
-        ConfirmSymbol->SetVisibility(false);
-        CancelSymbol->SetVisibility(false);
-        ArrowSideways->SetVisibility(false);
-        ArrowRotate->SetVisibility(false);
-    } else if (ArrowSideways->IsComponentTickEnabled()) {
-        ConfirmSymbol->SetVisibility(false);
-        CancelSymbol->SetVisibility(false);
-        ArrowForward->SetVisibility(false);
-        ArrowRotate->SetVisibility(false);
-    } else if (ArrowRotate->IsComponentTickEnabled()) {
-        ConfirmSymbol->SetVisibility(false);
-        CancelSymbol->SetVisibility(false);
-        ArrowForward->SetVisibility(false);
-        ArrowSideways->SetVisibility(false);
-    } else {
-        ConfirmSymbol->SetVisibility(!HasOverlap);
-        CancelSymbol->SetVisibility(true);
-        ArrowForward->SetVisibility(true);
-        ArrowSideways->SetVisibility(true);
-        ArrowRotate->SetVisibility(true);
-    }
-}
-
-void UBuildingBuilderMode::CheckOverlap() {
-    if (Preview->IsHidden())
-        return;
-
-    Preview->UpdateOverlaps(false);
-    
-    TSet<AActor*> overlaps;
-    Preview->GetOverlappingActors(overlaps);
-    
-    // TODO filter out overlaps that are okay, like ships & foliage
-
-    if (!HasOverlap && overlaps.Num() > 0) {
-        // change to overlapping
-        HasOverlap = true;
-        Preview->SetAllMaterials(HighlightMaterial);
-        if (Phase == Waiting)
-            ConfirmSymbol->SetVisibility(false);
-    } else if (HasOverlap && overlaps.Num() == 0) {
-        // change to not overlapping
-        HasOverlap = false;
-        Preview->SetAllMaterials(nullptr);
-        if (Phase == Waiting)
-            ConfirmSymbol->SetVisibility(true);
-    }
-}
-
-UClass* UBuildingBuilderMode::IDK() {
-    return ConstructionPlan->BuildingClass;
-}
-
-void UBuildingBuilderMode::ConfirmPosition() {
-    APlayerControllerX* playerController = Preview->GetWorld()->GetFirstPlayerController<APlayerControllerX>();
-    const TObjectPtr<UInputComponent> inputComponent = playerController->InputComponent;
-    inputComponent->RemoveActionBinding("Select", IE_Pressed);
-    
-    UImageUI* confirmImageUI = CreateWidget<UImageUI>(playerController, playerController->BlueprintHolder->ImageUIClass);
-    confirmImageUI->Image->SetBrushFromTexture(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Confirm")));
-    confirmImageUI->Button->OnClicked.AddDynamic(this, &UBuildingBuilderMode::OnClickConfirm);
-    ConfirmSymbol = NewObject<UWidgetComponent>(Preview);
-    ConfirmSymbol->RegisterComponent();
-    ConfirmSymbol->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-    ConfirmSymbol->SetWidgetSpace(EWidgetSpace::Screen);
-    ConfirmSymbol->SetWidget(confirmImageUI);
-    ConfirmSymbol->SetDrawSize(FVector2D(80, 80)); // TODO scale every tick based on distance to camera
-    ConfirmSymbol->SetPivot(FVector2D(-0.5, -0.5));
-    ConfirmSymbol->SetGenerateOverlapEvents(false);
-    ConfirmSymbol->RecreatePhysicsState(); // without this, some of the arrows below are not clickable, no idea why
-    Preview->AddInstanceComponent(ConfirmSymbol);
-
-    UImageUI* cancelImageUI = CreateWidget<UImageUI>(playerController, playerController->BlueprintHolder->ImageUIClass);
-    cancelImageUI->Image->SetBrushFromTexture(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Cancel")));
-    cancelImageUI->Button->OnClicked.AddDynamic(this, &UBuildingBuilderMode::OnClickCancel);
-    CancelSymbol = NewObject<UWidgetComponent>(Preview);
-    CancelSymbol->RegisterComponent();
-    CancelSymbol->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-    CancelSymbol->SetWidgetSpace(EWidgetSpace::Screen);
-    CancelSymbol->SetWidget(cancelImageUI);
-    CancelSymbol->SetDrawSize(FVector2D(80, 80)); // TODO scale every tick based on distance to camera
-    CancelSymbol->SetPivot(FVector2D(1.5, -0.5));
-    CancelSymbol->SetGenerateOverlapEvents(false);
-    CancelSymbol->RecreatePhysicsState(); // without this, some of the arrows below are not clickable, no idea why
-    Preview->AddInstanceComponent(CancelSymbol);
-    
-    ArrowForward = NewObject<UArrowMoverLine>(Preview);
-    ArrowForward->RegisterComponent();
-    ArrowForward->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-    ArrowForward->SetRelativeLocation(FVector(60, 0, 50));
-    ArrowForward->SetWorldScale3D(FVector(5));
-    Preview->AddInstanceComponent(ArrowForward);
-
-    ArrowSideways = NewObject<UArrowMoverLine>(Preview);
-    ArrowSideways->RegisterComponent();
-    ArrowSideways->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-    ArrowSideways->SetRelativeRotation(FRotator(0, 90, 0));
-    ArrowSideways->SetRelativeLocation(FVector(0, 60, 50));
-    ArrowSideways->SetWorldScale3D(FVector(5));
-    Preview->AddInstanceComponent(ArrowSideways);
-
-    ArrowRotate = NewObject<UArrowMoverRotate>(Preview);
-    ArrowRotate->RegisterComponent();
-    ArrowRotate->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-    ArrowRotate->SetRelativeLocation(FVector(60, 60, 50));
-    ArrowRotate->SetWorldScale3D(FVector(5));
-    Preview->AddInstanceComponent(ArrowRotate);
-
-    // bind keys
-    inputComponent->BindAction("PushBlueprintUp", IE_Pressed, this, &UBuildingBuilderMode::PushUp);
-    inputComponent->BindAction("PushBlueprintDown", IE_Pressed, this, &UBuildingBuilderMode::PushDown);
-    inputComponent->BindAction("PushBlueprintLeft", IE_Pressed, this, &UBuildingBuilderMode::PushLeft);
-    inputComponent->BindAction("PushBlueprintRight", IE_Pressed, this, &UBuildingBuilderMode::PushRight);
-    inputComponent->BindAction("RotateBlueprintLeft", IE_Pressed, this, &UBuildingBuilderMode::RotateLeft);
-    inputComponent->BindAction("RotateBlueprintLeft", IE_Repeat, this, &UBuildingBuilderMode::RotateLeft);
-    inputComponent->BindAction("RotateBlueprintRight", IE_Pressed, this, &UBuildingBuilderMode::RotateRight);
-    inputComponent->BindAction("RotateBlueprintRight", IE_Repeat, this, &UBuildingBuilderMode::RotateRight);
-
-    Phase = Waiting;
-}
-
-void UBuildingBuilderMode::RemoveBindingsWaiting() const {
-    TObjectPtr<UInputComponent> inputComponent = Preview->GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->RemoveActionBinding("PushBlueprintUp", IE_Pressed);
-    inputComponent->RemoveActionBinding("PushBlueprintDown", IE_Pressed);
-    inputComponent->RemoveActionBinding("PushBlueprintLeft", IE_Pressed);
-    inputComponent->RemoveActionBinding("PushBlueprintRight", IE_Pressed);
-    inputComponent->RemoveActionBinding("RotateBlueprintLeft", IE_Pressed);
-    inputComponent->RemoveActionBinding("RotateBlueprintLeft", IE_Repeat);
-    inputComponent->RemoveActionBinding("RotateBlueprintRight", IE_Pressed);
-    inputComponent->RemoveActionBinding("RotateBlueprintRight", IE_Repeat);
-}
-
-void UBuildingBuilderMode::PushUp() {
-    Preview->AddActorLocalOffset(FVector(5, 0, 0));
-}
-
-void UBuildingBuilderMode::PushDown() {
-    Preview->AddActorLocalOffset(FVector(-5, 0, 0));
-}
-
-void UBuildingBuilderMode::PushLeft() {
-    Preview->AddActorLocalOffset(FVector(0, -5, 0));
-}
-
-void UBuildingBuilderMode::PushRight() {
-    Preview->AddActorLocalOffset(FVector(0, 5, 0));
-}
-
-void UBuildingBuilderMode::RotateLeft() {
-    Preview->AddActorLocalRotation(FRotator(0, -5, 0));
-}
-
-void UBuildingBuilderMode::RotateRight() {
-    Preview->AddActorLocalRotation(FRotator(0, 5, 0));
-}
-
-void UBuildingBuilderMode::Rotate90() {
-    Preview->AddActorLocalRotation(FRotator(0, 90, 0));
-}
-
-void UBuildingBuilderMode::OnClickConfirm() {
-    if (HasOverlap)
-        return;
-    
-    // remove components
-    ConfirmSymbol->DestroyComponent();
-    ConfirmSymbol = nullptr;
-    CancelSymbol->DestroyComponent();
-    CancelSymbol = nullptr;
-    ArrowForward->DestroyComponent();
-    ArrowForward = nullptr;
-    ArrowSideways->DestroyComponent();
-    ArrowSideways = nullptr;
-    ArrowRotate->DestroyComponent();
-    ArrowRotate = nullptr;
-
-    // undo all input bindings
-    TObjectPtr<UInputComponent> inputComponent = Preview->GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->RemoveActionBinding("RotateBlueprint90", IE_Pressed);
-    RemoveBindingsWaiting();
-
-    TInlineComponentArray<UStaticMeshComponent*> meshes;
-    Preview->GetComponents<UStaticMeshComponent>(meshes, true);
-    for (auto mesh : meshes) {
-        const static FName CollisionProfileName(TEXT("BlockAllDynamic"));
-        mesh->SetCollisionProfileName(CollisionProfileName, true);
-    }
-
-    // create and add construction site
-    ConstructionSite* constructionSite = new ConstructionSite(Preview, ConstructionPlan);
-    Preview->GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(constructionSite);
-    Phase = Done;
-}
-
-void UBuildingBuilderMode::OnClickCancel() {
-    // remove Preview and all components
-    Preview->Destroy();
-
-    // undo all input bindings
-    TObjectPtr<UInputComponent> inputComponent = Preview->GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->RemoveActionBinding("RotateBlueprint90", IE_Pressed);
-    RemoveBindingsWaiting();
-
-    Phase = Done;
-}
-
-void UBuildingBuilderMode::Stop() {
-    if (Phase == Done) {
-        return; // everything is done
-    }
-
-    Preview->Destroy();
-
-    TObjectPtr<UInputComponent> inputComponent = Preview->GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->RemoveActionBinding("RotateBlueprint90", EInputEvent::IE_Pressed);
-
-    if (Phase == Positioning) {
-        inputComponent->RemoveActionBinding("Select", IE_Pressed);
-    } else if (Phase == Waiting) {
-        RemoveBindingsWaiting();
-    }
-}
-
-// ConveyorBuilderMode
-
-UConveyorBuilderMode::UConveyorBuilderMode() {
-    static const FName name = FName(TEXT("Base Material Dynamic"));
-    static const FName ParameterNameColor = FName(TEXT("BaseColor"));
-    static ConstructorHelpers::FObjectFinderOptional<UMaterial> GhostMaterial(TEXT("/Game/GhostMaterial"));
-    RedMaterial = UMaterialInstanceDynamic::Create(GhostMaterial.Get(), this, name);
-    RedMaterial->SetVectorParameterValue(ParameterNameColor, FLinearColor::Red);
-    GreenMaterial = UMaterialInstanceDynamic::Create(GhostMaterial.Get(), this, name);
-    GreenMaterial->SetVectorParameterValue(ParameterNameColor, FLinearColor::Green);
+UConveyorBuilderMode::UConveyorBuilderMode() {    
+    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> RedMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
+    RedMaterial = RedMaterialFinder.Object; 
+    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> GreenMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_Buildable"));
+    GreenMaterial = GreenMaterialFinder.Object;
+    const static ConstructorHelpers::FObjectFinder<UTexture2D> ConveyorImageFinder(TEXT("/Game/Assets/Resources/Placeholder")); // TODO Conveyor Image
+    ConveyorImage = ConveyorImageFinder.Object;
 }
 
 UConveyorBuilderMode* UConveyorBuilderMode::Init() {
+    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
+
+    static FText conveyorName = FText::FromString(TEXT("Conveyor"));
+    playerController->BlueprintHolder->ConstructionUI->Set(
+        conveyorName,
+        ConveyorImage,
+        AConveyor::ComputeCosts(0., 0, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, gameInstance->TheBuildingBook),
+        gameInstance->TheConstructionManager
+    );
+    playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
+    
     // bind keys
-    const auto inputComponent = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
+    const auto inputComponent = playerController->InputComponent;
     inputComponent->BindAction("Select", IE_Pressed, this, &UConveyorBuilderMode::Confirm);
     return this;
 }
 
 void UConveyorBuilderMode::CreateNextLinkAndNode() {
-    const static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
     USceneComponent* sceneComponent = Preview->GetRootComponent();
     NextLink = NewObject<UConveyorLink>(Preview);
     NextLink->RegisterComponent();
     NextLink->AttachToComponent(sceneComponent, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-    NextLink->SetCollisionProfileName(CollisionProfileName, true);
+    NextLink->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
     Preview->AddInstanceComponent(NextLink);
 
     NextNode = NewObject<UConveyorNode>(Preview);
     NextNode->RegisterComponent();
     NextNode->AttachToComponent(sceneComponent, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-    NextNode->SetCollisionProfileName(CollisionProfileName, true);
+    NextNode->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
     Preview->AddInstanceComponent(NextNode);
 }
 
@@ -340,11 +78,14 @@ bool UConveyorBuilderMode::Tick(const ACameraPawn& camera) {
     
     if (Source.Type == SourceTarget::EType::NotSet) {
         TickSelectSource(camera);
+        ComputeCostSelectSource();
     } else if (Target.Type == SourceTarget::EType::NotSet) {
         TickSelectNextPoint(camera);
+        ComputeCostSelectNextPoint();
         CheckOverlap();
     } else {
         TickInsertNode(camera);
+        ComputeCostInsertNode();
     }
     return false;
 }
@@ -357,17 +98,29 @@ void UConveyorBuilderMode::TickSelectSource(const ACameraPawn& camera) {
     HighlightUnderCursor(playerController, true);
 }
 
+void UConveyorBuilderMode::ComputeCostSelectSource() const {
+    const auto splitter = CurrentHighlightValid ? ToESourceTargetType(CurrentHighlight.Type) : AConveyor::ESourceTargetType::Building;
+    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
+    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
+        AConveyor::ComputeCosts(0., 0, splitter, AConveyor::ESourceTargetType::Building, gameInstance->TheBuildingBook),
+        gameInstance->TheConstructionManager
+    );
+}
+
 void UConveyorBuilderMode::TickSelectNextPoint(const ACameraPawn& camera) {
     const APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
-    if (!playerController)
+    if (!playerController) {
+        NextNode->SetVisibility(false);
+        NextLink->SetVisibility(false);
         return;
+    }
     
     if (HighlightUnderCursor(playerController, false)) {
         if (CurrentHighlightValid) {
             DrawNextLink(CurrentHighlight.Building->GetActorLocation(), false);
         } else {
             NextNode->SetVisibility(false);
-            NextLink->SetVisibility(false);                
+            NextLink->SetVisibility(false);
         }
     } else {
         FHitResult landscapeUnderCursor;
@@ -380,27 +133,55 @@ void UConveyorBuilderMode::TickSelectNextPoint(const ACameraPawn& camera) {
             DrawNextLink(landscapeUnderCursor.ImpactPoint + FVector(0, 0, 15), true);
         } else {
             NextNode->SetVisibility(false);
-            NextLink->SetVisibility(false);                
+            NextLink->SetVisibility(false);
         }
     }
 }
 
-void UConveyorBuilderMode::TickInsertNode(const ACameraPawn& camera) {   
+void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {    
+    TArray<FVector> nodes;
+    for (const auto node : Nodes)
+        nodes.Add(node->GetComponentLocation());
+
+    std::optional<FVector> end;
+    auto merger = AConveyor::ESourceTargetType::Building;
+    if (NextNode->IsVisible()) {
+        nodes.Add(NextNode->GetComponentLocation());
+    } else if (CurrentHighlightValid) {
+        end = CurrentHighlight.Building->GetActorLocation();
+        merger = ToESourceTargetType(CurrentHighlight.Type);
+    } else
+        check(!NextLink->IsVisible());
+
+    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
+    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
+        AConveyor::ComputeCosts(
+            Source.Building->GetActorLocation(),
+            end.has_value() ? &*end : nullptr,
+            nodes,
+            ToESourceTargetType(Source.Type),
+            merger,
+            gameInstance->TheBuildingBook),
+        gameInstance->TheConstructionManager
+    );
+}
+
+void UConveyorBuilderMode::TickInsertNode(const ACameraPawn& camera) {
     // Do not show new Node Preview if any Mover is active
     TInlineComponentArray<UArrowMover*> movers;
     Preview->GetComponents<UArrowMover>(movers, true);
-    for (UArrowMover* mover : movers) {
+    for (const UArrowMover* mover : movers) {
         if (mover->IsComponentTickEnabled()) {
             NextNode->SetVisibility(false);
             InsertNodeHoverLink = nullptr;
             // the invisible node can still cause collision, so we move it away
             NextNode->SetWorldLocation(camera.GetActorLocation() + FVector(0, 0, 5000));
-            return;            
+            return;
         }
     }
 
     // Show new Node Preview if the Mouse is over a Link
-    APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
+    const APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
     FHitResult hitResult;
     if (playerController->GetHitResultUnderCursor(ECC_Visibility, true, hitResult)
             && hitResult.GetActor() == Preview
@@ -417,7 +198,31 @@ void UConveyorBuilderMode::TickInsertNode(const ACameraPawn& camera) {
     }
 }
 
-FVector UConveyorBuilderMode::ProjectOntoLink(FVector loc, UConveyorLink* link) {
+void UConveyorBuilderMode::ComputeCostInsertNode() const {
+    TArray<FVector> nodes;
+    for (const auto node : Nodes)
+        nodes.Add(node->GetComponentLocation());
+    if (InsertNodeHoverLink) {
+        const FVector last = nodes.Last(); // we need to add a note that does not increase the total distance
+        nodes.Add(last);
+    }
+
+    FVector end = Target.Building->GetActorLocation();
+
+    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
+    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
+        AConveyor::ComputeCosts(
+            Source.Building->GetActorLocation(),
+            &end,
+            nodes,
+            ToESourceTargetType(Source.Type),
+            ToESourceTargetType(Target.Type),
+            gameInstance->TheBuildingBook),
+        gameInstance->TheConstructionManager
+    );
+}
+
+FVector UConveyorBuilderMode::ProjectOntoLink(FVector loc, const UConveyorLink* link) {
     const FVector meshLocation = link->GetComponentLocation();
     const FVector projection = (loc - meshLocation).ProjectOnToNormal(link->GetComponentRotation().Vector());
     return meshLocation + projection;
@@ -433,8 +238,7 @@ ABuilding* UConveyorBuilderMode::SpawnSplitter(bool isSource, const UResource* r
         else
             building = GetWorld()->SpawnActor<AMerger>();
         building->SetActorTickEnabled(false);
-        const static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
-        building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfileName, true);
+        building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
     }
     
     UInventoryComponent* inventory = building->GetComponentByClass<UInventoryComponent>();    
@@ -643,9 +447,6 @@ bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, std::vector<
         if (std::find(allowedActors.begin(), allowedActors.end(), overlap->GetAttachmentRootActor()) != allowedActors.end())
             continue;
         hasOverlap = true;
-
-        UE_LOG(LogTemp, Warning, TEXT("%s overlaps with %s on %s"), *mesh->GetName(), *overlap->GetAttachmentRootActor()->GetName(), *overlap->GetName());
-        
         break;
     }    
     
@@ -758,13 +559,12 @@ void UConveyorBuilderMode::Confirm() {
         
         for (int i=0; i < NextNode->GetMaterials().Num(); ++i)
             NextNode->SetMaterial(i, nullptr);
-        const static FName CollisionProfileName(TEXT("UI"));
         for (UStaticMeshComponent* link : Links)          
-            link->SetCollisionProfileName(CollisionProfileName, true);
+            link->SetCollisionProfileName(CollisionProfiles::UI, true);
 
         UTexture2D* cancelTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Cancel"));
         // create arrows over all Nodes
-        for (auto node : Nodes)
+        for (const auto node : Nodes)
             AddArrowsToNode(node, cancelTexture);  
 
         // create confirm / cancel over target
@@ -805,7 +605,7 @@ void UConveyorBuilderMode::Confirm() {
     }
 
     if (InsertNodeHoverLink) {
-        auto idx = Links.Find(InsertNodeHoverLink);
+        const auto idx = Links.Find(InsertNodeHoverLink);
         check(idx != INDEX_NONE);
 
         UConveyorNode* insertNode = NextNode;
@@ -817,8 +617,7 @@ void UConveyorBuilderMode::Confirm() {
 
         CreateNextLinkAndNode();
         
-        const static FName CollisionProfileName(TEXT("UI"));
-        NextLink->SetCollisionProfileName(CollisionProfileName, true);
+        NextLink->SetCollisionProfileName(CollisionProfiles::UI, true);
         Links.Insert(NextLink, idx);
         NextLink = nullptr;
 
@@ -857,6 +656,7 @@ void UConveyorBuilderMode::RemoveCurrentHighlight() {
     default: checkNoEntry();
     }
     CurrentHighlight.Type = SourceTarget::EType::NotSet;
+    CurrentHighlightValid = false;
 }
 
 void UConveyorBuilderMode::UpdateLinks(UConveyorNode* node) {
@@ -882,87 +682,63 @@ void UConveyorBuilderMode::UpdateLinks(UConveyorNode* node) {
 }
 
 void UConveyorBuilderMode::OnClickConfirm() {
-    if (Done || HasOverlap)
+    if (HasOverlap || Done)
         return;
-    
-    Done = true;
-    
-    RemoveCurrentHighlight();
-    
-    if (Preview) {
-        Preview->Destroy();
-        Preview = nullptr;
-    }
 
     const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
-    
-    const static FName CollisionProfileName(TEXT("BlockAllDynamic"));
+
+    // Splitter
     if (Source.Type == SourceTarget::EType::ConveyorNode || Source.Type == SourceTarget::EType::ConveyorLink) {
-        Source.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfileName, true);
-        // create a construction Site for the Splitter
-        ConstructionSite* constructionSite = new ConstructionSite(Source.Building, gameInstance->TheBuildingBook->Splitter);
+        Source.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
+
+        std::vector<Material> material = gameInstance->TheBuildingBook->Splitter->Materials;
+        if (Source.Type == SourceTarget::EType::ConveyorNode)
+            Material::AddTo(material, gameInstance->TheBuildingBook->ConveyorNode->Materials, -1);
+
+        ConstructionSite* constructionSite = new ConstructionSite(Source.Building, gameInstance->TheBuildingBook->Splitter->Time, material, FConstructionFlags{false});
         gameInstance->TheConstructionManager->AddConstruction(constructionSite);
 
         // split the conveyor
         Source.Conveyor->SplitAt(Source.ConveyorComponent, Source.Building);
     }
+            
+    // Conveyor
+    {
+        TArray<FVector> nodes;
+        nodes.Reserve(Nodes.Num());
+        for (const auto& node : Nodes)
+            nodes.Push(node->GetComponentLocation());
+        AConveyor* conveyor = AConveyor::Create(GetWorld(), Source.Building, Target.Building, nodes, Resource);
+        FVector targetLoc = Target.Building->GetActorLocation();
+        ConstructionSite* constructionSite = new ConstructionSite(
+            conveyor,
+            1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
+            AConveyor::ComputeCosts(Source.Building->GetActorLocation(), &targetLoc, nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, gameInstance->TheBuildingBook),
+            FConstructionFlags{false}
+        ); 
+        gameInstance->TheConstructionManager->AddConstruction(constructionSite);
+    }
     
+    // Merger
     if (Target.Type == SourceTarget::EType::ConveyorNode || Target.Type == SourceTarget::EType::ConveyorLink) {
-        Target.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfileName, true);
-        // create a construction Site for the Merger
-        ConstructionSite* constructionSite = new ConstructionSite(Target.Building, gameInstance->TheBuildingBook->Merger);
+        Target.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
+
+        std::vector<Material> material = gameInstance->TheBuildingBook->Merger->Materials;
+        if (Target.Type == SourceTarget::EType::ConveyorNode)
+            Material::AddTo(material, gameInstance->TheBuildingBook->ConveyorNode->Materials, -1);
+
+        ConstructionSite* constructionSite = new ConstructionSite(Target.Building, gameInstance->TheBuildingBook->Merger->Time, material, FConstructionFlags{false});
         gameInstance->TheConstructionManager->AddConstruction(constructionSite);
 
         // split the conveyor
         Target.Conveyor->SplitAt(Target.ConveyorComponent, Target.Building);
     }
-            
-    // create conveyor and add construction site
-    TArray<FVector> nodes;
-    nodes.Reserve(Nodes.Num());
-    for (auto& node : Nodes)
-        nodes.Push(node->GetComponentLocation());
-    AConveyor* conveyor = AConveyor::Create(GetWorld(), Source.Building, Target.Building, nodes, Resource);
-    ConstructionSite* constructionSite = new ConstructionSite(
-        conveyor,
-        1,
-        {Material(10, gameInstance->TheResourceBook->LargeParts)}
-    ); // TODO make cost & time scale with length
-    gameInstance->TheConstructionManager->AddConstruction(constructionSite);
     
-    // unbind
-    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent->RemoveActionBinding("Select", IE_Pressed);
+    Stop(true);
 }
 
 void UConveyorBuilderMode::OnClickCancel() {
-    if (Done)
-        return;
-    
-    Done = true;
-    
-    if (Source.Type == SourceTarget::EType::ConveyorNode) {
-        Source.Building->Destroy();
-        Source.ConveyorComponent->SetVisibility(true);
-    } else if (Source.Type == SourceTarget::EType::ConveyorLink) {
-        Source.Building->Destroy();
-    }
-    
-    if (Target.Type == SourceTarget::EType::ConveyorNode) {
-        Target.Building->Destroy();
-        Target.ConveyorComponent->SetVisibility(true);
-    } else if (Target.Type == SourceTarget::EType::ConveyorLink) {
-        Target.Building->Destroy();
-    }
-    
-    RemoveCurrentHighlight();
-    
-    if (Preview) {
-        Preview->Destroy();
-        Preview = nullptr;
-    }
-
-    // unbind
-    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent->RemoveActionBinding("Select", IE_Pressed);
+    Stop(false);
 }
 
 bool UConveyorBuilderMode::CheckValidSource(const ABuilding* building) {
@@ -986,19 +762,25 @@ UClass* UConveyorBuilderMode::IDK() {
     return AConveyor::StaticClass();
 }
 
-void UConveyorBuilderMode::Stop() {
-    if (Source.Type == SourceTarget::EType::ConveyorNode) {
-        Source.Building->Destroy();
-        Source.ConveyorComponent->SetVisibility(true);
-    } else if (Source.Type == SourceTarget::EType::ConveyorLink) {
-        Source.Building->Destroy();
-    }
+void UConveyorBuilderMode::Stop(bool success) {
+    if (Done)
+        return;
+    Done = true;
+
+    if (!success) {
+        if (Source.Type == SourceTarget::EType::ConveyorNode) {
+            Source.Building->Destroy();
+            Source.ConveyorComponent->SetVisibility(true);
+        } else if (Source.Type == SourceTarget::EType::ConveyorLink) {
+            Source.Building->Destroy();
+        }
     
-    if (Target.Type == SourceTarget::EType::ConveyorNode) {
-        Target.Building->Destroy();
-        Target.ConveyorComponent->SetVisibility(true);
-    } else if (Target.Type == SourceTarget::EType::ConveyorLink) {
-        Target.Building->Destroy();
+        if (Target.Type == SourceTarget::EType::ConveyorNode) {
+            Target.Building->Destroy();
+            Target.ConveyorComponent->SetVisibility(true);
+        } else if (Target.Type == SourceTarget::EType::ConveyorLink) {
+            Target.Building->Destroy();
+        }
     }
     
     RemoveCurrentHighlight();
@@ -1007,9 +789,12 @@ void UConveyorBuilderMode::Stop() {
         Preview->Destroy();
         Preview = nullptr;
     }
-    
+
+    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    playerController->Deselect();
+
     // unbind
-    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent->RemoveActionBinding("Select", IE_Pressed);
+    playerController->InputComponent->RemoveActionBinding("Select", IE_Pressed);
 }
 
 void UConveyorBuilderMode::RemoveNode(UConveyorNode* node) {
@@ -1032,117 +817,6 @@ void UConveyorBuilderMode::RemoveNode(UConveyorNode* node) {
         Links[0]->Connect(Source.Building->GetActorLocation(), Target.Building->GetActorLocation());
         CheckOverlap();
     }
-}
-
-
-// IndoorBuilderMode
-
-UIndoorBuilderMode::UIndoorBuilderMode() {    
-    static const FName name = FName(TEXT("Base Material Dynamic"));
-    static ConstructorHelpers::FObjectFinderOptional<UMaterial> GhostMaterial(TEXT("/Game/GhostMaterial"));
-    HighlightMaterial = UMaterialInstanceDynamic::Create(GhostMaterial.Get(), this, name);
-    static const FName ParameterNameColor = FName(TEXT("BaseColor"));
-    HighlightMaterial->SetVectorParameterValue(ParameterNameColor, FLinearColor::Red);
-}
-
-UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan, UWorld* world) {
-    ConstructionPlan = constructionPlan;
-    Preview = world->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass);
-    Preview->SetActorTickEnabled(false);
-
-    // bind keys
-    const auto inputComponent = world->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->BindAction("Select", IE_Pressed, this, &UIndoorBuilderMode::ConfirmPosition);
-    return this;
-}
-
-bool UIndoorBuilderMode::Tick(const ACameraPawn& camera) {
-    if (!Preview)
-        return true;
-
-    Preview->SetActorLocation(camera.GetActorLocation());
-
-    // project mouse
-    FHitResult hitResult;
-    APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor || !playerController->GetHitResultUnderCursor(ECC_Visibility, true, hitResult)) {
-        SetInvisible();
-        return false;
-    }
-
-    Preview->SetActorHiddenInGame(false);
-    Preview->SetActorLocation(hitResult.ImpactPoint);
-
-    // check if mouse is over habitat
-    AHabitat* habitat = Cast<AHabitat>(hitResult.GetActor());
-    if (!habitat) {
-        SetNotBuildable();
-        return false;
-    }
-
-    // get build grid coordinates
-    auto gridPos = habitat->findCoordinates(hitResult.ImpactPoint);
-    if (!gridPos.first) {
-        SetNotBuildable();
-        return false;
-    }
-    int x = gridPos.second.first;
-    int y = gridPos.second.second;
-    Preview->setCoordinates(x, y, habitat);
-
-    if (!habitat->canPlaceBuilding(Preview)) {
-        SetNotBuildable();
-        return false;
-    }
-
-    SetBuildable();
-    return false;
-}
-
-void UIndoorBuilderMode::Stop() {
-    if (!Preview)
-        return;
-
-    Preview->Destroy();
-    Preview = nullptr;
-    TObjectPtr<UInputComponent> inputComponent = Preview->GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->RemoveActionBinding("Select", IE_Pressed);
-}
-
-void UIndoorBuilderMode::ConfirmPosition() {
-    if (!Buildable) {
-        return;
-    }
-
-    TObjectPtr<UInputComponent> inputComponent = Preview->GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
-    inputComponent->RemoveActionBinding("Select", IE_Pressed);
-
-    Preview->Habitat->placeBuilding(Preview);
-    ConstructionSite* constructionSite = new ConstructionSite(Preview, ConstructionPlan);
-    Preview->GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(constructionSite);
-
-    Preview = nullptr;
-}
-
-UClass* UIndoorBuilderMode::IDK() {
-    return ConstructionPlan->BuildingClass;
-}
-
-void UIndoorBuilderMode::SetInvisible() {
-    Buildable = false;
-    Preview->SetActorHiddenInGame(true);
-}
-
-void UIndoorBuilderMode::SetNotBuildable() {
-    Buildable = false;
-    Preview->SetActorHiddenInGame(false);
-    Preview->SetAllMaterials(HighlightMaterial);
-}
-
-void UIndoorBuilderMode::SetBuildable() {
-    Buildable = true;
-    Preview->SetActorHiddenInGame(false);
-    Preview->SetAllMaterials(nullptr);
 }
 
 void UButtonWorkaround::OnClick() {
