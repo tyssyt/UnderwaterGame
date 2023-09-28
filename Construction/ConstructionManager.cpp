@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include "XD/Cheats.h"
 
 ConstructionResource::ConstructionResource(const UResource* resource) : Resource(resource) {}
 ConstructionResource::~ConstructionResource() {}
@@ -16,7 +17,6 @@ UConstructionManager::UConstructionManager() {
 UConstructionManager::~UConstructionManager() {}
 
 UConstructionManager* UConstructionManager::Init(UResourceBook* theResourceBook) {
-
     for (UResource* resource : theResourceBook->All)
       if (resource->ConstructionResource)
           constructionResources.emplace_back(resource);
@@ -30,8 +30,12 @@ void UConstructionManager::AddIdleBuilder(ABuilderShip* builder) {
 }
 
 void UConstructionManager::AddConstruction(ConstructionSite* constructionSite) {
-    constructionSite->SetGhostMaterial(GhostMaterial);
-    newConstructionSites.push_back(constructionSite);
+    if (Cheats::ENABLE_INSTA_BUILD) {
+        constructionSite->BeginConstruction();
+    } else {
+        constructionSite->SetGhostMaterial(GhostMaterial);
+        newConstructionSites.push_back(constructionSite);
+    }
 }
 
 void UConstructionManager::AddPickupPad(APickupPad* pickupPad) {
@@ -46,9 +50,9 @@ void UConstructionManager::UnreserveResource(UResource* resource, int amount) {
     }
 }
 
-void UConstructionManager::FinishConstruction(ConstructionSite* constructionSite) {
+void UConstructionManager::FinishConstruction(const ConstructionSite* constructionSite) {
     wipConstructionSites.erase(std::remove(wipConstructionSites.begin(), wipConstructionSites.end(), constructionSite), wipConstructionSites.end());
-    delete constructionSite;
+    delete constructionSite; // TODO maybe we want to move the delete into ConstructionSite? or just make this an unreal object...
 }
 
 void UConstructionManager::Tick(float DeltaTime) {

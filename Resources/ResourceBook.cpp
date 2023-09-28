@@ -20,8 +20,8 @@ UResourceBook::UResourceBook() {
     Oil = MakeResource(TEXT("Oil"), 1, TEXT("/Game/Assets/Resources/Oil"), false);
     Rubber = MakeResource(TEXT("Rubber"), 100, TEXT("/Game/Assets/Resources/Rubber"), true);
 
-    Sand = MakeResource(TEXT("Sand"), 1, TEXT("/Game/Assets/Resources/Placeholder"), false); // TODO Image
-    Glass = MakeResource(TEXT("Glass"), 100, TEXT("/Game/Assets/Resources/Placeholder"), true); // TODO Image
+    Sand = MakeResource(TEXT("Sand"), 1, TEXT("/Game/Assets/Resources/Sand"), false);
+    Glass = MakeResource(TEXT("Glass"), 100, TEXT("/Game/Assets/Resources/Glass"), true);
     
     MechanicalComponents = MakeResource(TEXT("Mechanical Components"), 100, TEXT("/Game/Assets/Resources/Mechanical_Components"), true);
     ElectricalComponents = MakeResource(TEXT("Electrical Components"), 100, TEXT("/Game/Assets/Resources/Electrical_Components"), true);

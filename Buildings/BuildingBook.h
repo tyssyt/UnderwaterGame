@@ -41,6 +41,8 @@ public:
     UConstructionPlan* Merger;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UConstructionPlan* AssemblyLine;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UConstructionPlan* Excavator;
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UConstructionPlan* ConveyorNode;

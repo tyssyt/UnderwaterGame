@@ -4,6 +4,7 @@
 #include "CameraPawn.h"
 #include "PlayerControllerX.h"
 #include "GameInstanceX.h"
+#include "Buildings/Excavator.h"
 
 #include "Buildings/WorkerHouse.h"
 #include "Buildings/Habitat.h"
@@ -244,7 +245,10 @@ void ACameraPawn::Hotbar9() {
     if (PrepBuilderMode(AAssemblyLine::StaticClass()))
         BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->AssemblyLine, nullptr);
 }
-void ACameraPawn::Hotbar0() {}
+void ACameraPawn::Hotbar0() {
+    if (PrepBuilderMode(AExcavator::StaticClass()))
+        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Excavator, nullptr);
+}
 
 bool ACameraPawn::PrepBuilderMode(UClass* newThing) const {
     const APlayerControllerX* playerController = GetController<APlayerControllerX>();

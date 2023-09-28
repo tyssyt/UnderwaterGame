@@ -45,7 +45,7 @@ public:
     void AddPickupPad(APickupPad* pickupPad);
 
     void UnreserveResource(UResource* resource, int amount);
-    void FinishConstruction(ConstructionSite* site);
+    void FinishConstruction(const ConstructionSite* constructionSite);
 
     virtual void Tick(float DeltaTime) override;    
     virtual TStatId GetStatId() const override {

@@ -20,6 +20,7 @@ void UBlueprintHolder::Init(APlayerController* controller) {
     PickupPadUI = CreateWidget<UPickupPadUI>(controller, PickupPadUIClass);
     AssemblyLineUI = CreateWidget<UAssemblyLineUI>(controller, AssemblyLineUIClass);
     SubstationUI = CreateWidget<USubstationUI>(controller, SubstationUIClass);
+    ExcavatorUI = CreateWidget<UExcavatorUI>(controller, ExcavatorUIClass);
     PowerOverlayUI = CreateWidget<UPowerOverlayUI>(controller, PowerOverlayUIClass);
     ConstructionUI = CreateWidget<UConstructionUI>(controller, ConstructionUIClass);
 }
@@ -84,6 +85,10 @@ USelectedUI* UBlueprintHolder::GetUI(AXActor* actor) const {
     if (actor->IsA(ASubstation::StaticClass())) {
         SubstationUI->Substation = Cast<ASubstation>(actor);
         return SubstationUI;
+    }
+    if (actor->IsA(AExcavator::StaticClass())) {
+        ExcavatorUI->Excavator = Cast<AExcavator>(actor);
+        return ExcavatorUI;
     }
     return nullptr;
 }

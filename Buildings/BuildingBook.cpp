@@ -6,6 +6,7 @@
 #include "AssemblyLine.h"
 #include "ConductiveOreMine.h"
 #include "Depot.h"
+#include "Excavator.h"
 #include "Habitat.h"
 #include "HardOreMine.h"
 #include "OilFishHarvester.h"
@@ -36,7 +37,7 @@ UBuildingBook* UBuildingBook::Init(const UResourceBook* resourceBook) {
     Depot = NewObject<UConstructionPlan>(this)->Init(
         ADepot::StaticClass(),
         FText::FromString(TEXT("Depot")),
-        TEXT("/Game/Assets/Resources/Placeholder"),
+        TEXT("/Game/Assets/Meshes/Previews/Depot"),
         1,
         {Material(50, resourceBook->LargeParts)}
     );
@@ -81,7 +82,7 @@ UBuildingBook* UBuildingBook::Init(const UResourceBook* resourceBook) {
     PickupPad = NewObject<UConstructionPlan>(this)->Init(
         APickupPad::StaticClass(),
         FText::FromString(TEXT("Pickup Pad")),
-        TEXT("/Game/Assets/Resources/Placeholder"),
+        TEXT("/Game/Assets/Meshes/Previews/PickupPad"),
         1,
         {Material(100, resourceBook->LargeParts)}
     );
@@ -100,7 +101,7 @@ UBuildingBook* UBuildingBook::Init(const UResourceBook* resourceBook) {
     Solar = NewObject<UConstructionPlan>(this)->Init(
         ASolar::StaticClass(),
         FText::FromString(TEXT("Solar")),
-        TEXT("/Game/Assets/Resources/Placeholder"),
+        TEXT("/Game/Assets/Meshes/Previews/Solar"),
         1,
         {
             Material(100, resourceBook->Glass),
@@ -111,7 +112,7 @@ UBuildingBook* UBuildingBook::Init(const UResourceBook* resourceBook) {
     Substation = NewObject<UConstructionPlan>(this)->Init(
         ASubstation::StaticClass(),
         FText::FromString(TEXT("Substation")),
-        TEXT("/Game/Assets/Resources/Placeholder"),
+        TEXT("/Game/Assets/Meshes/Previews/Substation"),
         1,
         {
             Material(50, resourceBook->LargeParts),
@@ -149,12 +150,25 @@ UBuildingBook* UBuildingBook::Init(const UResourceBook* resourceBook) {
     AssemblyLine = NewObject<UConstructionPlan>(this)->Init(
         AAssemblyLine::StaticClass(),
         FText::FromString(TEXT("Assembly Line")),
-        TEXT("/Game/Assets/Resources/Placeholder"),
+        TEXT("/Game/Assets/Meshes/Previews/AssemblyLine"),
         1,
         {
             Material(200, resourceBook->LargeParts),
             Material(10, resourceBook->Cable),
             Material(100, resourceBook->ElectricalComponents),
+            Material(100, resourceBook->MechanicalComponents),
+            Material(50, resourceBook->LifeSupportEquipment)
+        }
+        );
+    Excavator = NewObject<UConstructionPlan>(this)->Init(
+        AExcavator::StaticClass(),
+        FText::FromString(TEXT("Excavator")),
+        TEXT("/Game/Assets/Meshes/Previews/Excavator"),
+        1,
+        {
+            Material(200, resourceBook->LargeParts),
+            Material(10, resourceBook->Cable),
+            Material(50, resourceBook->ElectricalComponents),
             Material(100, resourceBook->MechanicalComponents),
             Material(50, resourceBook->LifeSupportEquipment)
         }

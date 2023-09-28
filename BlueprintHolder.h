@@ -20,6 +20,7 @@
 #include "CoreMinimal.h"
 #include "ImageUI.h"
 #include "TextUI.h"
+#include "Buildings/Excavator.h"
 #include "Buildings/Substation.h"
 #include "Construction/ConstructionUI.h"
 #include "Electricity/PowerOverlay.h"
@@ -105,6 +106,11 @@ public:
     TSubclassOf<USubstationUI> SubstationUIClass;
     UPROPERTY()
     USubstationUI* SubstationUI;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UExcavatorUI> ExcavatorUIClass;
+    UPROPERTY()
+    UExcavatorUI* ExcavatorUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UPowerOverlayUI> PowerOverlayUIClass;

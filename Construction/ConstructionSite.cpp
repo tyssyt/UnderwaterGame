@@ -3,6 +3,7 @@
 #include "ConstructionSite.h"
 
 #include "ConstructionManager.h"
+#include "XD/GameInstanceX.h"
 #include "XD/Buildings/Building.h"
 
 ConstructionSite::ConstructionSite(AXActor* building, const UConstructionPlan* constructionPlan, FConstructionFlags flags)
@@ -29,6 +30,8 @@ void ConstructionSite::BeginConstruction() const {
 
     if (ABuilding* building = Cast<ABuilding>(Building))
         building->OnConstructionComplete(Flags);
+
+    Building->GetGameInstance()->TheConstructionManager->FinishConstruction(this);
 }
 
 std::pair<APickupPad*, Material> ConstructionSite::GetNextDelivery(std::vector<ConstructionResource>& constructionResources) const {
