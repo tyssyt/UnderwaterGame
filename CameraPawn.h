@@ -20,10 +20,10 @@ protected:
     UPROPERTY(EditAnywhere)
     UPawnMovementComponent* MovementComponent;
 
+public:
     UPROPERTY(EditAnywhere)
     class UBuilderMode* BuilderMode;
 
-public:
     ACameraPawn();
     virtual void Tick(float DeltaTime) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -47,6 +47,7 @@ public:
     
     void TogglePowerOverlay();
 
+    void ActivateHotbar(const int i) const;
     void Hotbar1();
     void Hotbar2();
     void Hotbar3();
@@ -58,6 +59,5 @@ public:
     void Hotbar9();
     void Hotbar0();
 
-private:
     bool PrepBuilderMode(UClass* newThing) const;
 };

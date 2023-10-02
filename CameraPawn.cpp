@@ -1,26 +1,17 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "CameraPawn.h"
 #include "PlayerControllerX.h"
 #include "GameInstanceX.h"
-#include "Buildings/Excavator.h"
-
-#include "Buildings/WorkerHouse.h"
-#include "Buildings/Habitat.h"
-#include "Buildings/Solar.h"
-#include "Buildings/Substation.h"
-#include "Buildings/PickupPad.h"
 
 #include "Camera/CameraComponent.h"
-#include "Construction/BuilderModeExtension.h"
-#include "Construction/BuildingBuilderMode.h"
-#include "Construction/ConveyorBuilderMode.h"
-#include "Construction/IndoorBuilderMode.h"
+#include "Construction/BuilderMode.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/PlayerInput.h"
 #include "Electricity//PowerOverlay.h"
+#include "Hotbar/HotbarDock.h"
+#include "Hotbar/HotbarSlot.h"
 
 // Sets default values
 ACameraPawn::ACameraPawn() {
@@ -207,47 +198,39 @@ void ACameraPawn::TogglePowerOverlay() {
     PowerOverlay->Toggle();
 }
 
+void ACameraPawn::ActivateHotbar(const int i) const {
+    if (const auto slot = GetController<APlayerControllerX>()->BlueprintHolder->MainUI->HotbarDock->GetTop()->GetSlot(i))
+        slot->Activate();
+}
 void ACameraPawn::Hotbar1() {
-    if (PrepBuilderMode(ADepot::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Depot, nullptr);
+    ActivateHotbar(1);
 }
 void ACameraPawn::Hotbar2() {
-    if (PrepBuilderMode(ASmelter::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Smelter, nullptr);
+    ActivateHotbar(2);
 }
 void ACameraPawn::Hotbar3() {
-    if (PrepBuilderMode(AConveyor::StaticClass()))
-        BuilderMode = NewObject<UConveyorBuilderMode>(this)->Init();
+    ActivateHotbar(3);
 }
 void ACameraPawn::Hotbar4() {
-    if (PrepBuilderMode(AHabitat::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Habitat, nullptr);
+    ActivateHotbar(4);
 }
 void ACameraPawn::Hotbar5() {
-    if (PrepBuilderMode(AWorkerHouse::StaticClass()))
-        BuilderMode = NewObject<UIndoorBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->WorkerHouse, nullptr);
+    ActivateHotbar(5);
 }
 void ACameraPawn::Hotbar6() {
-    if (PrepBuilderMode(ASolar::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Solar, nullptr);
+    ActivateHotbar(6);
 }
 void ACameraPawn::Hotbar7() {
-    if (PrepBuilderMode(ASubstation::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Substation, NewObject<USubstationBuilderModeExtension>(this));
+    ActivateHotbar(7);
 }
-
 void ACameraPawn::Hotbar8() {
-    if (PrepBuilderMode(APickupPad::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->PickupPad, nullptr);
+    ActivateHotbar(8);
 }
-
 void ACameraPawn::Hotbar9() {
-    if (PrepBuilderMode(AAssemblyLine::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->AssemblyLine, nullptr);
+    ActivateHotbar(9);
 }
 void ACameraPawn::Hotbar0() {
-    if (PrepBuilderMode(AExcavator::StaticClass()))
-        BuilderMode = NewObject<UBuildingBuilderMode>(this)->Init(GetGameInstance<UGameInstanceX>()->TheBuildingBook->Excavator, nullptr);
+    ActivateHotbar(0);
 }
 
 bool ACameraPawn::PrepBuilderMode(UClass* newThing) const {
@@ -262,5 +245,6 @@ bool ACameraPawn::PrepBuilderMode(UClass* newThing) const {
     }
 
     PowerOverlay->Deactivate();
+    playerController->BlueprintHolder->MainUI->HotbarDock->Reset();
     return true;
 }

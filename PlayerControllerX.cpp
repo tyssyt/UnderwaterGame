@@ -3,6 +3,7 @@
 #include "PlayerControllerX.h"
 
 #include "GameInstanceX.h"
+#include "Hotbar/HotbarDock.h"
 
 APlayerControllerX::APlayerControllerX() {}
 
@@ -48,4 +49,5 @@ void APlayerControllerX::UpdateSelected(AXActor* actor) {
 void APlayerControllerX::Deselect() {
     SelectedUI = nullptr;
     BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), nullptr);
+    BlueprintHolder->MainUI->HotbarDock->Reset();
 }

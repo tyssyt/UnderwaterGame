@@ -2,6 +2,7 @@
 
 #include "WorkerHouse.h"
 #include "Habitat.h"
+#include "XD/GameInstanceX.h"
 
 AWorkerHouse::AWorkerHouse() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/WorkerHouse"));

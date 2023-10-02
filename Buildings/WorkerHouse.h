@@ -4,6 +4,7 @@
 
 #include "IndoorBuilding.h"
 #include "XD/SelectedUI.h"
+#include "XD/Inventory/InventorySlotUI.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"

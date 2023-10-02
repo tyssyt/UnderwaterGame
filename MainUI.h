@@ -6,7 +6,13 @@
 #include "Blueprint/UserWidget.h"
 #include "MainUI.generated.h"
 
+class UHotbarDock;
+
 UCLASS(Abstract)
 class XD_API UMainUI : public UUserWidget {
     GENERATED_BODY()
+
+public:
+    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+    UHotbarDock* HotbarDock;
 };
