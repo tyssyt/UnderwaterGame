@@ -5,6 +5,7 @@
 
 #include "Kismet/KismetMathLibrary.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Utils.h"
 
 
 UArrowMover::UArrowMover() {
@@ -63,9 +64,9 @@ void UArrowMover::Lowlight() const {
 void UArrowMover::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
+    const auto playerController = The::PlayerController(this);
     // check if left mouse button is pressed, otherwise stop ticking
-    if (!playerController || !playerController->bShowMouseCursor || !playerController->IsInputKeyDown(EKeys::LeftMouseButton)) {
+    if (!playerController->bShowMouseCursor || !playerController->IsInputKeyDown(EKeys::LeftMouseButton)) {
         SetComponentTickEnabled(false);
         Lowlight();
         EndMove();
@@ -85,11 +86,9 @@ UArrowMoverLine::UArrowMoverLine() {
 }
 
 void UArrowMoverLine::Move() {
-    const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
-    
     // Get Mouse in World
     FVector mouseOrigin, mouseDir;
-    if (!playerController->DeprojectMousePositionToWorld(mouseOrigin, mouseDir)) {
+    if (!The::PlayerController(this)->DeprojectMousePositionToWorld(mouseOrigin, mouseDir)) {
         return;
     }
 
@@ -132,8 +131,7 @@ UArrowMoverUp::UArrowMoverUp() {
 }
 
 void UArrowMoverUp::Move() {
-    const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
-    
+    const auto playerController = The::PlayerController(this);
     // Get Mouse in World
     FVector mouseOrigin, mouseDir;
     if (!playerController->DeprojectMousePositionToWorld(mouseOrigin, mouseDir)) {
@@ -188,11 +186,9 @@ UArrowMoverRotate::UArrowMoverRotate() {
 }
 
 void UArrowMoverRotate::Move() {
-    const APlayerController* playerController = GetWorld()->GetFirstPlayerController();
-    
     // Get Mouse in World
     FVector mouseOrigin, mouseDir;
-    if (!playerController->DeprojectMousePositionToWorld(mouseOrigin, mouseDir)) {
+    if (!The::PlayerController(this)->DeprojectMousePositionToWorld(mouseOrigin, mouseDir)) {
         return;
     }
 

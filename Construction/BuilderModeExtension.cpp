@@ -8,14 +8,14 @@
 #include "XD/Utils.h"
 
 void UElectricityBuilderModeExtension::Init(ABuilding* preview) {
-    UElectricComponent* elec = preview->GetComponentByClass<UElectricComponent>();
+    const auto elec = preview->GetComponentByClass<UElectricComponent>();
     check(elec);
     
     Preview = preview;
     WireComponent = UWireComponent::Create(preview, preview, preview);
     WireComponent->SetHiddenInGame(true);
 
-    const auto constructionUI = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI;
+    const auto constructionUI = The::BPHolder(this)->ConstructionUI;
     constructionUI->TogglePower->SetVisibility(ESlateVisibility::Visible);
 
     PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionUI, constructionUI->ResourceBalanceUIClass);
@@ -24,10 +24,10 @@ void UElectricityBuilderModeExtension::Init(ABuilding* preview) {
 }
 
 void UElectricityBuilderModeExtension::Update() {
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
 
     if (playerController->BlueprintHolder->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
-        Last = std::make_pair(FVector(), FRotator());
+        Last = MakeTuple(FVector(), FRotator());
         ConnectedSubstation = nullptr;
         if (PowerUI)
             PowerUI->DestroyComponent();
@@ -36,11 +36,11 @@ void UElectricityBuilderModeExtension::Update() {
         return;
     }
     
-    if (std::make_pair(Preview->GetActorLocation(), Preview->GetActorRotation()) == Last)
+    if (MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation()) == Last)
         return;
-    Last = std::make_pair(Preview->GetActorLocation(), Preview->GetActorRotation());
+    Last = MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation());
 
-    ASubstation* nearestSubstation = Preview->GetGameInstance()->TheElectricityManager->FindNearestSubstation(Last.first);
+    ASubstation* nearestSubstation = The::ElectricityManager(Preview)->FindNearestSubstation(Last.Key);
     if (nearestSubstation != ConnectedSubstation) {
         ConnectedSubstation = nearestSubstation;
         if (PowerUI) {
@@ -89,15 +89,12 @@ void USubstationBuilderModeExtension::Init(ABuilding* preview) {
     check(preview->IsA(ASubstation::StaticClass()));
     Preview = Cast<ASubstation>(preview);
 
-    const auto constructionUI = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI;
-    constructionUI->TogglePower->SetVisibility(ESlateVisibility::Visible);
+    The::BPHolder(this)->ConstructionUI->TogglePower->SetVisibility(ESlateVisibility::Visible);
 }
 
 void USubstationBuilderModeExtension::Update() {
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
-
-    if (playerController->BlueprintHolder->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
-        Last = std::make_pair(FVector(), FRotator());
+    if (The::BPHolder(this)->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
+        Last = MakeTuple(FVector(), FRotator());
         
         for (UWireComponent* wire : Wires)
             wire->DestroyComponent();
@@ -105,9 +102,9 @@ void USubstationBuilderModeExtension::Update() {
         return;
     }
     
-    if (std::make_pair(Preview->GetActorLocation(), Preview->GetActorRotation()) == Last)
+    if (MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation()) == Last)
         return;
-    Last = std::make_pair(Preview->GetActorLocation(), Preview->GetActorRotation());
+    Last = MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation());
 
     for (UWireComponent* wire : Wires)
         wire->DestroyComponent();
@@ -116,17 +113,17 @@ void USubstationBuilderModeExtension::Update() {
     const auto nearby = Preview->FindNearby();
     
     TArray<ElectricityNetwork*> connectedNetworks;
-    for (ASubstation* nearbySubstation : nearby.first) {
+    for (ASubstation* nearbySubstation : nearby.Key) {
         Wires.Add(UWireComponent::Create(Preview, Preview, nearbySubstation));
         if (!connectedNetworks.Contains(nearbySubstation->Network))
             connectedNetworks.Add(nearbySubstation->Network);
     }
     
-    for (const UElectricComponent* nearbyElec : nearby.second) {
+    for (const UElectricComponent* nearbyElec : nearby.Value) {
         const FVector elecLocation = nearbyElec->GetOwner()->GetActorLocation();
         if (nearbyElec->Substation) {
             // check if we would be on the same network and closer then the substation currently used
-            if (FVector::Distance(Last.first, elecLocation) < FVector::Distance(nearbyElec->Substation->GetActorLocation(), elecLocation)
+            if (FVector::Distance(Last.Key, elecLocation) < FVector::Distance(nearbyElec->Substation->GetActorLocation(), elecLocation)
                     && connectedNetworks.Contains(nearbyElec->Substation->Network)) {
                 Wires.Add(UWireComponent::Create(Preview, Preview, nearbyElec->GetOwner<ABuilding>()));
             }
@@ -149,7 +146,7 @@ void UIndoorElectricityBuilderModeExtension::Init(ABuilding* preview) {
     UElectricComponent* elec = preview->GetComponentByClass<UElectricComponent>();
     check(elec);
     
-    const auto constructionUI = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI;
+    const auto constructionUI = The::BPHolder(this)->ConstructionUI;
     PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionUI, constructionUI->ResourceBalanceUIClass);
     PowerResourceUI->SetNeed(elec->Consumption, The::Encyclopedia(this)->Electricity);
     constructionUI->AddExternalResource(PowerResourceUI);

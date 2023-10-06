@@ -38,7 +38,7 @@ void ABuilderShip::Tick(float DeltaTime) {
 
 void ABuilderShip::Idle() {
     SetActorTickEnabled(false);
-    GetGameInstance()->TheConstructionManager->AddIdleBuilder(this);
+    The::ConstructionManager(this)->AddIdleBuilder(this);
 }
 
 
@@ -84,7 +84,7 @@ void ABuilderShip::Fly() {
             if (input.Resource == PickupMaterial.resource) {
                 Inventory.resource = PickupMaterial.resource;
                 Inventory.amount = input.PullFrom(PickupMaterial.amount);
-                GetGameInstance()->TheConstructionManager->UnreserveResource(Inventory.resource, Inventory.amount);
+                The::ConstructionManager(this)->UnreserveResource(Inventory.resource, Inventory.amount);
             }
         }
         
@@ -115,10 +115,10 @@ void ABuilderShip::StartConstructing(ConstructionSite* constructionSite) {
 void ABuilderShip::DoNextStop() {
     const auto nextDelivery = TargetSite->GetNextDelivery(The::ConstructionManager(this)->ConstructionResources);
 
-    if (nextDelivery.first) {
-        NextStop = nextDelivery.first;
-        PickupFrom = nextDelivery.first;
-        PickupMaterial = nextDelivery.second;        
+    if (nextDelivery.Key) {
+        NextStop = nextDelivery.Key;
+        PickupFrom = nextDelivery.Key;
+        PickupMaterial = nextDelivery.Value;        
     } else {
         // all Material is delivered, go to Build Site and finish it
         NextStop = TargetSite->Building;

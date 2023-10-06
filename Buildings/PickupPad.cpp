@@ -3,6 +3,7 @@
 #include "PickupPad.h"
 
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 
 
 APickupPad::APickupPad() {
@@ -24,8 +25,7 @@ void APickupPad::BeginPlay() {
 
 void APickupPad::OnConstructionComplete(FConstructionFlags flags) {
     Super::OnConstructionComplete(flags);
-
-    GetGameInstance()->TheConstructionManager->AddPickupPad(this);
+    The::ConstructionManager(this)->AddPickupPad(this);
 }
 
 

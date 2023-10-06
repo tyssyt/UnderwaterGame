@@ -8,6 +8,7 @@
 #include "XD/CollisionProfiles.h"
 #include "XD/GameInstanceX.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Utils.h"
 #include "XD/Electricity/WireComponent.h"
 
 
@@ -32,14 +33,13 @@ void UPowerOverlay::Tick(float DeltaTime) {
         return;
     
     // Scale texts
-    const ACameraPawn* cameraPawn = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->GetPawn<ACameraPawn>();
-    const FVector cameraLocation = cameraPawn->GetActorLocation();
+    const FVector cameraLocation = The::CameraPawn(this)->GetActorLocation();
     TInlineComponentArray<UWidgetComponent*> widgetComponents;
     ComponentHolder->GetComponents<UWidgetComponent>(widgetComponents, true);
     for (UWidgetComponent* widgetComponent : widgetComponents)
         ScaleFloatingWidget(widgetComponent, cameraLocation);
     
-    const EMode mode = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->PowerOverlayUI->GetMode();
+    const EMode mode = The::BPHolder(this)->PowerOverlayUI->GetMode();
     if (mode != ModeHighlight.Mode) {
         ResetModeHighlight(true);
         ModeHighlight.Mode = mode;
@@ -71,8 +71,7 @@ void UPowerOverlay::Tick(float DeltaTime) {
 }
 
 void UPowerOverlay::TickTogglePower() {    
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
-    UElectricComponent* elec = CheckElec(playerController->GetUnderCursor<ABuilding>());
+    const UElectricComponent* elec = CheckElec(The::PlayerController(this)->GetUnderCursor<ABuilding>());
 
     // can't toggle disconnected Buildings
     if (elec && elec->GetState() == PowerState::Disconnected)
@@ -110,9 +109,8 @@ void UPowerOverlay::TickTogglePower() {
 }
 
 void UPowerOverlay::TickConnect() {
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
 
-    ABuilding* underCursor = playerController->GetUnderCursor<ABuilding>();
+    ABuilding* underCursor = The::PlayerController(this)->GetUnderCursor<ABuilding>();
     if (underCursor && underCursor->constructionState != EConstructionState::Done)
         underCursor = nullptr;
 
@@ -155,10 +153,8 @@ void UPowerOverlay::TickConnect() {
 }
 
 void UPowerOverlay::TickDisconnect() {
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
-    
     FHitResult hitResult;
-    playerController->GetHitResultUnderCursor(ECC_Visibility, true, hitResult);
+    The::PlayerController(this)->GetHitResultUnderCursor(ECC_Visibility, true, hitResult);
     UWireComponent* wire = Cast<UWireComponent>(hitResult.GetComponent());
 
     ASubstation* substation = nullptr;
@@ -241,7 +237,7 @@ void UPowerOverlay::ConfirmModeHighlight() { // TODO this could be less messy I 
                 substation->Connect(elec2);
                 return;
             }
-            if (ASubstation* substation2 = Cast<ASubstation>(ModeHighlight.Source)) {
+            if (const ASubstation* substation2 = Cast<ASubstation>(ModeHighlight.Source)) {
                 substation->Network->MergeNetwork(substation2->Network);
                 return;
             }
@@ -292,7 +288,7 @@ void UPowerOverlay::ResetTogglePower() {
 }
 void UPowerOverlay::ResetConnect(bool deactivate) {
     if (ModeHighlight.Current) {
-        if (UElectricComponent* elec = ModeHighlight.Current->GetComponentByClass<UElectricComponent>()) {
+        if (const UElectricComponent* elec = ModeHighlight.Current->GetComponentByClass<UElectricComponent>()) {
             Highlight(elec);
         } else {
             check(ModeHighlight.Current->IsA(ASubstation::StaticClass()));
@@ -304,7 +300,7 @@ void UPowerOverlay::ResetConnect(bool deactivate) {
     if (ModeHighlight.Source) {
         if (deactivate) {
             // reset source
-            if (UElectricComponent* elec = ModeHighlight.Source->GetComponentByClass<UElectricComponent>()) {
+            if (const UElectricComponent* elec = ModeHighlight.Source->GetComponentByClass<UElectricComponent>()) {
                 Highlight(elec);
             } else {
                 check(ModeHighlight.Source->IsA(ASubstation::StaticClass()));
@@ -343,7 +339,7 @@ void UPowerOverlay::ResetDisconnect(bool deactivate) {
     }
 }
 
-UElectricComponent* UPowerOverlay::CheckElec(ABuilding* building) {    
+UElectricComponent* UPowerOverlay::CheckElec(const ABuilding* building) {    
     if (!building)
         return nullptr;
 
@@ -358,19 +354,19 @@ UElectricComponent* UPowerOverlay::CheckElec(ABuilding* building) {
 }
 
 bool UPowerOverlay::CanBeConnected(ABuilding* one, ABuilding* two, UWireComponent*& oldWire) const {
-    if (UElectricComponent* elec = CheckElec(one)) {
-        if (ASubstation* substation = Cast<ASubstation>(two))
+    if (const UElectricComponent* elec = CheckElec(one)) {
+        if (const ASubstation* substation = Cast<ASubstation>(two))
             return CanBeConnected(substation, elec, oldWire);
-    } else if (ASubstation* substation = Cast<ASubstation>(one)) {
-        if (UElectricComponent* elec2 = CheckElec(two))
+    } else if (const ASubstation* substation = Cast<ASubstation>(one)) {
+        if (const UElectricComponent* elec2 = CheckElec(two))
             return CanBeConnected(substation, elec2, oldWire);
-        else if (ASubstation* substation2 = Cast<ASubstation>(two))
+        else if (const ASubstation* substation2 = Cast<ASubstation>(two))
             return CanBeConnected(substation, substation2);
     }
     return false;
 }
 
-bool UPowerOverlay::CanBeConnected(ASubstation* one, ASubstation* two) const {
+bool UPowerOverlay::CanBeConnected(const ASubstation* one, const ASubstation* two) {
     if (one->Network == two->Network)
         return false;
     if (FVector::Distance(one->GetActorLocation(), two->GetActorLocation()) > ElectricityNetwork::MAX_WIRE_DISTANCE)
@@ -411,7 +407,7 @@ void UPowerOverlay::Activate() {
     if (Active)
         return;
     
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->PowerOverlayUI);
     playerController->InputComponent->BindAction("Select", IE_Pressed, this, &UPowerOverlay::ConfirmModeHighlight);
     
@@ -425,7 +421,7 @@ void UPowerOverlay::Deactivate() {
     if (!Active)
         return;
     
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     playerController->Deselect();
     playerController->BlueprintHolder->PowerOverlayUI->Reset();
     playerController->InputComponent->RemoveActionBinding("Select", IE_Pressed);
@@ -448,7 +444,7 @@ void UPowerOverlay::AddDisconnected(const UElectricComponent* building) const {
 }
 
 void UPowerOverlay::DoActivate() {   
-    const UElectricityManager* electricityManager = GetWorld()->GetGameInstance<UGameInstanceX>()->TheElectricityManager;
+    const auto electricityManager = The::ElectricityManager(this);
 
     // Create a dummy actor that will hold all the cable components
     check(ComponentHolder == nullptr);
@@ -480,7 +476,7 @@ void UPowerOverlay::DoActivate() {
 void UPowerOverlay::DoDeactivate() {
     ResetModeHighlight(true);
 
-    const UElectricityManager* electricityManager = GetWorld()->GetGameInstance<UGameInstanceX>()->TheElectricityManager;
+    const auto electricityManager = The::ElectricityManager(this);
 
     // Remove Wires & floating text
     ComponentHolder->Destroy();
@@ -522,7 +518,7 @@ void UPowerOverlay::HighlightBuildings(const ASubstation* substation) const {
 }
 
 void UPowerOverlay::AddFloatingPowerUI(const ASubstation* substation) const {
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto  playerController = The::PlayerController(this);
     UPowerUI* ui = CreateWidget<UPowerUI>(playerController, playerController->BlueprintHolder->PowerUIClass);    
     if (substation->Network)
         ui->Set(substation->Network->GetTotalConstantProduction(), substation->Network->GetTotalConstantConsumption());
@@ -532,7 +528,7 @@ void UPowerOverlay::AddFloatingPowerUI(const ASubstation* substation) const {
 }
 
 void UPowerOverlay::AddFloatingText(const UElectricComponent* building) const {    
-   APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+   const auto  playerController = The::PlayerController(this);
    UTextUI* ui = CreateWidget<UTextUI>(playerController, playerController->BlueprintHolder->TextUIClass);
    ui->Text->SetText(FText::AsNumber(-building->Consumption));
    if (building->Consumption > 0)

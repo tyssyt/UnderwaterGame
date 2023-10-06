@@ -1,6 +1,9 @@
 #pragma once
 #include "CommonUILibrary.h"
 
+class UBlueprintHolder;
+class ACameraPawn;
+class APlayerControllerX;
 class UElectricityManager;
 class UConstructionManager;
 class UEncyclopedia;
@@ -19,6 +22,18 @@ namespace The {
     template <class T>
     static UElectricityManager* ElectricityManager(T HasWorld) {
         return HasWorld->GetWorld()->template GetGameInstance<UGameInstanceX>()->TheElectricityManager;
+    }
+    template <class T>
+    static APlayerControllerX* PlayerController(T HasWorld) {
+        return HasWorld->GetWorld()->template GetFirstPlayerController<APlayerControllerX>();
+    }
+    template <class T>
+    static ACameraPawn* CameraPawn(T HasWorld) {
+        return HasWorld->GetWorld()->template GetFirstPlayerController<APlayerControllerX>()->template GetPawn<ACameraPawn>();
+    }
+    template <class T>
+    static UBlueprintHolder* BPHolder(T HasWorld) {
+        return HasWorld->GetWorld()->template GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder;
     }
 }
 

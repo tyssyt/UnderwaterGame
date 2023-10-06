@@ -13,14 +13,14 @@ public:
     ~ConstructionSite();
     
     void SetGhostMaterial(UMaterial* ghostMaterial) const;
-    void BeginConstruction() const;
+    void BeginConstruction();
 
     AXActor* Building;
     int Time;    
     TArray<Material> Materials;
     //class ABuilderShip* BuilderShip;
 
-    std::pair<APickupPad*, Material> GetNextDelivery(TArray<struct ConstructionResource>& constructionResources) const;
+    TPair<APickupPad*, Material> GetNextDelivery(TArray<struct ConstructionResource>& constructionResources) const;
     void DeliverMaterial(Material material);
 
 private:

@@ -5,6 +5,7 @@
 #include "XD/Electricity/ElectricComponent.h"
 #include "Substation.h"
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 
 ABuilding::ABuilding() : constructionState(EConstructionState::BuilderMode) {}
 
@@ -23,7 +24,7 @@ void ABuilding::OnConstructionComplete(FConstructionFlags flags) {
     if (UElectricComponent* elec = FindComponentByClass<UElectricComponent>()) {
         bool connected = false;
         if (flags.autoConnectWires) {
-            if (ASubstation* substation = GetGameInstance()->TheElectricityManager->FindNearestSubstation(GetActorLocation())) {
+            if (ASubstation* substation = The::ElectricityManager(this)->FindNearestSubstation(GetActorLocation())) {
                 substation->Connect(elec);
                 connected = true;
             }

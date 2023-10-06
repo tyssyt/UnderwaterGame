@@ -27,24 +27,22 @@ void UConstructionManager::AddConstruction(ConstructionSite* constructionSite) {
         constructionSite->BeginConstruction();
     } else {
         constructionSite->SetGhostMaterial(GhostMaterial);
-        newConstructionSites.push_back(constructionSite);
+        NewConstructionSites.push_back(constructionSite);
     }
 }
 
 void UConstructionManager::AddPickupPad(APickupPad* pickupPad) {
-    PickupPads.push_back(pickupPad);
+    PickupPads.Add(pickupPad);
 }
 
 void UConstructionManager::UnreserveResource(UResource* resource, int amount) {
-    for (auto& constructionResource : ConstructionResources) {
-        if (constructionResource.Resource == resource) {
+    for (auto& constructionResource : ConstructionResources)
+        if (constructionResource.Resource == resource)
             constructionResource.Reserved -= amount;
-        }
-    }
 }
 
-void UConstructionManager::FinishConstruction(const ConstructionSite* constructionSite) {
-    wipConstructionSites.erase(std::remove(wipConstructionSites.begin(), wipConstructionSites.end(), constructionSite), wipConstructionSites.end());
+void UConstructionManager::FinishConstruction(ConstructionSite* constructionSite) {
+    WipConstructionSites.Remove(constructionSite);
     delete constructionSite; // TODO maybe we want to move the delete into ConstructionSite? or just make this an unreal object...
 }
 
@@ -79,7 +77,7 @@ void UConstructionManager::Tick(float DeltaTime) {
         constructionResource.Pads.Sort();
 
     // start construction
-    while (!IdleBuilders.empty() && !newConstructionSites.empty()) {
+    while (!IdleBuilders.empty() && !NewConstructionSites.empty()) {
         ConstructionSite* constructionSite = FindBuildableConstructionSite();
         if (!constructionSite)
             return;
@@ -97,19 +95,19 @@ void UConstructionManager::Tick(float DeltaTime) {
         ABuilderShip* builder = IdleBuilders.front();
         IdleBuilders.pop_front();
     
-        wipConstructionSites.push_back(constructionSite);
+        WipConstructionSites.Add(constructionSite);
         builder->StartConstructing(constructionSite);
     }
 }
 
 ConstructionSite* UConstructionManager::FindBuildableConstructionSite() {
-    for (auto it = newConstructionSites.begin(); it != newConstructionSites.end(); ++it) {
+    for (auto it = NewConstructionSites.begin(); it != NewConstructionSites.end(); ++it) {
         ConstructionSite* cur = *it;
 
         if (!HasResourcesFor(&cur->Materials))
             continue;
         
-        newConstructionSites.erase(it);
+        NewConstructionSites.erase(it);
         return cur;
     }
     return nullptr;

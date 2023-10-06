@@ -25,8 +25,8 @@ public:
 
     void CheckForNetworkSplit();
 
-    void MergeNetwork(ElectricityNetwork* otherNetwork);
-    void MergeNetworkNoRecompute(ElectricityNetwork* otherNetwork);
+    void MergeNetwork(const ElectricityNetwork* otherNetwork);
+    void MergeNetworkNoRecompute(const ElectricityNetwork* otherNetwork);
 
     int GetTotalConstantProduction() const {return TotalConstantProduction;}
     int GetTotalConstantConsumption() const {return TotalConstantConsumption;}
@@ -36,7 +36,7 @@ protected:
     int TotalConstantProduction;
     int TotalConstantConsumption;
     
-    std::vector<UElectricComponent*> CollectStats();
-    auto UnpowerBuildings(std::vector<UElectricComponent*>& unpowered) -> void;
+    TArray<UElectricComponent*> CollectStats();
+    auto UnpowerBuildings(TArray<UElectricComponent*>& unpowered) -> void;
 
 };

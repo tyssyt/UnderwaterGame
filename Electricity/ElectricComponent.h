@@ -28,7 +28,7 @@ public:
     UBillboardComponent* DisabledSymbol;
 
     PowerState GetState() const;
-    void SetState(PowerState newState);
+    void SetState(const PowerState newState);
 
 protected:
     PowerState State;

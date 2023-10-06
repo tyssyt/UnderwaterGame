@@ -6,14 +6,15 @@
 #include "XD/CameraPawn.h"
 #include "XD/GameInstanceX.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Utils.h"
 
 ElectricityNetwork::ElectricityNetwork(ASubstation* substation) {
     substations.Add(substation);
-    substation->GetGameInstance()->TheElectricityManager->ElectricityNetworks.Add(this);
+    The::ElectricityManager(substation)->ElectricityNetworks.Add(this);
 }
 
 ElectricityNetwork::~ElectricityNetwork() {
-    substations[0]->GetGameInstance()->TheElectricityManager->ElectricityNetworks.Remove(this);
+    The::ElectricityManager(substations[0])->ElectricityNetworks.Remove(this);
 }
 
 void ElectricityNetwork::RecomputeStats() {
@@ -21,11 +22,10 @@ void ElectricityNetwork::RecomputeStats() {
     TotalConstantConsumption = 0;
 
 
-    std::vector<UElectricComponent*> unpowered = CollectStats();
+    TArray<UElectricComponent*> unpowered = CollectStats();
     UnpowerBuildings(unpowered);
 
-    const ACameraPawn* cameraPawn = substations[0]->GetWorld()->GetFirstPlayerController<APlayerControllerX>()->GetPawn<ACameraPawn>();
-    cameraPawn->PowerOverlay->OnNetworkUpdate();
+    The::CameraPawn(substations[0])->PowerOverlay->OnNetworkUpdate();
 }
 
 TArray<ASubstation*> FindShard(TArray<ASubstation*>& network) {
@@ -64,7 +64,7 @@ void ElectricityNetwork::CheckForNetworkSplit() { // TODO there are much faster 
         TArray<ASubstation*> shard = FindShard(network);
 
         if (network.Num() > 0) {
-            ElectricityNetwork* shardNetwork = new ElectricityNetwork(shard[0]);
+            const auto shardNetwork = new ElectricityNetwork(shard[0]);
             for (const auto substation : shard)
                 substation->Network = shardNetwork;
             shardNetwork->RecomputeStats();
@@ -75,26 +75,25 @@ void ElectricityNetwork::CheckForNetworkSplit() { // TODO there are much faster 
     }
 }
 
-void ElectricityNetwork::MergeNetwork(ElectricityNetwork* otherNetwork) {
+void ElectricityNetwork::MergeNetwork(const ElectricityNetwork* otherNetwork) {
     MergeNetworkNoRecompute(otherNetwork);
     RecomputeStats();
 }
 
-void ElectricityNetwork::MergeNetworkNoRecompute(ElectricityNetwork* otherNetwork) {
+void ElectricityNetwork::MergeNetworkNoRecompute(const ElectricityNetwork* otherNetwork) {
     if (this == otherNetwork)
         return;
 
     substations.Append(otherNetwork->substations);
-    for (ASubstation* otherSubstation : otherNetwork->substations) {
+    for (const auto otherSubstation : otherNetwork->substations)
         otherSubstation->Network = this;
-    }
     delete otherNetwork;
     UE_LOG(LogTemp, Warning, TEXT("Networks Connected."));
 }
 
-std::vector<UElectricComponent*> ElectricityNetwork::CollectStats() {
-    std::vector<UElectricComponent*> unpowered;
-    for (ASubstation* substation : substations) {
+TArray<UElectricComponent*> ElectricityNetwork::CollectStats() {
+    TArray<UElectricComponent*> unpowered;
+    for (const ASubstation* substation : substations) {
         for (UElectricComponent* elec : substation->ConnectedBuildings) {
             if (elec->GetState() == PowerState::Deactivated)
                 continue;
@@ -107,26 +106,26 @@ std::vector<UElectricComponent*> ElectricityNetwork::CollectStats() {
             }
 
             if (elec->GetState() == PowerState::Unpowered) {
-                unpowered.push_back(elec);
+                unpowered.Add(elec);
             }
         }
     }
-    return unpowered;
+    return MoveTemp(unpowered);
 }
 
-void ElectricityNetwork::UnpowerBuildings(std::vector<UElectricComponent*>& unpowered) {
+void ElectricityNetwork::UnpowerBuildings(TArray<UElectricComponent*>& unpowered) {
     if (TotalConstantConsumption > TotalConstantProduction) {
         int reducedConsumption = TotalConstantConsumption;
 
         // prefer to keep those unpowered that already were
-        while (reducedConsumption > TotalConstantProduction && !unpowered.empty()) {
-            reducedConsumption -= unpowered.back()->Consumption;
-            unpowered.pop_back();
+        while (reducedConsumption > TotalConstantProduction && !unpowered.IsEmpty()) {
+            reducedConsumption -= unpowered.Last()->Consumption;
+            unpowered.RemoveAt(unpowered.Num()-1);
         }
 
         // unpower buildings that were powered
         if (reducedConsumption > TotalConstantProduction) {
-            for (ASubstation* substation : substations) {
+            for (const ASubstation* substation : substations) {
                 for (UElectricComponent* elec : substation->ConnectedBuildings) {
                     if (elec->Consumption > 0 && elec->GetState() == PowerState::Powered) {
                         reducedConsumption -= elec->Consumption;
@@ -141,7 +140,7 @@ void ElectricityNetwork::UnpowerBuildings(std::vector<UElectricComponent*>& unpo
     }
 
     // turn on all unpowered remaining in the list
-    for (UElectricComponent* up : unpowered) {
+    for (const auto up : unpowered) {
         up->SetState(PowerState::Powered);
     }
 }

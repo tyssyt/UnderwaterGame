@@ -4,9 +4,9 @@
 
 #include "XD/CameraPawn.h"
 #include "XD/GameInstanceX.h"
-#include "XD/PlayerControllerX.h"
 #include "PowerOverlay.h"
 #include "Components/BillboardComponent.h"
+#include "XD/Utils.h"
 
 UElectricComponent::UElectricComponent() : State(PowerState::Initial) {
     PrimaryComponentTick.bCanEverTick = false;
@@ -17,7 +17,7 @@ PowerState UElectricComponent::GetState() const {
     return State;
 }
 
-void UElectricComponent::SetState(PowerState newState) { // TODO understand component lifecycle better and rework this
+void UElectricComponent::SetState(const PowerState newState) { // TODO understand component lifecycle better and rework this
     check(newState != PowerState::Initial);
     if (State == newState)
         return;
@@ -25,15 +25,14 @@ void UElectricComponent::SetState(PowerState newState) { // TODO understand comp
     // TODO there is too much logic inside this setter, extract that
 
     if (State == PowerState::Disconnected) {
-        GetOwner()->GetGameInstance<UGameInstanceX>()->TheElectricityManager->Disconnected.Remove(this);
+        The::ElectricityManager(this)->Disconnected.Remove(this);
     } else if (newState == PowerState::Disconnected) {
-        GetOwner()->GetGameInstance<UGameInstanceX>()->TheElectricityManager->Disconnected.Add(this);
+        The::ElectricityManager(this)->Disconnected.Add(this);
 
         // Weird special case, when going from Initial to Disconnected we don't trigger an UI Update, so we need to catch and handle it here
         if (State == PowerState::Initial) {
             State = newState;
-            const UPowerOverlay* powerOverlay = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->GetPawn<ACameraPawn>()->PowerOverlay;
-            powerOverlay->AddDisconnected(this);
+            The::CameraPawn(this)->PowerOverlay->AddDisconnected(this);
         }
     }
     
@@ -43,7 +42,7 @@ void UElectricComponent::SetState(PowerState newState) { // TODO understand comp
     switch (State) {
     case PowerState::Disconnected:
     case PowerState::Deactivated:
-    case PowerState::Unpowered:
+    case PowerState::Unpowered: {
         GetOwner()->SetActorTickEnabled(false); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
         if (!DisabledSymbol) {
             DisabledSymbol = NewObject<UBillboardComponent>(GetOwner(), TEXT("PowerDisabledSymbol"));
@@ -57,7 +56,8 @@ void UElectricComponent::SetState(PowerState newState) { // TODO understand comp
             GetOwner()->AddInstanceComponent(DisabledSymbol);
         }
         break;
-    case PowerState::Powered:
+    }
+    case PowerState::Powered: {
         GetOwner()->SetActorTickEnabled(true); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
         if (DisabledSymbol) {
             GetOwner()->RemoveInstanceComponent(DisabledSymbol);
@@ -65,5 +65,7 @@ void UElectricComponent::SetState(PowerState newState) { // TODO understand comp
             DisabledSymbol = nullptr;
         }
         break;
+    }
+    default: checkNoEntry();
     }
 }

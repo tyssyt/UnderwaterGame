@@ -8,6 +8,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "CoreMinimal.h"
+#include "XD/Electricity/ElectricComponent.h"
 #include "OilFishHarvester.generated.h"
 
 UCLASS()
@@ -22,6 +23,9 @@ public:
 
     UPROPERTY(EditAnywhere)
     class UInventoryComponent* Inventory;
+
+    UPROPERTY(EditAnywhere)
+    UElectricComponent* Electricity;
 
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;

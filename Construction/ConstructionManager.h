@@ -18,7 +18,7 @@ struct XD_API ConstructionResource {
     
     const UResource* const Resource;
 
-    TArray<std::pair<int, APickupPad*>> Pads;
+    TArray<TPair<int, APickupPad*>> Pads;
     int Total = 0;
     int Reserved = 0;
 };
@@ -41,7 +41,7 @@ public:
     void AddPickupPad(APickupPad* pickupPad);
 
     void UnreserveResource(UResource* resource, int amount);
-    void FinishConstruction(const ConstructionSite* constructionSite);
+    void FinishConstruction(ConstructionSite* constructionSite);
 
     virtual void Tick(float DeltaTime) override;    
     virtual TStatId GetStatId() const override {
@@ -58,10 +58,10 @@ private:
     std::deque<ABuilderShip*> IdleBuilders;
 
     // TODO optimization: when there are a lot of Buildings waiting for resources, we can store them in Groups by building and so we only need to check once for each building type. Can become relevant if we have Blueprints and thousands of things need to be build
-    std::deque<ConstructionSite*> newConstructionSites;
-    std::vector<ConstructionSite*> wipConstructionSites; // TODO ununsed, but I think I want to have it?
+    std::deque<ConstructionSite*> NewConstructionSites;
+    TArray<ConstructionSite*> WipConstructionSites; // TODO ununsed, but I think I want to have it?
 
-    std::vector<APickupPad*> PickupPads;
+    TArray<APickupPad*> PickupPads;
     
     // The last frame number we were ticked.
     // We don't want to tick multiple times per frame 

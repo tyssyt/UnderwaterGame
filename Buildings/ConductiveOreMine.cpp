@@ -17,6 +17,8 @@ AConductiveOreMine::AConductiveOreMine() {
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
+    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
+    Electricity->Consumption = 100;
 }
 
 void AConductiveOreMine::BeginPlay() {

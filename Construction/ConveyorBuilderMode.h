@@ -95,7 +95,7 @@ private:
     void CheckOverlap();
     bool CheckOverlapLinks();
     bool CheckOverlapNodes();
-    bool CheckOverlap(UStaticMeshComponent* mesh, std::vector<UStaticMeshComponent*> allowedMeshes, std::vector<SourceTarget*> allowed) const;
+    bool CheckOverlap(UStaticMeshComponent* mesh, const TArray<UStaticMeshComponent*>& allowedMeshes, const TArray<SourceTarget*>& allowed) const;
     void AddArrowsToNode(UConveyorNode* node, UTexture2D* cancelTexture);
 
     void Confirm();

@@ -63,9 +63,9 @@ private:
     void ResetConnect(bool deactivate);
     void ResetDisconnect(bool deactivate);
 
-    static UElectricComponent* CheckElec(ABuilding* building);
+    static UElectricComponent* CheckElec(const ABuilding* building);
     bool CanBeConnected(ABuilding* one, ABuilding* two, UWireComponent*& oldWire) const;
-    bool CanBeConnected(ASubstation* one, ASubstation* two) const;
+    static bool CanBeConnected(const ASubstation* one, const ASubstation* two);
     bool CanBeConnected(const ASubstation* substation, const UElectricComponent* elec, UWireComponent*& oldWire) const;
 
 public:

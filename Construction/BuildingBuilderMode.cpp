@@ -8,6 +8,7 @@
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 
 UBuildingBuilderMode::UBuildingBuilderMode() {
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
@@ -24,10 +25,10 @@ UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* construction
     for (const auto mesh : meshes)
         mesh->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
 
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     playerController->BlueprintHolder->ConstructionUI->Set(
         constructionPlan,
-        GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager
+        The::ConstructionManager(this)
     );
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
 
@@ -61,7 +62,7 @@ bool UBuildingBuilderMode::Tick(const ACameraPawn& camera) {
     }
 
     CheckOverlap();
-    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->UpdateHave(GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager);
+    The::BPHolder(this)->ConstructionUI->UpdateHave(The::ConstructionManager(this));
     for (UBuilderModeExtension* extension : Extensions)
         extension->Update();
     return false;
@@ -141,7 +142,7 @@ UClass* UBuildingBuilderMode::IDK() {
 }
 
 void UBuildingBuilderMode::ConfirmPosition() {
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);;
     const TObjectPtr<UInputComponent> inputComponent = playerController->InputComponent;
     inputComponent->RemoveActionBinding("Select", IE_Pressed);
     
@@ -210,7 +211,7 @@ void UBuildingBuilderMode::ConfirmPosition() {
 }
 
 void UBuildingBuilderMode::RemoveBindingsWaiting() const {
-    const TObjectPtr<UInputComponent> inputComponent = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
+    const TObjectPtr<UInputComponent> inputComponent = The::PlayerController(this)->InputComponent;
     inputComponent->RemoveActionBinding("PushBlueprintUp", IE_Pressed);
     inputComponent->RemoveActionBinding("PushBlueprintDown", IE_Pressed);
     inputComponent->RemoveActionBinding("PushBlueprintLeft", IE_Pressed);
@@ -256,9 +257,9 @@ void UBuildingBuilderMode::OnClickConfirm() {
     Stop(true);
 
     // create and add construction site
-    const bool autoConnectWires = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Checked;
+    const bool autoConnectWires = The::BPHolder(this)->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Checked;
     ConstructionSite* constructionSite = new ConstructionSite(Preview, ConstructionPlan, FConstructionFlags{autoConnectWires});
-    GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(constructionSite);
+    The::ConstructionManager(this)->AddConstruction(constructionSite);
 }
 
 void UBuildingBuilderMode::OnClickCancel() {
@@ -298,11 +299,11 @@ void UBuildingBuilderMode::Stop(bool success) {
         Preview->Destroy();
     }
 
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     playerController->Deselect();
     
     // undo all input bindings
-    const TObjectPtr<UInputComponent> inputComponent = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->InputComponent;
+    const TObjectPtr<UInputComponent> inputComponent = playerController->InputComponent;
     inputComponent->RemoveActionBinding("RotateBlueprint90", EInputEvent::IE_Pressed);
 
     if (Phase == Positioning) {

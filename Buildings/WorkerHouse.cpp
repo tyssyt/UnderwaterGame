@@ -20,12 +20,12 @@ void AWorkerHouse::BeginPlay() {
 }
 
 
-const std::vector<Coordinate> OFFSETS_NORTH = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
-const std::vector<Coordinate> OFFSETS_EAST = {{0, 0}, {1, 0}, {0, -1}, {1, -1}};
-const std::vector<Coordinate> OFFSETS_SOUTH = {{0, 0}, {-1, 0}, {0, -1}, {-1, -1}};
-const std::vector<Coordinate> OFFSETS_WEST = {{0, 0}, {-1, 0}, {0, 1}, {-1, 1}};
+const TArray<Coordinate> OFFSETS_NORTH = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
+const TArray<Coordinate> OFFSETS_EAST = {{0, 0}, {1, 0}, {0, -1}, {1, -1}};
+const TArray<Coordinate> OFFSETS_SOUTH = {{0, 0}, {-1, 0}, {0, -1}, {-1, -1}};
+const TArray<Coordinate> OFFSETS_WEST = {{0, 0}, {-1, 0}, {0, 1}, {-1, 1}};
 
-const std::vector<Coordinate>* AWorkerHouse::getGridOffsets() {
+const TArray<Coordinate>* AWorkerHouse::GetGridOffsets() {
     switch (Orientation) {
     case EGridOrientation::North:
         return &OFFSETS_NORTH;

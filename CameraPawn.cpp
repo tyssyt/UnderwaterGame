@@ -173,17 +173,14 @@ void ACameraPawn::ShowMouseCursor(bool showMouseCursor) const {
 void ACameraPawn::SelectUnderCursor() {
     if (PowerOverlay->IsActive() || BuilderMode)
         return;
-    if (APlayerControllerX* playerController = GetController<APlayerControllerX>()) {
+    if (const auto playerController = GetController<APlayerControllerX>())
         if (const auto underCursor = playerController->GetUnderCursor<AXActor>())
             playerController->UpdateSelected(underCursor);
-    }
 }
 
 void ACameraPawn::Deselect() {
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (playerController) {
+    if (const auto playerController = GetController<APlayerControllerX>())
         playerController->Deselect();
-    }
 
     PowerOverlay->Deactivate();
     if (BuilderMode) {

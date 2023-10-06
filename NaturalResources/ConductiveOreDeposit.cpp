@@ -3,6 +3,7 @@
 #include "ConductiveOreDeposit.h"
 
 #include "XD/GameInstanceX.h"
+#include "XD/PlayerControllerX.h"
 #include "XD/Utils.h"
 #include "XD/Buildings/ConductiveOreMine.h"
 
@@ -33,8 +34,8 @@ void UConductiveOreDepositUI::OnClickConstruct() {
     if (Deposit) {
         const auto mine = GetWorld()->SpawnActor<AConductiveOreMine>(Deposit->GetActorLocation() - FVector(.0f, .0f, 50.f), Deposit->GetActorRotation()); // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
         The::ConstructionManager(Deposit)->AddConstruction(new ConstructionSite(mine, The::Encyclopedia(Deposit)->ConductiveOreMine, FConstructionFlags{true}));
+        The::PlayerController(Deposit)->Deselect(); // TODO once we have an UI for construction sites, we can select that instead
         Deposit->Destroy();
         Deposit = nullptr;
-        // TODO unselect UI (maybe select the MineUI or sth idk)
     }
 }

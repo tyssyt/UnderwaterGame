@@ -6,6 +6,7 @@
 #include "ConstructionSite.h"
 #include "XD/GameInstanceX.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Utils.h"
 
 UIndoorBuilderMode::UIndoorBuilderMode() {
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
@@ -17,10 +18,10 @@ UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan
     Preview = GetWorld()->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass);
     Preview->SetActorTickEnabled(false);
     
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     playerController->BlueprintHolder->ConstructionUI->Set(
         constructionPlan,
-        GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager
+        The::ConstructionManager(this)
     );
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
 
@@ -45,8 +46,7 @@ bool UIndoorBuilderMode::Tick(const ACameraPawn& camera) {
 
     Position(camera);
 
-    const APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
-    playerController->BlueprintHolder->ConstructionUI->UpdateHave(GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager);
+    The::BPHolder(this)->ConstructionUI->UpdateHave(The::ConstructionManager(this));
     for (UBuilderModeExtension* extension : Extensions)
         extension->Update();
 
@@ -58,8 +58,8 @@ void UIndoorBuilderMode::Position(const ACameraPawn& camera) {
 
     // project mouse
     FHitResult hitResult;
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
-    if (!playerController || !playerController->bShowMouseCursor || !playerController->GetHitResultUnderCursor(ECC_Visibility, true, hitResult)) {
+    const auto playerController = The::PlayerController(this);
+    if (!playerController->bShowMouseCursor || !playerController->GetHitResultUnderCursor(ECC_Visibility, true, hitResult)) {
         SetInvisible();
         return;
     }
@@ -68,23 +68,23 @@ void UIndoorBuilderMode::Position(const ACameraPawn& camera) {
     Preview->SetActorLocation(hitResult.ImpactPoint);
 
     // check if mouse is over habitat
-    AHabitat* habitat = Cast<AHabitat>(hitResult.GetActor());
+    const auto habitat = Cast<AHabitat>(hitResult.GetActor());
     if (!habitat) {
         SetNotBuildable();
         return;
     }
 
     // get build grid coordinates
-    const auto gridPos = habitat->findCoordinates(hitResult.ImpactPoint);
-    if (!gridPos.first) {
+    const auto gridPos = habitat->FindCoordinates(hitResult.ImpactPoint);
+    if (!gridPos.Key) {
         SetNotBuildable();
         return;
     }
-    const int x = gridPos.second.first;
-    const int y = gridPos.second.second;
-    Preview->setCoordinates(x, y, habitat);
+    const int x = gridPos.Value.Key;
+    const int y = gridPos.Value.Value;
+    Preview->SetCoordinates(x, y, habitat);
 
-    if (!habitat->canPlaceBuilding(Preview)) {
+    if (!habitat->CanPlaceBuilding(Preview)) {
         SetNotBuildable();
         return;
     }
@@ -105,13 +105,13 @@ void UIndoorBuilderMode::Stop(bool success) {
         return;
 
     if (success) {
-        Preview->Habitat->placeBuilding(Preview);
+        Preview->Habitat->PlaceBuilding(Preview);
         ConstructionSite* constructionSite = new ConstructionSite(Preview, ConstructionPlan, FConstructionFlags{false});
-        GetWorld()->GetGameInstance<UGameInstanceX>()->TheConstructionManager->AddConstruction(constructionSite);
+        The::ConstructionManager(this)->AddConstruction(constructionSite);
     } else
         Preview->Destroy();
 
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     playerController->Deselect();
 
     // undo all input bindings

@@ -62,29 +62,29 @@ void AHabitat::Tick(float DeltaTime) {
     PopulationManager->TickPopulation();
 }
 
-AIndoorBuilding* AHabitat::getBuildingAt(int x, int y) const {
+AIndoorBuilding* AHabitat::GetBuildingAt(int x, int y) const {
     if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
         return BLOCKED;
     }
     return BuildGrid[x + (y * GRID_SIZE)];
 }
 
-void AHabitat::setBuildingAt(AIndoorBuilding* building, int x, int y) {
+void AHabitat::SetBuildingAt(AIndoorBuilding* building, int x, int y) {
     if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE || x + (y * GRID_SIZE) >= GRID_SIZE * GRID_SIZE) {
         return;
     }
     BuildGrid[x + (y * GRID_SIZE)] = building;
 }
 
-FVector AHabitat::getGridCellCenter(int x, int y) const {
-    float xf = x + .5f - (GRID_SIZE / 2.f);
-    float yf = y + .5f - (GRID_SIZE / 2.f);
+FVector AHabitat::GetGridCellCenter(int x, int y) const {
+    const float xf = x + .5f - (GRID_SIZE / 2.f);
+    const float yf = y + .5f - (GRID_SIZE / 2.f);
 
     const FVector local = FVector(xf * CELL_WIDTH, yf * CELL_WIDTH, 120.f);
     return GetActorRotation().RotateVector(local) + GetActorLocation();
 }
 
-std::pair<bool, Coordinate> AHabitat::findCoordinates(FVector hit) const {
+TPair<bool, Coordinate> AHabitat::FindCoordinates(FVector hit) const {
     // project into local space
     const FVector local = GetActorRotation().UnrotateVector(hit - GetActorLocation());
 
@@ -92,39 +92,37 @@ std::pair<bool, Coordinate> AHabitat::findCoordinates(FVector hit) const {
 
     // TODO reject bad z
 
-    int x = FMath::RoundToInt((local.X + (CELL_WIDTH * GRID_SIZE / 2.f)) / CELL_WIDTH);
-    int y = FMath::RoundToInt((local.Y + (CELL_WIDTH * GRID_SIZE / 2.f)) / CELL_WIDTH);
+    const int x = FMath::RoundToInt((local.X + (CELL_WIDTH * GRID_SIZE / 2.f)) / CELL_WIDTH);
+    const int y = FMath::RoundToInt((local.Y + (CELL_WIDTH * GRID_SIZE / 2.f)) / CELL_WIDTH);
 
-    return std::make_pair(true, std::make_pair(x, y));
+    return MakeTuple(true, MakeTuple(x, y));
 }
 
-bool AHabitat::canPlaceBuilding(AIndoorBuilding* building) const {
-    int x = building->GridX;
-    int y = building->GridY;
-    for (const Coordinate offset : *building->getGridOffsets()) {
-        if (getBuildingAt(x + offset.first, y + offset.second)) {
+bool AHabitat::CanPlaceBuilding(AIndoorBuilding* building) const {
+    const int x = building->GridX;
+    const int y = building->GridY;
+    for (const Coordinate offset : *building->GetGridOffsets()) {
+        if (GetBuildingAt(x + offset.Key, y + offset.Value)) {
             return false;
         }
     }
     return true;
 }
 
-void AHabitat::placeBuilding(AIndoorBuilding* building) {
+void AHabitat::PlaceBuilding(AIndoorBuilding* building) {
     int x = building->GridX;
     int y = building->GridY;
-    for (const Coordinate offset : *building->getGridOffsets()) {
-        setBuildingAt(building, x + offset.first, y + offset.second);
-    }
+    for (const Coordinate offset : *building->GetGridOffsets())
+        SetBuildingAt(building, x + offset.Key, y + offset.Value);
     Buildings.Add(building);
     PopulationManager->NotifyBuildingsChanged();
 }
 
-void AHabitat::removeBuilding(AIndoorBuilding* building) {    
-    int x = building->GridX;
-    int y = building->GridY;
-    for (const Coordinate offset : *building->getGridOffsets()) {
-        setBuildingAt(nullptr, x + offset.first, y + offset.second);
-    }
+void AHabitat::RemoveBuilding(AIndoorBuilding* building) {    
+    const int x = building->GridX;
+    const int y = building->GridY;
+    for (const Coordinate offset : *building->GetGridOffsets())
+        SetBuildingAt(nullptr, x + offset.Key, y + offset.Value);
     Buildings.Remove(building);
     PopulationManager->NotifyBuildingsChanged();
 }

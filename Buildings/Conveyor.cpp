@@ -145,7 +145,7 @@ const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInv
     auto& outputs = source->GetOutputs();    
     
     // find matching in/outputs
-    std::set<const UResource*> resources;
+    TSet<const UResource*> resources;
     bool hasUntypedInput = false;
     bool hasUntypedOutput = false;
     for (auto& output : outputs) {
@@ -161,32 +161,32 @@ const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInv
             if (!input.Resource)
                 hasUntypedInput = true;
             if (input.Resource == output.Resource)
-                resources.insert(input.Resource);
+                resources.Add(input.Resource);
         }
     }
     
-    if (resources.size() == 0) { // no matches found, check for untyped in- or outputs
+    if (resources.IsEmpty()) { // no matches found, check for untyped in- or outputs
         if (hasUntypedInput) {
 
-            resources.clear();
+            resources.Empty();
             for (auto& output : outputs) {
                 if (!output.Conveyor)
-                    resources.insert(output.Resource);
+                    resources.Add(output.Resource);
             }
 
-            if (resources.size() == 1)
+            if (resources.Num() == 1)
                 return *resources.begin();
         }
 
         if (hasUntypedOutput) {
 
-            resources.clear();
+            resources.Empty();
             for (auto& input : inputs) {
                 if (!input.Conveyor)
-                    resources.insert(input.Resource);
+                    resources.Add(input.Resource);
             }
 
-            if (resources.size() == 1)
+            if (resources.Num() == 1)
                 return *resources.begin();
         }
         
@@ -194,7 +194,7 @@ const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInv
             UE_LOG(LogTemp, Error, TEXT("No Matches found, even though there is an Untyped Input/Output"));
         return nullptr;
     }
-    if (resources.size() == 1) // exactly one match found, connect them
+    if (resources.Num() == 1) // exactly one match found, connect them
         return *resources.begin();
 
     // multiple matches found, show a dialog
@@ -205,7 +205,7 @@ const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInv
     // TODO think about depot to depot connections... if neither of them is connected to something else in the chain...
 }
 
-TArray<Material> AConveyor::ComputeCosts(FVector start, FVector* end, TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, UEncyclopedia* theEncyclopedia) {
+TArray<Material> AConveyor::ComputeCosts(FVector start, const FVector* end, const TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia) {
     double linkDist = 0.;    
     FVector last = start;
     for (auto node : nodes) {
@@ -219,7 +219,7 @@ TArray<Material> AConveyor::ComputeCosts(FVector start, FVector* end, TArray<FVe
 }
 
 inline static constexpr double ConveyorLinkDistanceScale = 13.37; // TODO this needs to be explained somewhere in the encyclopedia
-TArray<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, UEncyclopedia* theEncyclopedia) {
+TArray<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia) {
     TArray<Material> materials;
 
     Material::AddTo(materials, theEncyclopedia->ConveyorLink->Materials, static_cast<int>(linkDist / ConveyorLinkDistanceScale));
@@ -254,7 +254,7 @@ TArray<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceT
     return materials;
 }
 
-std::pair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABuilding* building) {
+TPair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABuilding* building) {
     TInlineComponentArray<UStaticMeshComponent*> meshes;
     GetComponents<UStaticMeshComponent>(meshes);
 
@@ -288,7 +288,7 @@ std::pair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh,
         TargetInv->Conveyor = nullptr;
     
     this->Destroy();    
-    return std::make_pair(Create(GetWorld(), Source, building, nodes1, SourceInv->Resource), Create(GetWorld(), building, Target, nodes2, SourceInv->Resource));
+    return MakeTuple(Create(GetWorld(), Source, building, nodes1, SourceInv->Resource), Create(GetWorld(), building, Target, nodes2, SourceInv->Resource));
 }
 
 void AConveyor::DisconnectFromSplitter(ASplitter* splitter) const {

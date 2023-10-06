@@ -28,7 +28,7 @@ UCLASS()
 class XD_API UElectricityBuilderModeExtension : public UBuilderModeExtension {
     GENERATED_BODY()
     
-    std::pair<FVector, FRotator> Last;
+    TPair<FVector, FRotator> Last;
 
     UPROPERTY()
     UWireComponent* WireComponent;
@@ -52,7 +52,7 @@ UCLASS()
 class XD_API USubstationBuilderModeExtension : public UBuilderModeExtension {
     GENERATED_BODY()
     
-    std::pair<FVector, FRotator> Last;
+    TPair<FVector, FRotator> Last;
 
     UPROPERTY()
     ASubstation* Preview;    

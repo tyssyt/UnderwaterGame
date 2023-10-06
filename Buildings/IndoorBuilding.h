@@ -2,15 +2,12 @@
 
 #pragma once
 
-#include <vector>
-
 #include "CoreMinimal.h"
 #include "Building.h"
-#include "XActor.h"
 #include "GameFramework/Actor.h"
 #include "IndoorBuilding.generated.h"
 
-typedef std::pair<int, int> Coordinate;
+typedef TPair<int, int> Coordinate;
 
 enum class EGridOrientation { North, East, West, South };
 
@@ -29,8 +26,8 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     void Rotate();
-    virtual const std::vector<Coordinate>* getGridOffsets();
-    virtual void setCoordinates(int x, int y, AHabitat* habitat);
+    virtual const TArray<Coordinate>* GetGridOffsets();
+    virtual void SetCoordinates(int x, int y, AHabitat* habitat);
 
 protected:
     virtual void BeginPlay() override;

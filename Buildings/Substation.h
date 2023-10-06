@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include "Building.h"
 #include "XD/Electricity/ElectricComponent.h"
 
@@ -37,7 +35,7 @@ public:
     void ReconnectNoRecompute(UElectricComponent* building);
     virtual void OnConstructionComplete(FConstructionFlags flags) override;
     
-    std::pair<std::vector<ASubstation*>, std::vector<UElectricComponent*>> FindNearby() const;
+    TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> FindNearby() const;
 
 protected:
     virtual void BeginPlay() override;

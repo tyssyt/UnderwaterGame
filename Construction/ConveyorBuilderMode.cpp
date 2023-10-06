@@ -40,7 +40,7 @@ UConveyorBuilderMode::UConveyorBuilderMode() {
 }
 
 UConveyorBuilderMode* UConveyorBuilderMode::Init(UConstructionPlan* constructionPlan) { // TODO currently that plan is ConveyorLink, once it is Conveyor we can use it to fill stuff below
-    const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
 
     static FText conveyorName = FText::FromString(TEXT("Conveyor"));
     playerController->BlueprintHolder->ConstructionUI->Set(
@@ -100,7 +100,7 @@ void UConveyorBuilderMode::TickSelectSource(const ACameraPawn& camera) {
 
 void UConveyorBuilderMode::ComputeCostSelectSource() const {
     const auto splitter = CurrentHighlightValid ? ToESourceTargetType(CurrentHighlight.Type) : AConveyor::ESourceTargetType::Building;
-    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
+    The::BPHolder(this)->ConstructionUI->Set(
         AConveyor::ComputeCosts(0., 0, splitter, AConveyor::ESourceTargetType::Building, The::Encyclopedia(this)),
         The::ConstructionManager(this)
     );
@@ -142,7 +142,7 @@ void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {
     for (const auto node : Nodes)
         nodes.Add(node->GetComponentLocation());
 
-    std::optional<FVector> end;
+    TOptional<FVector> end;
     auto merger = AConveyor::ESourceTargetType::Building;
     if (NextNode->IsVisible()) {
         nodes.Add(NextNode->GetComponentLocation());
@@ -152,10 +152,10 @@ void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {
     } else
         check(!NextLink->IsVisible());
 
-    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
+    The::BPHolder(this)->ConstructionUI->Set(
         AConveyor::ComputeCosts(
             Source.Building->GetActorLocation(),
-            end.has_value() ? &*end : nullptr,
+            end.IsSet() ? &*end : nullptr,
             nodes,
             ToESourceTargetType(Source.Type),
             merger,
@@ -197,17 +197,15 @@ void UConveyorBuilderMode::TickInsertNode(const ACameraPawn& camera) {
 }
 
 void UConveyorBuilderMode::ComputeCostInsertNode() const {
+    const FVector end = Target.Building->GetActorLocation();
+
     TArray<FVector> nodes;
     for (const auto node : Nodes)
         nodes.Add(node->GetComponentLocation());
-    if (InsertNodeHoverLink) {
-        const FVector last = nodes.Last(); // we need to add a note that does not increase the total distance
-        nodes.Add(last);
-    }
+    if (InsertNodeHoverLink) // we want to add the cost of one conveyor node without increasing the link distance
+        nodes.Add(end);
 
-    FVector end = Target.Building->GetActorLocation();
-
-    GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
+    The::BPHolder(this)->ConstructionUI->Set(
         AConveyor::ComputeCosts(
             Source.Building->GetActorLocation(),
             &end,
@@ -380,20 +378,20 @@ bool UConveyorBuilderMode::CheckOverlapLinks() {
     }
 
     if (!targetSet && NextLink->IsVisible()) {
-        std::vector<UStaticMeshComponent*> allowedMeshes;
-        std::vector<SourceTarget*> allowed;
+        TArray<UStaticMeshComponent*> allowedMeshes;
+        TArray<SourceTarget*> allowed;
 
         // Next Link may overlap the last Node, if there are no Nodes it may overlap the Source
         if (Nodes.Num() > 0)
-            allowedMeshes.push_back(Nodes.Last());
+            allowedMeshes.Add(Nodes.Last());
         else
-            allowed.push_back(&Source);
+            allowed.Add(&Source);
 
         if (CurrentHighlight.Type != SourceTarget::EType::NotSet)
-            allowed.push_back(&CurrentHighlight);
+            allowed.Add(&CurrentHighlight);
 
         if (NextNode->IsVisible())
-            allowedMeshes.push_back(NextNode);
+            allowedMeshes.Add(NextNode);
         
         hasOverlapLinks |= CheckOverlap(NextLink, allowedMeshes, allowed);         
     }
@@ -425,23 +423,22 @@ bool UConveyorBuilderMode::CheckOverlapNodes() {
     return hasOverlapNodes;
 }
 
-bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, std::vector<UStaticMeshComponent*> allowedMeshes, std::vector<SourceTarget*> allowed) const {
+bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, const TArray<UStaticMeshComponent*>& allowedMeshes, const TArray<SourceTarget*>& allowed) const {
     mesh->UpdateOverlaps(nullptr, false);
     TSet<UPrimitiveComponent*> overlaps;
     mesh->GetOverlappingComponents(overlaps);
 
-    std::vector<AActor*> allowedActors;
+    TArray<AActor*> allowedActors;
+    TArray<UStaticMeshComponent*> allowedNodes;
     for (const auto a : allowed) {
-        allowedActors.push_back(a->Building);
+        allowedActors.Add(a->Building);
         if (a->Type == SourceTarget::EType::ConveyorNode)
-            allowedMeshes.push_back(a->ConveyorComponent);
+            allowedNodes.Add(a->ConveyorComponent);
     }
         
     bool hasOverlap = false;        
-    for (UPrimitiveComponent* overlap : overlaps) {
-        if (std::find(allowedMeshes.begin(), allowedMeshes.end(), overlap) != allowedMeshes.end())
-            continue;
-        if (std::find(allowedActors.begin(), allowedActors.end(), overlap->GetAttachmentRootActor()) != allowedActors.end())
+    for (const auto overlap : overlaps) {
+        if (allowedMeshes.Contains(overlap) || allowedNodes.Contains(overlap) || allowedActors.Contains(overlap->GetAttachmentRootActor()))
             continue;
         hasOverlap = true;
         break;
@@ -459,7 +456,7 @@ bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, std::vector<
 }
 
 void UConveyorBuilderMode::AddArrowsToNode(UConveyorNode* node, UTexture2D* cancelTexture) {
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     UArrowMoverLine* arrowForward = NewObject<UArrowMoverLine>(Preview);
     arrowForward->RegisterComponent();
     arrowForward->AttachToComponent(node, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
@@ -565,7 +562,7 @@ void UConveyorBuilderMode::Confirm() {
             AddArrowsToNode(node, cancelTexture);  
 
         // create confirm / cancel over target
-        APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+        const auto playerController = The::PlayerController(this);
         
         UImageUI* confirmImageUI = CreateWidget<UImageUI>(playerController, playerController->BlueprintHolder->ImageUIClass);
         confirmImageUI->Image->SetBrushFromTexture(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Confirm")));
@@ -788,7 +785,7 @@ void UConveyorBuilderMode::Stop(bool success) {
         Preview = nullptr;
     }
 
-    APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
+    const auto playerController = The::PlayerController(this);
     playerController->Deselect();
 
     // unbind

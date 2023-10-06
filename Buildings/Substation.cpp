@@ -66,17 +66,17 @@ void ASubstation::OnConstructionComplete(FConstructionFlags flags) {
     }
 
     const auto nearby = FindNearby();
-    if (!nearby.first.empty()) {
+    if (!nearby.Key.IsEmpty()) {
         // join & merge nearby networks
-        Network = nearby.first.front()->Network;
+        Network = nearby.Key[0]->Network;
         Network->substations.Add(this);
-        for (const ASubstation* nearbySubstation : nearby.first) {
+        for (const ASubstation* nearbySubstation : nearby.Key) {
             Network->MergeNetworkNoRecompute(nearbySubstation->Network);
         }
     } else
         Network = new ElectricityNetwork(this);
     
-    for (UElectricComponent* nearbyElec : nearby.second) {
+    for (UElectricComponent* nearbyElec : nearby.Value) {
         if (nearbyElec->Substation) {
             // check if we are on the same network and closer then the substation currently used
             FVector elecLocation = nearbyElec->GetOwner()->GetActorLocation();
@@ -90,7 +90,7 @@ void ASubstation::OnConstructionComplete(FConstructionFlags flags) {
     Network->RecomputeStats();
 }
 
-std::pair<std::vector<ASubstation*>, std::vector<UElectricComponent*>> ASubstation::FindNearby() const {    
+TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby() const {    
     const static FName NAME_QUERY_PARAMS = FName(TEXT(""));
     const FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, this);
     const FCollisionObjectQueryParams objectQueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects); // TODO make a custom collision channel with substations and maybe electricComponents
@@ -98,21 +98,21 @@ std::pair<std::vector<ASubstation*>, std::vector<UElectricComponent*>> ASubstati
     TArray<FOverlapResult> overlaps;
     GetWorld()->OverlapMultiByObjectType(overlaps, GetActorLocation(), FQuat::Identity, objectQueryParams, FCollisionShape::MakeSphere(ElectricityNetwork::MAX_WIRE_DISTANCE), queryParams);
 
-    std::vector<ASubstation*> nearbySubstations;
-    std::vector<UElectricComponent*> nearbyElecs;
+    TArray<ASubstation*> nearbySubstations;
+    TArray<UElectricComponent*> nearbyElecs;
     for (const FOverlapResult& overlap : overlaps) {
         ASubstation* nearbySubstation = Cast<ASubstation>(overlap.GetActor());
         if (nearbySubstation && nearbySubstation->constructionState == EConstructionState::Done && FVector::Distance(GetActorLocation(), nearbySubstation->GetActorLocation()) < ElectricityNetwork::MAX_WIRE_DISTANCE) {
-            nearbySubstations.push_back(nearbySubstation);
+            nearbySubstations.Add(nearbySubstation);
         }
 
         UElectricComponent* nearbyElec = overlap.GetActor()->FindComponentByClass<UElectricComponent>();
         if (nearbyElec && nearbyElec->GetState() != PowerState::Initial && FVector::Distance(GetActorLocation(), nearbyElec->GetOwner()->GetActorLocation()) < ElectricityNetwork::MAX_WIRE_DISTANCE) {
-            nearbyElecs.push_back(nearbyElec);
+            nearbyElecs.Add(nearbyElec);
         }
     }
 
-    return std::make_pair(nearbySubstations, nearbyElecs);
+    return MakeTuple(MoveTemp(nearbySubstations), MoveTemp(nearbyElecs));
 }
 
 void USubstationUI::Tick() {
