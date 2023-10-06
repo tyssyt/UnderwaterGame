@@ -3,7 +3,8 @@
 #include "Excavator.h"
 
 #include "XD/GameInstanceX.h"
-#include "XD/Resources/ResourceBook.h"
+#include "XD/Utils.h"
+#include "XD/Recipes/Recipe.h"
 
 AExcavator::AExcavator() {
     PrimaryActorTick.bCanEverTick = true;
@@ -24,14 +25,20 @@ AExcavator::AExcavator() {
     WheelMesh->AddLocalOffset(FVector(102.62, 0., 15.));
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
+    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
+    Electricity->Consumption = 100;
 }
 
 void AExcavator::BeginPlay() {
     Super::BeginPlay();
 
-    Inventory->GetOutputs().Emplace(ProductionPerTick * 10, GetGameInstance()->TheResourceBook->Sand);
-    ProductionPerTick = 20;
-    Inventory->GetOutputs()[0].Max = 200;
+    // TODO extract this logic to a component, which auto selects the recipe if it is just one and otherwise adds a button to the UI
+    const auto& recipes = The::Encyclopedia(this)->GetRecipes(StaticClass());
+    check(recipes.Num() == 1);
+    const auto recipe = recipes[0];
+    check(recipe->HasSize(0, 1));
+    ProductionPerTick = recipe->Results[0].amount;
+    Inventory->SetRecipe(recipe);
 }
 
 void AExcavator::Tick(float DeltaTime) {

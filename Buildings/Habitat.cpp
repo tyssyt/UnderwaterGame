@@ -3,6 +3,7 @@
 #include "Habitat.h"
 
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 
 const float AHabitat::CELL_WIDTH = 10.f; // why c++ be like this?
 
@@ -52,7 +53,8 @@ AHabitat::~AHabitat() {
 
 void AHabitat::BeginPlay() {
     Super::BeginPlay();
-    Inventory->GetInputs().Emplace(1000, GetGameInstance()->TheResourceBook->ConductiveOre);
+    // TODO at some point we probably want the needs of the pop manager to be configure in yaml as well
+    Inventory->GetInputs().Emplace(1000, The::Encyclopedia(this)->Food);
 }
 
 void AHabitat::Tick(float DeltaTime) {
@@ -78,13 +80,13 @@ FVector AHabitat::getGridCellCenter(int x, int y) const {
     float xf = x + .5f - (GRID_SIZE / 2.f);
     float yf = y + .5f - (GRID_SIZE / 2.f);
 
-    FVector local = FVector(xf * CELL_WIDTH, yf * CELL_WIDTH, 120.f);
+    const FVector local = FVector(xf * CELL_WIDTH, yf * CELL_WIDTH, 120.f);
     return GetActorRotation().RotateVector(local) + GetActorLocation();
 }
 
 std::pair<bool, Coordinate> AHabitat::findCoordinates(FVector hit) const {
     // project into local space
-    FVector local = GetActorRotation().UnrotateVector(hit - GetActorLocation());
+    const FVector local = GetActorRotation().UnrotateVector(hit - GetActorLocation());
 
     UE_LOG(LogTemp, Warning, TEXT("z is: %f"), local.Z);
 
@@ -99,7 +101,7 @@ std::pair<bool, Coordinate> AHabitat::findCoordinates(FVector hit) const {
 bool AHabitat::canPlaceBuilding(AIndoorBuilding* building) const {
     int x = building->GridX;
     int y = building->GridY;
-    for (Coordinate offset : *building->getGridOffsets()) {
+    for (const Coordinate offset : *building->getGridOffsets()) {
         if (getBuildingAt(x + offset.first, y + offset.second)) {
             return false;
         }
@@ -110,7 +112,7 @@ bool AHabitat::canPlaceBuilding(AIndoorBuilding* building) const {
 void AHabitat::placeBuilding(AIndoorBuilding* building) {
     int x = building->GridX;
     int y = building->GridY;
-    for (Coordinate offset : *building->getGridOffsets()) {
+    for (const Coordinate offset : *building->getGridOffsets()) {
         setBuildingAt(building, x + offset.first, y + offset.second);
     }
     Buildings.Add(building);
@@ -120,7 +122,7 @@ void AHabitat::placeBuilding(AIndoorBuilding* building) {
 void AHabitat::removeBuilding(AIndoorBuilding* building) {    
     int x = building->GridX;
     int y = building->GridY;
-    for (Coordinate offset : *building->getGridOffsets()) {
+    for (const Coordinate offset : *building->getGridOffsets()) {
         setBuildingAt(nullptr, x + offset.first, y + offset.second);
     }
     Buildings.Remove(building);
@@ -133,7 +135,7 @@ void UHabitatUI::Tick() {
     if (!Habitat)
         return;
 
-    HabitatPopulationManager* populationManager = Habitat->PopulationManager;
-    People->Set(populationManager->GetSettledPop(), populationManager->GetMaxPop(), Habitat->GetGameInstance()->TheResourceBook->People);
+    const HabitatPopulationManager* populationManager = Habitat->PopulationManager;
+    People->Set(populationManager->GetSettledPop(), populationManager->GetMaxPop(), The::Encyclopedia(Habitat)->People);
     Workforce->SetText(FText::AsNumber(populationManager->GetWorkforce()));
 }

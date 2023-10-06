@@ -45,8 +45,8 @@ public:
     TSubclassOf<UResourceBalanceUI> ResourceBalanceUIClass;
 
     void Set(const UConstructionPlan* constructionPlan, const UConstructionManager* constructionManager);
-    void Set(const FText& name, UTexture2D* image, const std::vector<Material>& materials, const UConstructionManager* constructionManager);
-    void Set(const std::vector<Material>& materials, const UConstructionManager* constructionManager);
+    void Set(const FText& name, UTexture2D* image, const TArray<Material>& materials, const UConstructionManager* constructionManager);
+    void Set(const TArray<Material>& materials, const UConstructionManager* constructionManager);
     void UpdateHave(const UConstructionManager* constructionManager);
     UPanelSlot* AddExternalResource(UWidget* resource) const;
 };

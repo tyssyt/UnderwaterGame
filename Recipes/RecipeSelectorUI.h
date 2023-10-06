@@ -38,9 +38,6 @@ class XD_API URecipeUI : public UUserWidget {
 
 protected:
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UTextBlock* Time;
-
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UWrapBox* Ingredients;
 
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
@@ -49,11 +46,11 @@ protected:
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UIngredientUI> IngredientUIClass;
 
-    Recipe* RecipeIHateCPP;
-    std::function<void(Recipe*)> Callback;
+    URecipe* RecipeIHateCPP;
+    std::function<void(URecipe*)> Callback;
 
 public:
-    void SetRecipe(Recipe* recipe, std::function<void(Recipe*)> callback);
+    void SetRecipe(URecipe* recipe, const std::function<void(URecipe*)>& callback);
 
     UFUNCTION(BlueprintCallable)
     void OnClickRecipeSelect();
@@ -71,6 +68,6 @@ protected:
     TSubclassOf<URecipeUI> RecipeUIClass;
 
 public:
-    void SetRecipes(TArray<Recipe*>* recipes, std::function<void(Recipe*)> callback);
+    void SetRecipes(const TArray<URecipe*>& recipes, const std::function<void(URecipe*)>& callback);
 
 };

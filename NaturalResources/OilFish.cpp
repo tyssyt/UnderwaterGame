@@ -3,8 +3,8 @@
 #include "OilFish.h"
 
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 #include "XD/Buildings/OilFishHarvester.h"
-#include "XD/Resources/ResourceBook.h"
 
 AOilFish::AOilFish() {
     PrimaryActorTick.bCanEverTick = false;
@@ -24,16 +24,16 @@ void AOilFish::BeginPlay() {
 
 void UOilFishUI::Tick() {
     if (Deposit) {
-        // TODO we propably want a getter for conductive ore in the Deposit or something like that...
-        ResourceImage->SetBrushFromTexture(Deposit->GetGameInstance()->TheResourceBook->Oil->Image);
+        // for now, the image is set in the wbp
+        // TODO show the resources needed to upgrade and maybe even the building it upgrades to
+        // ResourceImage->SetBrushFromTexture(Deposit->GetGameInstance()->TheResourceBook->Oil->Image);
     }
 }
 
 void UOilFishUI::OnClickConstruct() {
     if (Deposit) {
-        const UGameInstanceX* gameInstance = Deposit->GetGameInstance();
         const auto mine = GetWorld()->SpawnActor<AOilFishHarvester>(Deposit->GetActorLocation() - FVector(.0f, .0f, 50.f), Deposit->GetActorRotation()); // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
-        gameInstance->TheConstructionManager->AddConstruction(new ConstructionSite(mine, gameInstance->TheBuildingBook->OilFishHarvester, FConstructionFlags{true}));
+        The::ConstructionManager(Deposit)->AddConstruction(new ConstructionSite(mine, The::Encyclopedia(Deposit)->OilFishHarvester, FConstructionFlags{true}));
         Deposit->Destroy();
         Deposit = nullptr;
         // TODO unselect UI (maybe select the MineUI or sth idk)

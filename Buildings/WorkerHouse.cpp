@@ -3,6 +3,7 @@
 #include "WorkerHouse.h"
 #include "Habitat.h"
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 
 AWorkerHouse::AWorkerHouse() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/WorkerHouse"));
@@ -43,6 +44,6 @@ void UWorkerHouseUI::Tick() {
     if (!House)
         return;
 
-    People->Set(House->Residents, AWorkerHouse::RESIDENT_LIMIT, House->GetGameInstance()->TheResourceBook->People);
+    People->Set(House->Residents, AWorkerHouse::RESIDENT_LIMIT, The::Encyclopedia(House)->People);
     Workforce->SetText(FText::AsNumber(House->Residents)); // TODO update once we have a different formula for Workforce
 }

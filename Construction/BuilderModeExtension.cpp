@@ -5,6 +5,7 @@
 
 #include "XD/GameInstanceX.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Utils.h"
 
 void UElectricityBuilderModeExtension::Init(ABuilding* preview) {
     UElectricComponent* elec = preview->GetComponentByClass<UElectricComponent>();
@@ -18,7 +19,7 @@ void UElectricityBuilderModeExtension::Init(ABuilding* preview) {
     constructionUI->TogglePower->SetVisibility(ESlateVisibility::Visible);
 
     PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionUI, constructionUI->ResourceBalanceUIClass);
-    PowerResourceUI->SetNeed(elec->Consumption, GetWorld()->GetGameInstance<UGameInstanceX>()->TheResourceBook->Electricity);
+    PowerResourceUI->SetNeed(elec->Consumption, The::Encyclopedia(this)->Electricity);
     constructionUI->AddExternalResource(PowerResourceUI);
 }
 
@@ -150,7 +151,7 @@ void UIndoorElectricityBuilderModeExtension::Init(ABuilding* preview) {
     
     const auto constructionUI = GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI;
     PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionUI, constructionUI->ResourceBalanceUIClass);
-    PowerResourceUI->SetNeed(elec->Consumption, GetWorld()->GetGameInstance<UGameInstanceX>()->TheResourceBook->Electricity);
+    PowerResourceUI->SetNeed(elec->Consumption, The::Encyclopedia(this)->Electricity);
     constructionUI->AddExternalResource(PowerResourceUI);
 }
 

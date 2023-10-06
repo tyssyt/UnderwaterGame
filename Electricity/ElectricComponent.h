@@ -4,7 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/BillboardComponent.h"
 #include "ElectricComponent.generated.h"
+
+class ASubstation;
 
 enum class PowerState { Initial, Disconnected, Deactivated, Unpowered, Powered };
 
@@ -19,7 +22,7 @@ public:
     int Consumption;
 
     UPROPERTY(EditAnywhere)
-    class ASubstation* Substation;
+    ASubstation* Substation;
 
     UPROPERTY(EditAnywhere)
     UBillboardComponent* DisabledSymbol;

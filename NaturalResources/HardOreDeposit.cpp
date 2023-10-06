@@ -3,8 +3,8 @@
 #include "HardOreDeposit.h"
 
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 #include "XD/Buildings/HardOreMine.h"
-#include "XD/Resources/ResourceBook.h"
 
 AHardOreDeposit::AHardOreDeposit() {
     PrimaryActorTick.bCanEverTick = false;
@@ -24,16 +24,16 @@ void AHardOreDeposit::BeginPlay() {
 
 void UHardOreDepositUI::Tick() {
     if (Deposit) {
-        // TODO we propably want a getter for conductive ore in the Deposit or something like that...
-        ResourceImage->SetBrushFromTexture(Deposit->GetGameInstance()->TheResourceBook->HardOre->Image);
+        // for now, the image is set in the wbp
+        // TODO show the resources needed to upgrade and maybe even the building it upgrades to
+        // ResourceImage->SetBrushFromTexture(Deposit->GetGameInstance()->TheResourceBook->HardOre->Image);
     }
 }
 
 void UHardOreDepositUI::OnClickConstruct() {
     if (Deposit) {
-        const UGameInstanceX* gameInstance = Deposit->GetGameInstance();
         const auto mine = GetWorld()->SpawnActor<AHardOreMine>(Deposit->GetActorLocation() - FVector(.0f, .0f, 50.f), Deposit->GetActorRotation()); // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
-        gameInstance->TheConstructionManager->AddConstruction(new ConstructionSite(mine, gameInstance->TheBuildingBook->HardOreMine, FConstructionFlags{true}));
+        The::ConstructionManager(Deposit)->AddConstruction(new ConstructionSite(mine, The::Encyclopedia(Deposit)->HardOreMine, FConstructionFlags{true}));
         Deposit->Destroy();
         Deposit = nullptr;
         // TODO unselect UI (maybe select the MineUI or sth idk)

@@ -6,9 +6,9 @@
 
 #include "XD/Inventory/InventoryComponent.h"
 
-#include <vector>
 #include <utility>
 
+#include "ConstructionPlan.h"
 #include "Splitter.h"
 
 
@@ -205,7 +205,7 @@ const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInv
     // TODO think about depot to depot connections... if neither of them is connected to something else in the chain...
 }
 
-std::vector<Material> AConveyor::ComputeCosts(FVector start, FVector* end, TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook) {
+TArray<Material> AConveyor::ComputeCosts(FVector start, FVector* end, TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, UEncyclopedia* theEncyclopedia) {
     double linkDist = 0.;    
     FVector last = start;
     for (auto node : nodes) {
@@ -215,23 +215,24 @@ std::vector<Material> AConveyor::ComputeCosts(FVector start, FVector* end, TArra
     if (end)
         linkDist += FVector::Distance(last, *end);
 
-    return ComputeCosts(linkDist, nodes.Num(), splitter, merger, theBuildingBook);
+    return ComputeCosts(linkDist, nodes.Num(), splitter, merger, theEncyclopedia);
 }
 
-std::vector<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook) {
-    std::vector<Material> materials;
+inline static constexpr double ConveyorLinkDistanceScale = 13.37; // TODO this needs to be explained somewhere in the encyclopedia
+TArray<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, UEncyclopedia* theEncyclopedia) {
+    TArray<Material> materials;
 
-    Material::AddTo(materials, theBuildingBook->ConveyorLink->Materials, static_cast<int>(linkDist / UBuildingBook::ConveyorLinkDistanceScale));
-    Material::AddTo(materials, theBuildingBook->ConveyorNode->Materials, numNodes);
+    Material::AddTo(materials, theEncyclopedia->ConveyorLink->Materials, static_cast<int>(linkDist / ConveyorLinkDistanceScale));
+    Material::AddTo(materials, theEncyclopedia->ConveyorNode->Materials, numNodes);
 
     switch (splitter) {
     case ESourceTargetType::Building:
         break;
     case ESourceTargetType::ConveyorNode:
-        Material::AddTo(materials, theBuildingBook->ConveyorNode->Materials, -1);
+        Material::AddTo(materials, theEncyclopedia->ConveyorNode->Materials, -1);
         // fallthrough
     case ESourceTargetType::ConveyorLink:
-        Material::AddTo(materials, theBuildingBook->Splitter->Materials);
+        Material::AddTo(materials, theEncyclopedia->Splitter->Materials);
         break;
     default:
         checkNoEntry();
@@ -241,10 +242,10 @@ std::vector<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESo
     case ESourceTargetType::Building:
         break;
     case ESourceTargetType::ConveyorNode:
-        Material::AddTo(materials, theBuildingBook->ConveyorNode->Materials, -1);
+        Material::AddTo(materials, theEncyclopedia->ConveyorNode->Materials, -1);
         // fallthrough
     case ESourceTargetType::ConveyorLink:
-        Material::AddTo(materials, theBuildingBook->Merger->Materials);
+        Material::AddTo(materials, theEncyclopedia->Merger->Materials);
         break;
     default:
         checkNoEntry();

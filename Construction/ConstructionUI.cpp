@@ -9,7 +9,7 @@ void UConstructionUI::Set(const UConstructionPlan* constructionPlan, const UCons
     Set(constructionPlan->Name, constructionPlan->Image, constructionPlan->Materials, constructionManager);
 }
 
-void UConstructionUI::Set(const FText& name, UTexture2D* image, const std::vector<Material>& materials, const UConstructionManager* constructionManager) {
+void UConstructionUI::Set(const FText& name, UTexture2D* image, const TArray<Material>& materials, const UConstructionManager* constructionManager) {
     BuildingName->SetText(name);
     BuildingImage->SetBrushFromTexture(image);
     TogglePower->SetVisibility(ESlateVisibility::Collapsed);
@@ -17,7 +17,7 @@ void UConstructionUI::Set(const FText& name, UTexture2D* image, const std::vecto
     Set(materials, constructionManager);
 }
 
-void UConstructionUI::Set(const std::vector<Material>& materials, const UConstructionManager* constructionManager) {
+void UConstructionUI::Set(const TArray<Material>& materials, const UConstructionManager* constructionManager) {
     Resources->ClearChildren();
     MaterialsToUpdate.Empty();
     for (auto const& material : materials) {
@@ -32,7 +32,7 @@ void UConstructionUI::Set(const std::vector<Material>& materials, const UConstru
 void UConstructionUI::UpdateHave(const UConstructionManager* constructionManager) {
     // TODO consider a solution with a single loop over constructionResources
     for (const auto& matUpdate : MaterialsToUpdate) {
-        for (auto& resource : constructionManager->constructionResources) {
+        for (auto& resource : constructionManager->ConstructionResources) {
             if (matUpdate.Material == resource.Resource) {
                 matUpdate.Ui->SetHave(resource.Total - resource.Reserved);
                 break;

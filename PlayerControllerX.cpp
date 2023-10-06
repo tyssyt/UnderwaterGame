@@ -3,6 +3,8 @@
 #include "PlayerControllerX.h"
 
 #include "GameInstanceX.h"
+#include "Utils.h"
+#include "Encyclopedia/ConfigLoader.h"
 #include "Hotbar/HotbarDock.h"
 
 APlayerControllerX::APlayerControllerX() {}
@@ -13,6 +15,31 @@ void APlayerControllerX::BeginPlay() {
     BlueprintHolder = NewObject<UBlueprintHolder>(this, BlueprintHolderClass);
     BlueprintHolder->Init(this);
     BlueprintHolder->MainUI->AddToViewport();
+
+    // TODO there probably is a better place to put this, but for now it can live here
+    GetGameInstance<UGameInstanceX>()->TheEncyclopedia = ConfigLoader::Load(BlueprintHolder->MainUI->HotbarDock);
+    UEncyclopedia* encyclopedia = The::Encyclopedia(this);
+    UConstructionManager* constructionManager = The::ConstructionManager(this);
+    constructionManager->SetConstructionResources(encyclopedia->FindConstructionResources());
+
+    // generate initial resources
+    TObjectIterator<APickupPad> it;
+    while (it->GetWorld() != GetWorld()) ++it; // TODO only do this when editor is open    
+    constructionManager->AddPickupPad(*it);
+    
+    int i = 0;
+    for (const auto& startResource : encyclopedia->GetStartResources()) {
+        auto& slot = it->Inventory->GetInputs()[i];
+        slot.Current = startResource.Value;
+        slot.Resource = startResource.Key;
+        i++;
+        if (i == 4) {
+            i = 0;
+            ++it;
+            while (it->GetWorld() != GetWorld()) ++it; // TODO only do this when editor is open
+            constructionManager->AddPickupPad(*it);
+        }
+    }
 }
 
 void APlayerControllerX::AcknowledgePossession(APawn* p) {

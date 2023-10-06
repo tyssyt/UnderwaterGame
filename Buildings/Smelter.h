@@ -30,9 +30,9 @@ public:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-    Recipe* activeRecipe;
+    URecipe* activeRecipe;
 
-    void SetRecipe(Recipe* recipe);
+    void SetRecipe(URecipe* recipe);
 
 protected:
     virtual void BeginPlay() override;

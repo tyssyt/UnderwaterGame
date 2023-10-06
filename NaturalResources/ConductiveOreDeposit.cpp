@@ -3,8 +3,8 @@
 #include "ConductiveOreDeposit.h"
 
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 #include "XD/Buildings/ConductiveOreMine.h"
-#include "XD/Resources/ResourceBook.h"
 
 AConductiveOreDeposit::AConductiveOreDeposit() {
     PrimaryActorTick.bCanEverTick = false;
@@ -21,19 +21,18 @@ void AConductiveOreDeposit::BeginPlay() {
     Super::BeginPlay();
 }
 
-
 void UConductiveOreDepositUI::Tick() {
     if (Deposit) {
-        // TODO we propably want a getter for conductive ore in the Deposit or something like that...
-        ResourceImage->SetBrushFromTexture(Deposit->GetGameInstance()->TheResourceBook->ConductiveOre->Image);
+        // for now, the image is set in the wbp
+        // TODO show the resources needed to upgrade and maybe even the building it upgrades to
+        // ResourceImage->SetBrushFromTexture(Deposit->GetGameInstance()->TheResourceBook->ConductiveOre->Image);
     }
 }
 
 void UConductiveOreDepositUI::OnClickConstruct() {
     if (Deposit) {
-        const UGameInstanceX* gameInstance = Deposit->GetGameInstance();
         const auto mine = GetWorld()->SpawnActor<AConductiveOreMine>(Deposit->GetActorLocation() - FVector(.0f, .0f, 50.f), Deposit->GetActorRotation()); // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
-        gameInstance->TheConstructionManager->AddConstruction(new ConstructionSite(mine, gameInstance->TheBuildingBook->ConductiveOreMine, FConstructionFlags{true}));
+        The::ConstructionManager(Deposit)->AddConstruction(new ConstructionSite(mine, The::Encyclopedia(Deposit)->ConductiveOreMine, FConstructionFlags{true}));
         Deposit->Destroy();
         Deposit = nullptr;
         // TODO unselect UI (maybe select the MineUI or sth idk)

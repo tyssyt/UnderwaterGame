@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include "XActor.h"
 #include "Building.h"
 #include "XD/SelectedUI.h"
@@ -13,7 +11,7 @@
 #include "Components/TextBlock.h"
 #include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"
-#include "BuildingBook.h"
+#include "XD/Encyclopedia/Encyclopedia.h"
 #include "XD/Inventory/InventoryComponent.h"
 #include "XD/Resources/Resource.h"
 #include "Conveyor.generated.h"
@@ -65,8 +63,8 @@ public:
     void Connect(const UResource* resource = nullptr);
 
     static const UResource* FindCommonResource(UInventoryComponent* source, UInventoryComponent* target);
-    static std::vector<Material> ComputeCosts(FVector start, FVector* end, TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook);
-    static std::vector<Material> ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, UBuildingBook* theBuildingBook);
+    static TArray<Material> ComputeCosts(FVector start, FVector* end, TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, UEncyclopedia* theEncyclopedia);
+    static TArray<Material> ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, UEncyclopedia* theEncyclopedia);
 
     std::pair<AConveyor*, AConveyor*> SplitAt(UStaticMeshComponent* mesh, ABuilding* building);
 

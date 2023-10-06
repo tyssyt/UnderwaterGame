@@ -6,9 +6,9 @@
 #include "UObject/Object.h"
 #include "XD/Resources/Resource.h"
 
-#include <vector>
-
 #include "ConstructionPlan.generated.h"
+
+class UBuilderModeExtension;
 
 struct XD_API Material {
     Material();
@@ -18,10 +18,10 @@ struct XD_API Material {
     int amount;
     UResource* resource;
 
-    static Material* Find(std::vector<Material>& in, const UResource* resource);
-    static const Material* Find(const std::vector<Material>& in, const UResource* resource);
-    static void AddTo(std::vector<Material>& to, const Material& mat, int factor = 1);
-    static void AddTo(std::vector<Material>& to, const std::vector<Material>& from, int factor = 1);
+    static Material* Find(TArray<Material>& in, const UResource* resource);
+    static const Material* Find(const TArray<Material>& in, const UResource* resource);
+    static void AddTo(TArray<Material>& to, const Material& mat, int factor = 1);
+    static void AddTo(TArray<Material>& to, const TArray<Material>& from, int factor = 1);
 };
 
 UCLASS()
@@ -29,21 +29,33 @@ class XD_API UConstructionPlan : public UObject {
     GENERATED_BODY()
 
 public:
-    UConstructionPlan* Init(UClass* buildingClass, FText name, const TCHAR* image, int time, std::initializer_list<Material> materials);
+    UConstructionPlan* Init(
+        UClass* buildingClass,
+        const TSubclassOf<UBuilderModeExtension> builderModeExtension,
+        const FText& name,
+        const TCHAR* image,
+        const int time,
+        const TArray<Material>& materials,
+        const FText& description
+    );
 
     UPROPERTY(VisibleAnywhere)
     UClass* BuildingClass;
 
     UPROPERTY(VisibleAnywhere)
-    FText Name;
+    TSubclassOf<UBuilderModeExtension> BuilderModeExtension;
 
-    //const FText Description;
+    UPROPERTY(VisibleAnywhere)
+    FText Name;
 
     UPROPERTY(VisibleAnywhere)
     UTexture2D* Image;
-    
+
     UPROPERTY(VisibleAnywhere)
     int Time;
-    
-    std::vector<Material> Materials;
+
+    TArray<Material> Materials;    
+
+    UPROPERTY(VisibleAnywhere)
+    FText Description;
 };

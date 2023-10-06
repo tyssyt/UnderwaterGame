@@ -4,6 +4,7 @@
 #include "XD/GameInstanceX.h"
 
 #include "Math/UnrealMathUtility.h"
+#include "XD/Utils.h"
 
 double ABuilderShip::Speed = 10.f; // why c++ be like this?
 double ABuilderShip::SlowSpeed = 3.333f;
@@ -112,7 +113,7 @@ void ABuilderShip::StartConstructing(ConstructionSite* constructionSite) {
 }
 
 void ABuilderShip::DoNextStop() {
-    const auto nextDelivery = TargetSite->GetNextDelivery(GetGameInstance()->TheConstructionManager->constructionResources);
+    const auto nextDelivery = TargetSite->GetNextDelivery(The::ConstructionManager(this)->ConstructionResources);
 
     if (nextDelivery.first) {
         NextStop = nextDelivery.first;

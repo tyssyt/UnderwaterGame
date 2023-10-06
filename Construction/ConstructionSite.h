@@ -9,7 +9,7 @@
 class XD_API ConstructionSite {
 public:
     ConstructionSite(AXActor* building, const UConstructionPlan* constructionPlan, FConstructionFlags flags); 
-    ConstructionSite(AXActor* building, int time, const std::vector<Material>& materials, FConstructionFlags flags);
+    ConstructionSite(AXActor* building, int time, const TArray<Material>& materials, FConstructionFlags flags);
     ~ConstructionSite();
     
     void SetGhostMaterial(UMaterial* ghostMaterial) const;
@@ -17,14 +17,14 @@ public:
 
     AXActor* Building;
     int Time;    
-    std::vector<Material> Materials;
+    TArray<Material> Materials;
     //class ABuilderShip* BuilderShip;
 
-    std::pair<APickupPad*, Material> GetNextDelivery(std::vector<struct ConstructionResource>& constructionResources) const;
+    std::pair<APickupPad*, Material> GetNextDelivery(TArray<struct ConstructionResource>& constructionResources) const;
     void DeliverMaterial(Material material);
 
 private:
-    std::vector<Material> DeliveredMaterial;
+    TArray<Material> DeliveredMaterial;
     FConstructionFlags Flags;
 
 };

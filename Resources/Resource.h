@@ -13,21 +13,14 @@ class XD_API UResource : public UObject {
 public:
     UResource();
     virtual ~UResource() override;
-    UResource* Init(FText name, int relativeInventorySize, const TCHAR* image, bool constructionResource);
-
+    UResource* Init(const FText& name, const TCHAR* image, const FText& description);
 
     UPROPERTY(VisibleAnywhere)
     FText Name;
 
-    //const FText Description;
-
+    UPROPERTY(VisibleAnywhere)
+    FText Description;
 
     UPROPERTY(VisibleAnywhere)
     UTexture2D* Image;
-
-    UPROPERTY(VisibleAnywhere)
-    int RelativeInventorySize;
-
-    UPROPERTY(VisibleAnywhere)
-    bool ConstructionResource;
 };

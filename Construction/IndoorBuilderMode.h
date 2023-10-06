@@ -26,7 +26,7 @@ class XD_API UIndoorBuilderMode : public UBuilderMode {
 
 public:
     UIndoorBuilderMode();
-    UIndoorBuilderMode* Init(UConstructionPlan* constructionPlan, UBuilderModeExtension* builderModeExtension);
+    UIndoorBuilderMode* Init(UConstructionPlan* constructionPlan);
 
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;

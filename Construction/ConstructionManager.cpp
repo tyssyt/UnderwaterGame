@@ -2,31 +2,24 @@
 
 #include "ConstructionManager.h"
 
-#include <algorithm>
-
 #include "XD/Cheats.h"
 
 ConstructionResource::ConstructionResource(const UResource* resource) : Resource(resource) {}
-ConstructionResource::~ConstructionResource() {}
 
 UConstructionManager::UConstructionManager() {
     const static ConstructorHelpers::FObjectFinder<UMaterial> GhostMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostMaterial"));
     GhostMaterial = GhostMaterialFinder.Object;
 }
 
-UConstructionManager::~UConstructionManager() {}
 
-UConstructionManager* UConstructionManager::Init(UResourceBook* theResourceBook) {
-    for (UResource* resource : theResourceBook->All)
-      if (resource->ConstructionResource)
-          constructionResources.emplace_back(resource);
-    return this;
+void UConstructionManager::SetConstructionResources(const TSet<UResource*>& constructionResources) {
+    for (const UResource* resource : constructionResources)
+        ConstructionResources.Add(resource);
 }
 
 // TODO if Tick can happen multi-threaded, these calls need to be synchronized
-
 void UConstructionManager::AddIdleBuilder(ABuilderShip* builder) {
-    idleBuilders.push_back(builder);
+    IdleBuilders.push_back(builder);
 }
 
 void UConstructionManager::AddConstruction(ConstructionSite* constructionSite) {
@@ -39,11 +32,11 @@ void UConstructionManager::AddConstruction(ConstructionSite* constructionSite) {
 }
 
 void UConstructionManager::AddPickupPad(APickupPad* pickupPad) {
-    pickupPads.push_back(pickupPad);
+    PickupPads.push_back(pickupPad);
 }
 
 void UConstructionManager::UnreserveResource(UResource* resource, int amount) {
-    for (auto& constructionResource : constructionResources) {
+    for (auto& constructionResource : ConstructionResources) {
         if (constructionResource.Resource == resource) {
             constructionResource.Reserved -= amount;
         }
@@ -62,39 +55,38 @@ void UConstructionManager::Tick(float DeltaTime) {
     LastFrameNumberWeTicked = GFrameCounter;
 
     // collect which resources are where
-    for (auto& constructionResource : constructionResources) {
+    for (auto& constructionResource : ConstructionResources) {
         constructionResource.Total = 0;
-        constructionResource.Pads.clear();
+        constructionResource.Pads.Empty();
     }
     
-    for (APickupPad* pad : pickupPads) {
+    for (APickupPad* pad : PickupPads) {
         for (auto& input : pad->Inventory->GetInputs()) {
             if (!input.Resource)
                 continue;
             
-            for (auto& constructionResource : constructionResources) {
+            for (auto& constructionResource : ConstructionResources) {
                 if (input.Resource == constructionResource.Resource) {
                     constructionResource.Total += input.Current;
-                    constructionResource.Pads.emplace_back(input.Current, pad);
+                    constructionResource.Pads.Emplace(input.Current, pad);
                 }
             }
         }
     }
 
     // sort by the amount of resources
-    for (auto& constructionResource : constructionResources) {
-        std::sort(constructionResource.Pads.begin(), constructionResource.Pads.end());
-    }
+    for (auto& constructionResource : ConstructionResources)
+        constructionResource.Pads.Sort();
 
     // start construction
-    while (!idleBuilders.empty() && !newConstructionSites.empty()) {
+    while (!IdleBuilders.empty() && !newConstructionSites.empty()) {
         ConstructionSite* constructionSite = FindBuildableConstructionSite();
         if (!constructionSite)
             return;
         
         // reserve resources
-        for (auto& material : constructionSite->Materials) {
-            for (auto& constructionResource : constructionResources) {
+        for (const auto& material : constructionSite->Materials) {
+            for (auto& constructionResource : ConstructionResources) {
                 if (material.resource == constructionResource.Resource) {
                     constructionResource.Reserved += material.amount;
                 }
@@ -102,8 +94,8 @@ void UConstructionManager::Tick(float DeltaTime) {
         }
 
         // get Ship
-        ABuilderShip* builder = idleBuilders.front();
-        idleBuilders.pop_front();
+        ABuilderShip* builder = IdleBuilders.front();
+        IdleBuilders.pop_front();
     
         wipConstructionSites.push_back(constructionSite);
         builder->StartConstructing(constructionSite);
@@ -123,9 +115,9 @@ ConstructionSite* UConstructionManager::FindBuildableConstructionSite() {
     return nullptr;
 }
 
-bool UConstructionManager::HasResourcesFor(const std::vector<Material>* materials) const {    
+bool UConstructionManager::HasResourcesFor(const TArray<Material>* materials) const {    
     for (auto& material : *materials) {
-        for (auto& constructionResource : constructionResources) {
+        for (auto& constructionResource : ConstructionResources) {
             if (material.resource == constructionResource.Resource) {
                 if (material.amount > constructionResource.Total - constructionResource.Reserved) {
                     return false;

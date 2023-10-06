@@ -8,18 +8,17 @@ void UIngredientUI::SetIngredient(const Ingredient* ingredient) {
     ResourceImage->SetBrushFromTexture(ingredient->resource->Image);
 }
 
-void URecipeUI::SetRecipe(Recipe* recipe, std::function<void(Recipe*)> callback) {
+void URecipeUI::SetRecipe(URecipe* recipe, const std::function<void(URecipe*)>& callback) {
     RecipeIHateCPP = recipe;
     Callback = callback;
 
-    Time->SetText(FText::Format(FText::FromString(TEXT("{0}s")), FText::AsNumber(recipe->time))); // TODO this does not feel like the "correct" way to do this
-    for (Ingredient const& ingredient : recipe->ingredients) {
+    for (Ingredient const& ingredient : recipe->Ingredients) {
         // TODO is there a way to do this but still have a Pointer?
         UIngredientUI* ingredientUI = CreateWidget<UIngredientUI>(this, IngredientUIClass);
         ingredientUI->SetIngredient(&ingredient);
         Ingredients->AddChildToWrapBox(ingredientUI);
     }
-    for (Result const& result : recipe->results) {
+    for (Result const& result : recipe->Results) {
         // TODO is there a way to do this but still have a Pointer?
         UIngredientUI* ingredientUI = CreateWidget<UIngredientUI>(this, IngredientUIClass);
         ingredientUI->SetIngredient(&result);
@@ -31,8 +30,8 @@ void URecipeUI::OnClickRecipeSelect() {
     Callback(RecipeIHateCPP);
 }
 
-void URecipeSelectorUI::SetRecipes(TArray<Recipe*>* recipes, std::function<void(Recipe*)> callback) {
-    for (Recipe* recipe : *recipes) {
+void URecipeSelectorUI::SetRecipes(const TArray<URecipe*>& recipes, const std::function<void(URecipe*)>& callback) {
+    for (URecipe* recipe : recipes) {
         URecipeUI* recipeUI = CreateWidget<URecipeUI>(this, RecipeUIClass);
         recipeUI->SetRecipe(recipe, callback);
         RecipeList->AddChildToVerticalBox(recipeUI);

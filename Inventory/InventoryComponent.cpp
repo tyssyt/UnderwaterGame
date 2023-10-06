@@ -2,6 +2,8 @@
 
 #include "InventoryComponent.h"
 
+#include "XD/Recipes/Recipe.h"
+
 UInventoryComponent::UInventoryComponent() {
     PrimaryComponentTick.bCanEverTick = false;
 }
@@ -19,4 +21,16 @@ TArray<FInventorySlot>& UInventoryComponent::GetInputs() {
 
 TArray<FInventorySlot>& UInventoryComponent::GetOutputs() {
     return IsBuffer ? Inputs : Outputs; // Performance: this can be called many times per frame and never changes after init, should be done without branching!
+}
+
+void UInventoryComponent::SetRecipe(URecipe* recipe) {
+    check(!IsBuffer);
+
+    Inputs.Empty();
+    for (const auto& ingredient : recipe->Ingredients)
+        Inputs.Emplace(ingredient.amount*2, ingredient.resource);
+
+    Outputs.Empty();
+    for (const auto& result : recipe->Results)
+        Outputs.Emplace(result.amount*2, result.resource);
 }

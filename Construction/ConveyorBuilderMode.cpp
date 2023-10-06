@@ -13,6 +13,7 @@
 #include "XD/Buildings/Splitter.h"
 
 #include "Components/WidgetComponent.h"
+#include "XD/Utils.h"
 
 AConveyor::ESourceTargetType ToESourceTargetType(UConveyorBuilderMode::SourceTarget::EType type) {
     switch (type) {
@@ -38,16 +39,15 @@ UConveyorBuilderMode::UConveyorBuilderMode() {
     ConveyorImage = ConveyorImageFinder.Object;
 }
 
-UConveyorBuilderMode* UConveyorBuilderMode::Init() {
+UConveyorBuilderMode* UConveyorBuilderMode::Init(UConstructionPlan* constructionPlan) { // TODO currently that plan is ConveyorLink, once it is Conveyor we can use it to fill stuff below
     const APlayerControllerX* playerController = GetWorld()->GetFirstPlayerController<APlayerControllerX>();
-    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
 
     static FText conveyorName = FText::FromString(TEXT("Conveyor"));
     playerController->BlueprintHolder->ConstructionUI->Set(
         conveyorName,
         ConveyorImage,
-        AConveyor::ComputeCosts(0., 0, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, gameInstance->TheBuildingBook),
-        gameInstance->TheConstructionManager
+        AConveyor::ComputeCosts(0., 0, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, The::Encyclopedia(this)),
+        The::ConstructionManager(this)
     );
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
     
@@ -100,10 +100,9 @@ void UConveyorBuilderMode::TickSelectSource(const ACameraPawn& camera) {
 
 void UConveyorBuilderMode::ComputeCostSelectSource() const {
     const auto splitter = CurrentHighlightValid ? ToESourceTargetType(CurrentHighlight.Type) : AConveyor::ESourceTargetType::Building;
-    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
     GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
-        AConveyor::ComputeCosts(0., 0, splitter, AConveyor::ESourceTargetType::Building, gameInstance->TheBuildingBook),
-        gameInstance->TheConstructionManager
+        AConveyor::ComputeCosts(0., 0, splitter, AConveyor::ESourceTargetType::Building, The::Encyclopedia(this)),
+        The::ConstructionManager(this)
     );
 }
 
@@ -153,7 +152,6 @@ void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {
     } else
         check(!NextLink->IsVisible());
 
-    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
     GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
         AConveyor::ComputeCosts(
             Source.Building->GetActorLocation(),
@@ -161,8 +159,8 @@ void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {
             nodes,
             ToESourceTargetType(Source.Type),
             merger,
-            gameInstance->TheBuildingBook),
-        gameInstance->TheConstructionManager
+            The::Encyclopedia(this)),
+        The::ConstructionManager(this)
     );
 }
 
@@ -209,7 +207,6 @@ void UConveyorBuilderMode::ComputeCostInsertNode() const {
 
     FVector end = Target.Building->GetActorLocation();
 
-    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
     GetWorld()->GetFirstPlayerController<APlayerControllerX>()->BlueprintHolder->ConstructionUI->Set(
         AConveyor::ComputeCosts(
             Source.Building->GetActorLocation(),
@@ -217,8 +214,8 @@ void UConveyorBuilderMode::ComputeCostInsertNode() const {
             nodes,
             ToESourceTargetType(Source.Type),
             ToESourceTargetType(Target.Type),
-            gameInstance->TheBuildingBook),
-        gameInstance->TheConstructionManager
+            The::Encyclopedia(this)),
+        The::ConstructionManager(this)
     );
 }
 
@@ -685,18 +682,19 @@ void UConveyorBuilderMode::OnClickConfirm() {
     if (HasOverlap || Done)
         return;
 
-    const UGameInstanceX* gameInstance = GetWorld()->GetGameInstance<UGameInstanceX>();
+    const auto encyclopedia = The::Encyclopedia(this);
+    const auto constructionManager = The::ConstructionManager(this);
 
     // Splitter
     if (Source.Type == SourceTarget::EType::ConveyorNode || Source.Type == SourceTarget::EType::ConveyorLink) {
         Source.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
 
-        std::vector<Material> material = gameInstance->TheBuildingBook->Splitter->Materials;
+        TArray<Material> material = encyclopedia->Splitter->Materials;
         if (Source.Type == SourceTarget::EType::ConveyorNode)
-            Material::AddTo(material, gameInstance->TheBuildingBook->ConveyorNode->Materials, -1);
+            Material::AddTo(material, encyclopedia->ConveyorNode->Materials, -1);
 
-        ConstructionSite* constructionSite = new ConstructionSite(Source.Building, gameInstance->TheBuildingBook->Splitter->Time, material, FConstructionFlags{false});
-        gameInstance->TheConstructionManager->AddConstruction(constructionSite);
+        ConstructionSite* constructionSite = new ConstructionSite(Source.Building, encyclopedia->Splitter->Time, material, FConstructionFlags{false});
+        constructionManager->AddConstruction(constructionSite);
 
         // split the conveyor
         Source.Conveyor->SplitAt(Source.ConveyorComponent, Source.Building);
@@ -713,22 +711,22 @@ void UConveyorBuilderMode::OnClickConfirm() {
         ConstructionSite* constructionSite = new ConstructionSite(
             conveyor,
             1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
-            AConveyor::ComputeCosts(Source.Building->GetActorLocation(), &targetLoc, nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, gameInstance->TheBuildingBook),
+            AConveyor::ComputeCosts(Source.Building->GetActorLocation(), &targetLoc, nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, encyclopedia),
             FConstructionFlags{false}
         ); 
-        gameInstance->TheConstructionManager->AddConstruction(constructionSite);
+        constructionManager->AddConstruction(constructionSite);
     }
     
     // Merger
     if (Target.Type == SourceTarget::EType::ConveyorNode || Target.Type == SourceTarget::EType::ConveyorLink) {
         Target.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
 
-        std::vector<Material> material = gameInstance->TheBuildingBook->Merger->Materials;
+        TArray<Material> material = encyclopedia->Merger->Materials;
         if (Target.Type == SourceTarget::EType::ConveyorNode)
-            Material::AddTo(material, gameInstance->TheBuildingBook->ConveyorNode->Materials, -1);
+            Material::AddTo(material, encyclopedia->ConveyorNode->Materials, -1);
 
-        ConstructionSite* constructionSite = new ConstructionSite(Target.Building, gameInstance->TheBuildingBook->Merger->Time, material, FConstructionFlags{false});
-        gameInstance->TheConstructionManager->AddConstruction(constructionSite);
+        ConstructionSite* constructionSite = new ConstructionSite(Target.Building, encyclopedia->Merger->Time, material, FConstructionFlags{false});
+        constructionManager->AddConstruction(constructionSite);
 
         // split the conveyor
         Target.Conveyor->SplitAt(Target.ConveyorComponent, Target.Building);

@@ -73,7 +73,7 @@ private:
 
 public:
     UConveyorBuilderMode();
-    UConveyorBuilderMode* Init();
+    UConveyorBuilderMode* Init(UConstructionPlan* constructionPlan);
     
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;

@@ -14,7 +14,7 @@ UBuildingBuilderMode::UBuildingBuilderMode() {
     HighlightMaterial = HighlightMaterialFinder.Object;
 }
 
-UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* constructionPlan, UBuilderModeExtension* builderModeExtension) {
+UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* constructionPlan) {
     ConstructionPlan = constructionPlan;
     Preview = GetWorld()->SpawnActor<ABuilding>(constructionPlan->BuildingClass);
     Preview->SetActorTickEnabled(false);
@@ -31,8 +31,8 @@ UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* construction
     );
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
 
-    if (builderModeExtension)
-        Extensions.Add(builderModeExtension);
+    if (constructionPlan->BuilderModeExtension)
+        Extensions.Add(NewObject<UBuilderModeExtension>(this, constructionPlan->BuilderModeExtension));
     if (auto elec = Preview->FindComponentByClass<UElectricComponent>())
         Extensions.Add(NewObject<UElectricityBuilderModeExtension>(this));
 

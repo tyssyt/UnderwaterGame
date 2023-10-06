@@ -2,13 +2,11 @@
 
 #pragma once
 
-#include "Resources/ResourceBook.h"
-#include "Recipes/RecipeBook.h"
-#include "Buildings/BuildingBook.h"
-#include "Construction/ConstructionManager.h"
 
 #include "CoreMinimal.h"
+#include "Construction/ConstructionManager.h"
 #include "Electricity/ElectricityManager.h"
+#include "Encyclopedia/Encyclopedia.h"
 #include "Engine/GameInstance.h"
 #include "GameInstanceX.generated.h"
 
@@ -27,19 +25,13 @@ public:
     // TODO we could also consider using subsystems for some of the below things
     // https://docs.unrealengine.com/4.26/en-US/ProgrammingAndScripting/Subsystems/
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    UResourceBook* TheResourceBook;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UEncyclopedia* TheEncyclopedia;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    URecipeBook* TheRecipeBook;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    UBuildingBook* TheBuildingBook;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UConstructionManager* TheConstructionManager;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UElectricityManager* TheElectricityManager;
 
 };

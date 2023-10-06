@@ -10,6 +10,8 @@
 #include "InventoryComponent.generated.h"
 
 
+class URecipe;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class XD_API UInventoryComponent : public UActorComponent {
     GENERATED_BODY()
@@ -32,4 +34,5 @@ public:
     TArray<FInventorySlot>& GetInputs();
     TArray<FInventorySlot>& GetOutputs();
 
+    void SetRecipe(URecipe* recipe);
 };

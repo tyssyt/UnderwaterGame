@@ -2,10 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "XD/Resources/Resource.h"
 
-#include <vector>
+#include "Recipe.generated.h"
 
+
+class UConstructionPlan;
 
 struct XD_API Ingredient {
     Ingredient(int amount, const UResource* resource);
@@ -17,13 +20,19 @@ struct XD_API Ingredient {
 
 typedef Ingredient Result;
 
-struct XD_API Recipe {
-    Recipe(int time, std::initializer_list<Ingredient> ingredients, std::initializer_list<Result> results);
-    Recipe(int time, std::initializer_list<Ingredient> ingredients, Result result);
-    ~Recipe();
+UCLASS()
+class XD_API URecipe : public UObject {
+    GENERATED_BODY()
 
-    const int time;
-    const std::vector<Ingredient> ingredients;
-    const std::vector<Result> results;
+public:
+    URecipe* Init(const TArray<UConstructionPlan*>& buildings, const TArray<Ingredient>& ingredients, const TArray<Result>& results);
+
+    UPROPERTY(VisibleAnywhere)
+    TArray<UConstructionPlan*> Buildings;
+
+    TArray<Ingredient> Ingredients;
+    TArray<Result> Results;
+
+    bool HasSize(int ingredients, int results) const;
 
 };

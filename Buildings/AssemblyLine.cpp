@@ -3,6 +3,7 @@
 #include "AssemblyLine.h"
 
 #include "XD/GameInstanceX.h"
+#include "XD/Utils.h"
 #include "XD/Recipes/Recipe.h"
 
 AAssemblyLine::AAssemblyLine() {
@@ -31,26 +32,19 @@ void AAssemblyLine::Tick(float DeltaTime) {
     FInventorySlot* input1 = &Inventory->GetInputs()[1];
     FInventorySlot* output = &Inventory->GetOutputs()[0];
 
-    if (input0->Current < activeRecipe->ingredients[0].amount || input1->Current < activeRecipe->ingredients[1].amount || output->Current > 0)
+    if (input0->Current < activeRecipe->Ingredients[0].amount || input1->Current < activeRecipe->Ingredients[1].amount || output->Current > 0)
         return;
 
-    // TODO use recipe cooking time
-    input0->PullFrom(activeRecipe->ingredients[0].amount);
-    input1->PullFrom(activeRecipe->ingredients[1].amount);
-    output->PushInto(activeRecipe->results[0].amount);
+    input0->PullFrom(activeRecipe->Ingredients[0].amount);
+    input1->PullFrom(activeRecipe->Ingredients[1].amount);
+    output->PushInto(activeRecipe->Results[0].amount);
 }
 
-void AAssemblyLine::SetRecipe(Recipe* recipe) {
-    UE_LOG(LogTemp, Warning, TEXT("Recipe set"));
+void AAssemblyLine::SetRecipe(URecipe* recipe) {
     // TODO drop items, disconnect conveyors etc.
-    Inventory->GetInputs().Empty();
-    Inventory->GetOutputs().Empty();
-
-    // TODO sanity check recipe?
+    check(recipe->HasSize(2,1));
     activeRecipe = recipe;
-    Inventory->GetInputs().Emplace(recipe->ingredients[0].amount * 2, activeRecipe->ingredients[0].resource);
-    Inventory->GetInputs().Emplace(recipe->ingredients[1].amount * 2, activeRecipe->ingredients[1].resource);
-    Inventory->GetOutputs().Emplace(recipe->results[0].amount * 2, activeRecipe->results[0].resource);
+    Inventory->SetRecipe(recipe);
 }
 
 
@@ -73,8 +67,8 @@ void UAssemblyLineUI::Tick() {
 void UAssemblyLineUI::OnClickRecipeSelect(URecipeSelectorUI* recipeSelectorUI) {
     if (AssemblyLine) {
         recipeSelectorUI->SetRecipes(
-            &AssemblyLine->GetGameInstance()->TheRecipeBook->AssemblyLineRecipes,
-            [s = this->AssemblyLine](Recipe* recipe) {
+            The::Encyclopedia(AssemblyLine)->GetRecipes(AAssemblyLine::StaticClass()),
+            [s = this->AssemblyLine](URecipe* recipe) {
                 s->SetRecipe(recipe);
             }
         );
