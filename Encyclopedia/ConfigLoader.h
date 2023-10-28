@@ -5,6 +5,8 @@
 #include "Encyclopedia.h"
 #include "XD/Hotbar/HotbarDock.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogConfigLoader, Log, All);
+
 namespace ConfigLoader {
     static UEncyclopedia* Load(const UHotbarDock* dock);
 };

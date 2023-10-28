@@ -1,7 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "WireComponent.h"
+
+#include "XD/Buildings/Building.h"
+
 UWireComponent::UWireComponent() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Wire"));
     UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);

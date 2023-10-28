@@ -3,10 +3,8 @@
 #include "IndoorBuilderMode.h"
 
 #include "BuilderModeExtension.h"
-#include "ConstructionSite.h"
-#include "XD/GameInstanceX.h"
+#include "The.h"
 #include "XD/PlayerControllerX.h"
-#include "XD/Utils.h"
 
 UIndoorBuilderMode::UIndoorBuilderMode() {
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
@@ -14,24 +12,29 @@ UIndoorBuilderMode::UIndoorBuilderMode() {
 }
 
 UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan) {
+    PreInit();
     ConstructionPlan = constructionPlan;
-    Preview = GetWorld()->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass);
+    Preview = GetWorld()->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
     Preview->SetActorTickEnabled(false);
     
     const auto playerController = The::PlayerController(this);
-    playerController->BlueprintHolder->ConstructionUI->Set(
+    ConstructionUI->Init(
         constructionPlan,
         The::ConstructionManager(this)
     );
-    playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
+    playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), ConstructionUI);
 
-    if (constructionPlan->BuilderModeExtension)
-        Extensions.Add(NewObject<UBuilderModeExtension>(this, constructionPlan->BuilderModeExtension));
-    if (auto elec = Preview->FindComponentByClass<UElectricComponent>())
-        Extensions.Add(NewObject<UIndoorElectricityBuilderModeExtension>(this));
+    if (Preview->GetBuilderModeExtension())
+        Extensions.Add(NewObject<UBuilderModeExtension>(this, Preview->GetBuilderModeExtension()));
+
+    TInlineComponentArray<UComponentX*> components;
+    Preview->GetComponents<UComponentX>(components);
+    for (const auto component : components)
+        if (component->GetBuilderModeExtension())
+            Extensions.Add(NewObject<UBuilderModeExtension>(this, component->GetBuilderModeExtension()));
 
     for (UBuilderModeExtension* extension : Extensions)
-        extension->Init(Preview);
+        extension->Init(Preview, ConstructionUI);
     
 
     // bind keys
@@ -46,7 +49,7 @@ bool UIndoorBuilderMode::Tick(const ACameraPawn& camera) {
 
     Position(camera);
 
-    The::BPHolder(this)->ConstructionUI->UpdateHave(The::ConstructionManager(this));
+    ConstructionUI->ConstructionMaterials->UpdateHave(The::ConstructionManager(this));
     for (UBuilderModeExtension* extension : Extensions)
         extension->Update();
 
@@ -96,20 +99,27 @@ void UIndoorBuilderMode::ConfirmPosition() {
     if (!Buildable)
         return;
 
-    Stop(true);
+    const auto options = NewObject<UConstructionOptions>();
+    Stop(options);
+
+    Preview->Habitat->PlaceBuilding(Preview);
+    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, options);
+    The::ConstructionManager(this)->AddConstruction(constructionSite);
+    Preview = nullptr;
 }
 
-
-void UIndoorBuilderMode::Stop(bool success) {
+void UIndoorBuilderMode::Stop(UConstructionOptions* options) {
     if (!Preview)
         return;
+    
+    for (const auto extension : Extensions)
+        extension->End(options);
+    Extensions.Empty();
 
-    if (success) {
-        Preview->Habitat->PlaceBuilding(Preview);
-        ConstructionSite* constructionSite = new ConstructionSite(Preview, ConstructionPlan, FConstructionFlags{false});
-        The::ConstructionManager(this)->AddConstruction(constructionSite);
-    } else
+    if (!options) {
         Preview->Destroy();
+        Preview = nullptr;
+    }
 
     const auto playerController = The::PlayerController(this);
     playerController->Deselect();
@@ -117,8 +127,6 @@ void UIndoorBuilderMode::Stop(bool success) {
     // undo all input bindings
     const TObjectPtr<UInputComponent> inputComponent = playerController->InputComponent;
     inputComponent->RemoveActionBinding("Select", IE_Pressed);
-
-    Preview = nullptr;
 }
 
 UClass* UIndoorBuilderMode::IDK() {

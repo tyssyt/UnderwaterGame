@@ -15,17 +15,16 @@ UCLASS(Abstract)
 class XD_API UHotbarSlotAction : public UHotbarSlot {
     GENERATED_BODY()
 
-    ActionDelegate Action;
-
 protected:
-
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UImage* Image;
 
-public:
+    ActionDelegate Action;
 
+public:
     template<class FunctorType>
-    UHotbarSlotAction* Init(UTexture2D* image, FunctorType&& lambda) {
+    UHotbarSlotAction* Init(const FText& tooltip, UTexture2D* image, FunctorType&& lambda) {
+        SetToolTipText(tooltip);
         Image->SetBrushFromTexture(image);
         Action.BindLambda(lambda);
         return this;

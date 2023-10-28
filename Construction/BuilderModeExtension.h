@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ConstructionUI.h"
 #include "Components/WidgetComponent.h"
 #include "UObject/Object.h"
 #include "XD/Buildings/Building.h"
@@ -18,11 +19,20 @@ class XD_API UBuilderModeExtension : public UObject {
     GENERATED_BODY()
 
 public:
-    virtual void Init(ABuilding* preview) {}
+    virtual void Init(ABuilding* preview, UConstructionUI* constructionUI) {}
     virtual void Update() {}
-    virtual void End() {}
+    virtual void End(UConstructionOptions* options) {}
 };
 
+UCLASS()
+class XD_API UElectricityConstructionOption : public UConstructionOption {
+    GENERATED_BODY()
+
+public:
+    UPROPERTY()
+    bool AutoConnectWires;
+    UElectricityConstructionOption* Init(bool autoConnectWires);
+};
 
 UCLASS()
 class XD_API UElectricityBuilderModeExtension : public UBuilderModeExtension {
@@ -31,22 +41,23 @@ class XD_API UElectricityBuilderModeExtension : public UBuilderModeExtension {
     TPair<FVector, FRotator> Last;
 
     UPROPERTY()
+    ABuilding* Preview;
+    UPROPERTY()
+    UConstructionUI* ConstructionUI;
+    UPROPERTY()
     UWireComponent* WireComponent;
     UPROPERTY()
     UWidgetComponent* PowerUI;
     UPROPERTY()
     UResourceBalanceUI* PowerResourceUI;
     UPROPERTY()
-    ABuilding* Preview;
-    UPROPERTY()
     ASubstation* ConnectedSubstation;    
 
 public:
-    virtual void Init(ABuilding* preview) override;
+    virtual void Init(ABuilding* preview, UConstructionUI* constructionUI) override;
     virtual void Update() override;
-    virtual void End() override;
+    virtual void End(UConstructionOptions* options) override;
 };
-
 
 UCLASS()
 class XD_API USubstationBuilderModeExtension : public UBuilderModeExtension {
@@ -55,14 +66,16 @@ class XD_API USubstationBuilderModeExtension : public UBuilderModeExtension {
     TPair<FVector, FRotator> Last;
 
     UPROPERTY()
-    ASubstation* Preview;    
+    ASubstation* Preview;
+    UPROPERTY()
+    UConstructionUI* ConstructionUI;
     UPROPERTY()
     TArray<UWireComponent*> Wires;
 
 public:
-    virtual void Init(ABuilding* preview) override;
+    virtual void Init(ABuilding* preview, UConstructionUI* constructionUI) override;
     virtual void Update() override;
-    virtual void End() override;
+    virtual void End(UConstructionOptions* options) override;
 };
 
 UCLASS()
@@ -72,10 +85,12 @@ class XD_API UIndoorElectricityBuilderModeExtension : public UBuilderModeExtensi
     UPROPERTY()
     AIndoorBuilding* Preview;
     UPROPERTY()
+    UConstructionUI* ConstructionUI;
+    UPROPERTY()
     UResourceBalanceUI* PowerResourceUI;  
 
 public:
-    virtual void Init(ABuilding* preview) override;
+    virtual void Init(ABuilding* preview, UConstructionUI* constructionUI) override;
     virtual void Update() override;
-    virtual void End() override;
+    virtual void End(UConstructionOptions* options) override;
 };

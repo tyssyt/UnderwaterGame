@@ -6,21 +6,26 @@
 #include "Engine/Texture2D.h"
 #include "Resource.generated.h"
 
+class UEncyclopediaEntry;
+
 UCLASS()
 class XD_API UResource : public UObject {
     GENERATED_BODY()
 
 public:
-    UResource();
-    virtual ~UResource() override;
     UResource* Init(const FText& name, const TCHAR* image, const FText& description);
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Name;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Description;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UTexture2D* Image;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UEncyclopediaEntry* EncyclopediaEntry;
+
+    bool operator<(const UResource& other) const;
 };

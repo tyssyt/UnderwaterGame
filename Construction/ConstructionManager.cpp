@@ -22,12 +22,12 @@ void UConstructionManager::AddIdleBuilder(ABuilderShip* builder) {
     IdleBuilders.push_back(builder);
 }
 
-void UConstructionManager::AddConstruction(ConstructionSite* constructionSite) {
+void UConstructionManager::AddConstruction(UConstructionSite* constructionSite) {
     if (Cheats::ENABLE_INSTA_BUILD) {
         constructionSite->BeginConstruction();
     } else {
         constructionSite->SetGhostMaterial(GhostMaterial);
-        NewConstructionSites.push_back(constructionSite);
+        NewConstructionSites.Add(constructionSite);
     }
 }
 
@@ -41,9 +41,8 @@ void UConstructionManager::UnreserveResource(UResource* resource, int amount) {
             constructionResource.Reserved -= amount;
 }
 
-void UConstructionManager::FinishConstruction(ConstructionSite* constructionSite) {
+void UConstructionManager::FinishConstruction(UConstructionSite* constructionSite) {
     WipConstructionSites.Remove(constructionSite);
-    delete constructionSite; // TODO maybe we want to move the delete into ConstructionSite? or just make this an unreal object...
 }
 
 void UConstructionManager::Tick(float DeltaTime) {
@@ -77,8 +76,8 @@ void UConstructionManager::Tick(float DeltaTime) {
         constructionResource.Pads.Sort();
 
     // start construction
-    while (!IdleBuilders.empty() && !NewConstructionSites.empty()) {
-        ConstructionSite* constructionSite = FindBuildableConstructionSite();
+    while (!IdleBuilders.empty() && !NewConstructionSites.IsEmpty()) {
+        const auto constructionSite = FindBuildableConstructionSite();
         if (!constructionSite)
             return;
         
@@ -100,29 +99,25 @@ void UConstructionManager::Tick(float DeltaTime) {
     }
 }
 
-ConstructionSite* UConstructionManager::FindBuildableConstructionSite() {
+UConstructionSite* UConstructionManager::FindBuildableConstructionSite() {
     for (auto it = NewConstructionSites.begin(); it != NewConstructionSites.end(); ++it) {
-        ConstructionSite* cur = *it;
+        const auto cur = *it;
 
         if (!HasResourcesFor(&cur->Materials))
             continue;
         
-        NewConstructionSites.erase(it);
+        NewConstructionSites.Remove(*it);
         return cur;
     }
     return nullptr;
 }
 
 bool UConstructionManager::HasResourcesFor(const TArray<Material>* materials) const {    
-    for (auto& material : *materials) {
-        for (auto& constructionResource : ConstructionResources) {
-            if (material.resource == constructionResource.Resource) {
-                if (material.amount > constructionResource.Total - constructionResource.Reserved) {
+    for (auto& material : *materials)
+        for (auto& constructionResource : ConstructionResources)
+            if (material.resource == constructionResource.Resource)
+                if (material.amount > constructionResource.Total - constructionResource.Reserved)
                     return false;
-                }
-            }
-        }
-    }
     return true;
 }
 

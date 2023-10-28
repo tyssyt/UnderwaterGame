@@ -30,12 +30,6 @@ public:
     static constexpr int RESIDENT_LIMIT = 20;
 
     virtual const TArray<Coordinate>* GetGridOffsets() override;
-
-protected:
-    virtual void BeginPlay() override;
-
-
-public:
 };
 
 

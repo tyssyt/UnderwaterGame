@@ -1,10 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BuilderShip.h"
-#include "XD/GameInstanceX.h"
 
-#include "Math/UnrealMathUtility.h"
-#include "XD/Utils.h"
+#include "ConstructionManager.h"
+#include "The.h"
 
 double ABuilderShip::Speed = 10.f; // why c++ be like this?
 double ABuilderShip::SlowSpeed = 3.333f;
@@ -17,10 +16,6 @@ ABuilderShip::ABuilderShip() {
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
-}
-
-void ABuilderShip::BeginPlay() {
-    Super::BeginPlay();
 }
 
 void ABuilderShip::Tick(float DeltaTime) {
@@ -104,7 +99,7 @@ void ABuilderShip::Fly() {
 }
 
 
-void ABuilderShip::StartConstructing(ConstructionSite* constructionSite) {
+void ABuilderShip::StartConstructing(UConstructionSite* constructionSite) {
     SetActorTickEnabled(true);
     TargetSite = constructionSite;
     State = ShipState::FLYING;

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "XD/NaturalResources/NaturalResource.h"
 #include "Encyclopedia.generated.h"
 
 class URecipe;
@@ -19,29 +20,41 @@ protected:
     UPROPERTY()
     TArray<UResource*> Resources;
     UPROPERTY()
+    TArray<UNaturalResource*> NaturalResources;
+    UPROPERTY()
     TArray<UConstructionPlan*> Buildings;
     UPROPERTY()
     TArray<URecipe*> Recipes;
 
-    TArray<TPair<UResource*, int32>> StartResources; // TODO have this configurable and don't use PickupPads for them
+    UPROPERTY()
+    TMap<UClass*, UConstructionPlan*> ClassToBuildings;
+    UPROPERTY()
+    TMap<UClass*, UNaturalResource*> ClassToNaturalResources;
     
     TMap<UClass*, TArray<URecipe*>> RecipesByBuilding;
+    TMap<UResource*, TArray<URecipe*>> RecipesByIngredient;
+    TMap<UResource*, TArray<URecipe*>> RecipesByResult;
+    TMap<UResource*, TArray<UConstructionPlan*>> BuildingByMaterial;
+    TMap<UResource*, TArray<UConstructionPlan*>> BuildingByNeed;
+    TMap<UNaturalResource*, TArray<UConstructionPlan*>> BuildingsByNaturalResource;
+
+    TArray<TPair<UResource*, int32>> StartResources; // TODO have this configurable and don't use PickupPads for them
 
 public:
 
-    UEncyclopedia* Init(TMap<FString, UResource*>& resources, TMap<FString, UConstructionPlan*>& buildings, TArray<URecipe*>& recipes);
+    UEncyclopedia* Init(TMap<FString, UResource*>& resources, TMap<FString, UNaturalResource*>& naturalResources, TMap<FString, UConstructionPlan*>& buildings, const TArray<URecipe*>& recipes);
 
     // Special Resources
     UPROPERTY()
     UResource* Food;
-    UPROPERTY()
-    UResource* Electricity;
     UPROPERTY()
     UResource* People;
     UPROPERTY()
     UResource* Workforce;    
 
     // Special Buildings
+    UPROPERTY()
+    UConstructionPlan* Conveyor;
     UPROPERTY()
     UConstructionPlan* ConveyorNode;
     UPROPERTY()
@@ -59,7 +72,24 @@ public:
     UPROPERTY()
     UConstructionPlan* OilFishHarvester;
 
-    TSet<UResource*> FindConstructionResources();
-    TArray<TPair<UResource*, int32>>& GetStartResources();    
+    TArray<UResource*>& GetAllResources();
+    TArray<UNaturalResource*>& GetAllNaturalResources();
+    TArray<UConstructionPlan*>& GetAllBuildings();
+    TArray<URecipe*>& GetAllRecipes();
+
+    UNaturalResource* GetNaturalResource(const UClass* building);
+    UConstructionPlan* GetBuilding(const UClass* building);
+
     TArray<URecipe*>& GetRecipes(UClass* building);
+    TArray<URecipe*>& GetRecipesByIngredient(UResource* resource);
+    TArray<URecipe*>& GetRecipesByResult(UResource* resource);
+    TArray<UConstructionPlan*>& GetBuildingsByMaterial(UResource* resource);
+    TArray<UConstructionPlan*>& GetBuildingsByNeed(UResource* resource);
+    TArray<UConstructionPlan*>& GetBuildings(UNaturalResource* naturalResource);
+
+    TArray<TPair<UResource*, int32>>& GetStartResources();
+
+    TSet<UResource*> FindConstructionResources();
+    TSet<UResource*> FindRawMaterials();
+    TSet<UResource*> FindNeeds();
 };

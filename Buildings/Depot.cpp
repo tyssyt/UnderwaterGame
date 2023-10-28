@@ -2,7 +2,6 @@
 
 #include "Depot.h"
 
-
 ADepot::ADepot() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Depot"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
@@ -13,11 +12,6 @@ ADepot::ADepot() {
     Inventory->GetInputs().Emplace(50000);
     Inventory->SetBuffer();
 }
-
-void ADepot::BeginPlay() {
-    Super::BeginPlay();
-}
-
 
 void UDepotUI::Tick() {
     if (Depot) {

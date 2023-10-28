@@ -19,10 +19,6 @@ ASplitter::ASplitter() {
     Inventory->GetOutputs().Emplace(100);
 }
 
-void ASplitter::BeginPlay() {
-    Super::BeginPlay();
-}
-
 void ASplitter::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
@@ -56,10 +52,6 @@ AMerger::AMerger() {
     Inventory->GetInputs().Emplace(100);
     Inventory->GetInputs().Emplace(100);
     Inventory->GetOutputs().Emplace(150);
-}
-
-void AMerger::BeginPlay() {
-    Super::BeginPlay();
 }
 
 void AMerger::Tick(float DeltaTime) {

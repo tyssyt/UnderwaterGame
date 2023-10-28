@@ -2,17 +2,10 @@
 
 #include "Conveyor.h"
 
-#include <set>
-
-#include "XD/Inventory/InventoryComponent.h"
-
-#include <utility>
-
-#include "ConstructionPlan.h"
 #include "Splitter.h"
 
 
-AConveyor* AConveyor::Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, const UResource* resource) {
+AConveyor* AConveyor::Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, UResource* resource) {
     AConveyor* conveyor = world->SpawnActor<AConveyor>();
     conveyor->Source = source;
     conveyor->Target = target;
@@ -24,11 +17,6 @@ AConveyor* AConveyor::Create(UWorld* world, ABuilding* source, ABuilding* target
 AConveyor::AConveyor() {
     PrimaryActorTick.bCanEverTick = true;    
     SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent")));    
-}
-
-void AConveyor::BeginPlay() {
-    Super::BeginPlay();
-    //Connect(); // for conveyors placed in the editor
 }
 
 void AConveyor::Tick(float DeltaTime) {
@@ -46,7 +34,7 @@ void AConveyor::Tick(float DeltaTime) {
     }
 }
 
-void AConveyor::Connect(const UResource* resource) {
+void AConveyor::Connect(UResource* resource) {
     if (!Source || !Target || Source == Target) {
         UE_LOG(LogTemp, Error, TEXT("Invalid Connect on %s"), *this->GetName());
         return;
@@ -137,7 +125,7 @@ void AConveyor::MakeLink(FVector start, FVector end) {
     nextLink->Connect(start, end);
 }
 
-const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInventoryComponent* target) {
+UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInventoryComponent* target) {
     if (!source || !target || source == target || source->GetOutputs().Num() == 0 || target->GetInputs().Num() == 0)
         return nullptr;
 
@@ -145,17 +133,17 @@ const UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInv
     auto& outputs = source->GetOutputs();    
     
     // find matching in/outputs
-    TSet<const UResource*> resources;
+    TSet<UResource*> resources;
     bool hasUntypedInput = false;
     bool hasUntypedOutput = false;
-    for (auto& output : outputs) {
+    for (const auto& output : outputs) {
         if (output.Conveyor)
             continue;
         if (!output.Resource) {
             hasUntypedOutput = true;
             continue;
         }
-        for (auto& input : inputs) {
+        for (const auto& input : inputs) {
             if (input.Conveyor)
                 continue;
             if (!input.Resource)
@@ -372,7 +360,7 @@ UConveyorNode::UConveyorNode() {
 
 void UConveyorUI::Tick() {
     if (Conveyor) {
-        CurrentThroughput->SetText(FText::AsNumber(Conveyor->CurrentThroughput * 60)); // TODO use actual ticks/s
+        CurrentThroughput->SetText(FText::AsNumber(Conveyor->CurrentThroughput * 60, &FNumberFormattingOptions::DefaultNoGrouping())); // TODO use actual ticks/s
         Input->Set(Conveyor->SourceInv);
         Output->Set(Conveyor->TargetInv);
     }

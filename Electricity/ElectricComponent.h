@@ -3,8 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "XD/ComponentX.h"
+#include "XD/Construction/ConstructionOptions.h"
 #include "Components/BillboardComponent.h"
+#include "XD/Resources/Resource.h"
 #include "ElectricComponent.generated.h"
 
 class ASubstation;
@@ -12,12 +14,13 @@ class ASubstation;
 enum class PowerState { Initial, Disconnected, Deactivated, Unpowered, Powered };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class XD_API UElectricComponent : public UActorComponent {
+class XD_API UElectricComponent : public UComponentX {
     GENERATED_BODY()
 
-public:
-    UElectricComponent();
+protected:
+    PowerState State;
 
+public:
     UPROPERTY(EditAnywhere)
     int Consumption;
 
@@ -27,9 +30,13 @@ public:
     UPROPERTY(EditAnywhere)
     UBillboardComponent* DisabledSymbol;
 
+    UElectricComponent();
+
     PowerState GetState() const;
     void SetState(const PowerState newState);
 
-protected:
-    PowerState State;
+    UResource* GetElectricity() const;
+
+    virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const override;
+    virtual void OnConstructionComplete(UConstructionOptions* options) override;
 };

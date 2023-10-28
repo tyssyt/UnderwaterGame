@@ -10,6 +10,7 @@
 #include "Components/ProgressBar.h"
 #include "Containers/Array.h"
 #include "XD/SelectedUI.h"
+#include "XD/Electricity/ElectricityNetwork.h"
 #include "XD/Electricity/PowerUI.h"
 #include "Substation.generated.h"
 
@@ -23,7 +24,7 @@ public:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-    class ElectricityNetwork* Network;
+    ElectricityNetwork* Network;
 
     UPROPERTY(EditAnywhere)
     TArray<UElectricComponent*> ConnectedBuildings;
@@ -33,13 +34,10 @@ public:
     void DisconnectFromNetwork();
     void ConnectNoRecompute(UElectricComponent* building);
     void ReconnectNoRecompute(UElectricComponent* building);
-    virtual void OnConstructionComplete(FConstructionFlags flags) override;
-    
+    virtual void OnConstructionComplete(UConstructionOptions* options) override;
+    virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const override;
+
     TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> FindNearby() const;
-
-protected:
-    virtual void BeginPlay() override;
-
 };
 
 

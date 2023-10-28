@@ -2,13 +2,13 @@
 
 #include "BlueprintHolder.h"
 
+#include "The.h"
+
 void UBlueprintHolder::Init(APlayerController* controller) {
     Super::PostInitProperties();
 
     MainUI = CreateWidget<UMainUI>(controller, MainUIClass);
-    HardOreDepositUI = CreateWidget<UHardOreDepositUI>(controller, HardOreDepositUIClass);
-    ConductiveOreDepositUI = CreateWidget<UConductiveOreDepositUI>(controller, ConductiveOreDepositUIClass);
-    OilFishUI = CreateWidget<UOilFishUI>(controller, OilFishUIClass);
+    EncyclopediaUI = CreateWidget<UEncyclopediaUI>(controller, EncyclopediaUIClass);
     HardOreMineUI = CreateWidget<UHardOreMineUI>(controller, HardOreMineUIClass);
     ConductiveOreMineUI = CreateWidget<UConductiveOreMineUI>(controller, ConductiveOreMineUIClass);
     OilFishHarvesterUI = CreateWidget<UOilFishHarvesterUI>(controller, OilFishHarvesterUIClass);
@@ -22,26 +22,19 @@ void UBlueprintHolder::Init(APlayerController* controller) {
     SubstationUI = CreateWidget<USubstationUI>(controller, SubstationUIClass);
     ExcavatorUI = CreateWidget<UExcavatorUI>(controller, ExcavatorUIClass);
     PowerOverlayUI = CreateWidget<UPowerOverlayUI>(controller, PowerOverlayUIClass);
-    ConstructionUI = CreateWidget<UConstructionUI>(controller, ConstructionUIClass);
 }
 
 USelectedUI* UBlueprintHolder::GetUI(AXActor* actor) const {
     if (const auto building = Cast<ABuilding>(actor))
         if (building->constructionState != EConstructionState::Done)
             return nullptr; // TODO construction site UI
-    
-    if (actor->IsA(AHardOreDeposit::StaticClass())) {
-        HardOreDepositUI->Deposit = Cast<AHardOreDeposit>(actor);
-        return HardOreDepositUI;
-    }
-    if (actor->IsA(AConductiveOreDeposit::StaticClass())) {
-        ConductiveOreDepositUI->Deposit = Cast<AConductiveOreDeposit>(actor);
-        return ConductiveOreDepositUI;
-    }
-    if (actor->IsA(AOilFish::StaticClass())) {
-        OilFishUI->Deposit = Cast<AOilFish>(actor);
-        return OilFishUI;
-    }
+
+    const auto controller = The::PlayerController(actor);
+
+    if (const auto naturalResourceActor = Cast<ANaturalResourceActor>(actor))
+        return CreateWidget<UNaturalResourceSelectedUI>(controller, NaturalResourceUIClass)->Init(naturalResourceActor);
+
+    // TODO create widget instead of having a permanent one
     if (actor->IsA(AHardOreMine::StaticClass())) {
         HardOreMineUI->Mine = Cast<AHardOreMine>(actor);
         return HardOreMineUI;

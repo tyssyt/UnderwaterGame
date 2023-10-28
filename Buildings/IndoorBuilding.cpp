@@ -8,12 +8,9 @@ AIndoorBuilding::AIndoorBuilding() : GridX(-1), GridY(-1), Orientation(EGridOrie
     PrimaryActorTick.bCanEverTick = true;
 }
 
-void AIndoorBuilding::BeginPlay() {
-    Super::BeginPlay();
-}
-
-void AIndoorBuilding::Tick(float DeltaTime) {
-    Super::Tick(DeltaTime);
+AIndoorBuilding* AIndoorBuilding::Init(UConstructionPlan* constructionPlan) {
+    Super::Init(constructionPlan);
+    return this;
 }
 
 void AIndoorBuilding::Rotate() {

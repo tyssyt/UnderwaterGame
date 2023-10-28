@@ -10,6 +10,7 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "Components/Image.h"
+#include "XD/Resources/ResourceUI.h"
 #include "InventorySlotUI.generated.h"
 
 UCLASS(Abstract)
@@ -37,10 +38,10 @@ public:
     UTextBlock* Max;
 
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UImage* ResourceImage;
+    UResourceUI* Resource;
 
     void Set(const FInventorySlot* inventorySlot);
-    void Set(int current, int max, const UResource* resource);
+    void Set(int current, int max, UResource* resource);
     void Clear();
 
 private:

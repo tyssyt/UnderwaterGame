@@ -5,7 +5,7 @@
 void AXActor::SetAllMaterials(UMaterialInterface* material) const {
     TInlineComponentArray<UStaticMeshComponent*> meshes;
     GetComponents<UStaticMeshComponent>(meshes, true);
-    for (auto mesh : meshes)
+    for (const auto mesh : meshes)
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
             mesh->SetMaterial(i, material);
 }

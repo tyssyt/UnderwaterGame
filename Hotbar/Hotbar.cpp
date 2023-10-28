@@ -4,8 +4,8 @@
 
 #include "HotbarDock.h"
 #include "HotbarSlot.h"
+#include "UI.h"
 #include "Components/NamedSlot.h"
-#include "XD/Utils.h"
 
 UHotbar* UHotbar::Init(
     UHotbarSlot* slot1,

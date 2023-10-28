@@ -2,14 +2,14 @@
 
 #include "CameraPawn.h"
 #include "PlayerControllerX.h"
-#include "GameInstanceX.h"
+#include "The.h"
 
 #include "Camera/CameraComponent.h"
 #include "Construction/BuilderMode.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/PlayerInput.h"
-#include "Electricity//PowerOverlay.h"
+#include "Electricity/PowerOverlay.h"
 #include "Hotbar/HotbarDock.h"
 #include "Hotbar/HotbarSlot.h"
 
@@ -35,7 +35,7 @@ ACameraPawn::ACameraPawn() {
 // Called when the game starts or when spawned
 void ACameraPawn::BeginPlay() {
     Super::BeginPlay();
-    
+
     PowerOverlay = NewObject<UPowerOverlay>(this);
 }
 
@@ -75,6 +75,9 @@ void ACameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("TogglePowerOverlay", EKeys::P));
     PlayerInputComponent->BindAction("TogglePowerOverlay", EInputEvent::IE_Pressed, this, &ACameraPawn::TogglePowerOverlay);
+
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("OpenEncyclopedia", EKeys::B));
+    PlayerInputComponent->BindAction("OpenEncyclopedia", EInputEvent::IE_Pressed, this, &ACameraPawn::OpenEncyclopedia);
 
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("Hotbar1", EKeys::One));
     PlayerInputComponent->BindAction("Hotbar1", EInputEvent::IE_Pressed, this, &ACameraPawn::Hotbar1);
@@ -193,6 +196,10 @@ void ACameraPawn::TogglePowerOverlay() {
     if (BuilderMode)
         return; // no overlays allowed when in Builder Mode
     PowerOverlay->Toggle();
+}
+
+void ACameraPawn::OpenEncyclopedia() {
+    The::BPHolder(this)->EncyclopediaUI->Open();
 }
 
 void ACameraPawn::ActivateHotbar(const int i) const {

@@ -2,13 +2,11 @@
 
 #include "BuildingBuilderMode.h"
 
-#include "ArrowMover.h"
 #include "BuilderModeExtension.h"
-#include "Components/WidgetComponent.h"
+#include "The.h"
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
+#include "XD/Buildings/Building.h"
 
 UBuildingBuilderMode::UBuildingBuilderMode() {
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
@@ -16,8 +14,9 @@ UBuildingBuilderMode::UBuildingBuilderMode() {
 }
 
 UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* constructionPlan) {
+    PreInit();
     ConstructionPlan = constructionPlan;
-    Preview = GetWorld()->SpawnActor<ABuilding>(constructionPlan->BuildingClass);
+    Preview = GetWorld()->SpawnActor<ABuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
     Preview->SetActorTickEnabled(false);
 
     TInlineComponentArray<UStaticMeshComponent*> meshes;
@@ -26,19 +25,23 @@ UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* construction
         mesh->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
 
     const auto playerController = The::PlayerController(this);
-    playerController->BlueprintHolder->ConstructionUI->Set(
+    ConstructionUI->Init(
         constructionPlan,
         The::ConstructionManager(this)
     );
-    playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
+    playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), ConstructionUI);
 
-    if (constructionPlan->BuilderModeExtension)
-        Extensions.Add(NewObject<UBuilderModeExtension>(this, constructionPlan->BuilderModeExtension));
-    if (auto elec = Preview->FindComponentByClass<UElectricComponent>())
-        Extensions.Add(NewObject<UElectricityBuilderModeExtension>(this));
+    if (Preview->GetBuilderModeExtension())
+        Extensions.Add(NewObject<UBuilderModeExtension>(this, Preview->GetBuilderModeExtension()));
+
+    TInlineComponentArray<UComponentX*> components;
+    Preview->GetComponents<UComponentX>(components);
+    for (const auto component : components)
+        if (component->GetBuilderModeExtension())
+            Extensions.Add(NewObject<UBuilderModeExtension>(this, component->GetBuilderModeExtension()));
 
     for (UBuilderModeExtension* extension : Extensions)
-        extension->Init(Preview);
+        extension->Init(Preview, ConstructionUI);
 
     // bind keys
     const auto inputComponent = playerController->InputComponent;
@@ -62,7 +65,7 @@ bool UBuildingBuilderMode::Tick(const ACameraPawn& camera) {
     }
 
     CheckOverlap();
-    The::BPHolder(this)->ConstructionUI->UpdateHave(The::ConstructionManager(this));
+    ConstructionUI->ConstructionMaterials->UpdateHave(The::ConstructionManager(this));
     for (UBuilderModeExtension* extension : Extensions)
         extension->Update();
     return false;
@@ -254,29 +257,27 @@ void UBuildingBuilderMode::OnClickConfirm() {
     if (HasOverlap)
         return;
 
-    Stop(true);
+    const auto options = NewObject<UConstructionOptions>();
+    Stop(options);
 
     // create and add construction site
-    const bool autoConnectWires = The::BPHolder(this)->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Checked;
-    ConstructionSite* constructionSite = new ConstructionSite(Preview, ConstructionPlan, FConstructionFlags{autoConnectWires});
+    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, options);
     The::ConstructionManager(this)->AddConstruction(constructionSite);
 }
 
 void UBuildingBuilderMode::OnClickCancel() {
-    Stop(false);
+    Stop();
 }
 
-void UBuildingBuilderMode::Stop(bool success) {
-    if (Phase == Done) {
+void UBuildingBuilderMode::Stop(UConstructionOptions* options) {
+    if (Phase == Done)
         return; // everything is done
-    }
     
-    for (UBuilderModeExtension* extension : Extensions) {
-        extension->End();
-    }
+    for (const auto extension : Extensions)
+        extension->End(options);
     Extensions.Empty();
 
-    if (success) {
+    if (options) {
         // remove components
         ConfirmSymbol->DestroyComponent();
         ConfirmSymbol = nullptr;

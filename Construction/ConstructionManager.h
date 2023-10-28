@@ -26,6 +26,25 @@ struct XD_API ConstructionResource {
 UCLASS()
 class XD_API UConstructionManager : public UObject, public FTickableGameObject {
     GENERATED_BODY()
+    
+protected:    
+    std::deque<ABuilderShip*> IdleBuilders;
+
+    // TODO optimization: when there are a lot of Buildings waiting for resources, we can store them in Groups by building and so we only need to check once for each building type. Can become relevant if we have Blueprints and thousands of things need to be build
+    UPROPERTY()
+    TArray<UConstructionSite*> NewConstructionSites;
+
+    UPROPERTY()
+    TArray<UConstructionSite*> WipConstructionSites; // TODO ununsed, but I think I want to have it?
+    UPROPERTY()
+    TArray<APickupPad*> PickupPads;
+    
+    // The last frame number we were ticked.
+    // We don't want to tick multiple times per frame 
+    uint32 LastFrameNumberWeTicked = INDEX_NONE;
+
+    UConstructionSite* FindBuildableConstructionSite();
+    bool HasResourcesFor(const TArray<Material>* materials) const;
 
 public:
     UConstructionManager();
@@ -35,13 +54,13 @@ public:
     UFUNCTION(BlueprintCallable)
     void AddIdleBuilder(ABuilderShip* builder);
     
-    void AddConstruction(ConstructionSite* constructionSite);
+    void AddConstruction(UConstructionSite* constructionSite);
     
     UFUNCTION(BlueprintCallable)
     void AddPickupPad(APickupPad* pickupPad);
 
     void UnreserveResource(UResource* resource, int amount);
-    void FinishConstruction(ConstructionSite* constructionSite);
+    void FinishConstruction(UConstructionSite* constructionSite);
 
     virtual void Tick(float DeltaTime) override;    
     virtual TStatId GetStatId() const override {
@@ -52,21 +71,4 @@ public:
     UMaterial* GhostMaterial;
     
     TArray<ConstructionResource> ConstructionResources;
-
-private:
-    
-    std::deque<ABuilderShip*> IdleBuilders;
-
-    // TODO optimization: when there are a lot of Buildings waiting for resources, we can store them in Groups by building and so we only need to check once for each building type. Can become relevant if we have Blueprints and thousands of things need to be build
-    std::deque<ConstructionSite*> NewConstructionSites;
-    TArray<ConstructionSite*> WipConstructionSites; // TODO ununsed, but I think I want to have it?
-
-    TArray<APickupPad*> PickupPads;
-    
-    // The last frame number we were ticked.
-    // We don't want to tick multiple times per frame 
-    uint32 LastFrameNumberWeTicked = INDEX_NONE;
-
-    ConstructionSite* FindBuildableConstructionSite();
-    bool HasResourcesFor(const TArray<Material>* materials) const;
 };

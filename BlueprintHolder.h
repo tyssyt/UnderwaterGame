@@ -3,9 +3,6 @@
 #pragma once
 
 #include "MainUI.h"
-#include "XD/NaturalResources/HardOreDeposit.h"
-#include "XD/NaturalResources/ConductiveOreDeposit.h"
-#include "XD/NaturalResources/OilFish.h"
 #include "XD/Buildings/HardOreMine.h"
 #include "XD/Buildings/ConductiveOreMine.h"
 #include "XD/Buildings/OilFishHarvester.h"
@@ -24,6 +21,8 @@
 #include "Buildings/Substation.h"
 #include "Construction/ConstructionUI.h"
 #include "Electricity/PowerOverlay.h"
+#include "Encyclopedia/EncyclopediaUI.h"
+#include "NaturalResources/NaturalResourceSelectedUI.h"
 #include "BlueprintHolder.generated.h"
 
 
@@ -34,94 +33,86 @@ class XD_API UBlueprintHolder : public UObject {
 public:
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UMainUI> MainUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UMainUI* MainUI;
+    
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UEncyclopediaUI> EncyclopediaUIClass;
+    UPROPERTY(BlueprintReadOnly)
+    UEncyclopediaUI* EncyclopediaUI;
 
     UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<UHardOreDepositUI> HardOreDepositUIClass;
-    UPROPERTY()
-    UHardOreDepositUI* HardOreDepositUI;
-
-    UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<UConductiveOreDepositUI> ConductiveOreDepositUIClass;
-    UPROPERTY()
-    UConductiveOreDepositUI* ConductiveOreDepositUI;
-
-    UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<UOilFishUI> OilFishUIClass;
-    UPROPERTY()
-    UOilFishUI* OilFishUI;
+    TSubclassOf<UNaturalResourceSelectedUI> NaturalResourceUIClass;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UHardOreMineUI> HardOreMineUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UHardOreMineUI* HardOreMineUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UConductiveOreMineUI> ConductiveOreMineUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UConductiveOreMineUI* ConductiveOreMineUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UOilFishHarvesterUI> OilFishHarvesterUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UOilFishHarvesterUI* OilFishHarvesterUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UDepotUI> DepotUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UDepotUI* DepotUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UConveyorUI> ConveyorUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UConveyorUI* ConveyorUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<USmelterUI> SmelterUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     USmelterUI* SmelterUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UHabitatUI> HabitatUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UHabitatUI* HabitatUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UWorkerHouseUI> WorkerHouseUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UWorkerHouseUI* WorkerHouseUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UPickupPadUI> PickupPadUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UPickupPadUI* PickupPadUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UAssemblyLineUI> AssemblyLineUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UAssemblyLineUI* AssemblyLineUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<USubstationUI> SubstationUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     USubstationUI* SubstationUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UExcavatorUI> ExcavatorUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UExcavatorUI* ExcavatorUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UPowerOverlayUI> PowerOverlayUIClass;
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UPowerOverlayUI* PowerOverlayUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UConstructionUI> ConstructionUIClass;
-    UPROPERTY()
-    UConstructionUI* ConstructionUI;
 
+    // TODO move into parent blueprint, also consider implementing in pure c++
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UImageUI> ImageUIClass;
     UPROPERTY(EditDefaultsOnly)

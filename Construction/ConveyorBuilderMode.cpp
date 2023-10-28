@@ -2,18 +2,11 @@
 
 #include "ConveyorBuilderMode.h"
 
-#include <optional>
-
 #include "ArrowMover.h"
-#include "BuilderModeExtension.h"
+#include "The.h"
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
-#include "XD/Buildings/Conveyor.h"
-#include "XD/GameInstanceX.h"
 #include "XD/Buildings/Splitter.h"
-
-#include "Components/WidgetComponent.h"
-#include "XD/Utils.h"
 
 AConveyor::ESourceTargetType ToESourceTargetType(UConveyorBuilderMode::SourceTarget::EType type) {
     switch (type) {
@@ -35,22 +28,25 @@ UConveyorBuilderMode::UConveyorBuilderMode() {
     RedMaterial = RedMaterialFinder.Object; 
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> GreenMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_Buildable"));
     GreenMaterial = GreenMaterialFinder.Object;
-    const static ConstructorHelpers::FObjectFinder<UTexture2D> ConveyorImageFinder(TEXT("/Game/Assets/Resources/Placeholder")); // TODO Conveyor Image
-    ConveyorImage = ConveyorImageFinder.Object;
 }
 
 UConveyorBuilderMode* UConveyorBuilderMode::Init(UConstructionPlan* constructionPlan) { // TODO currently that plan is ConveyorLink, once it is Conveyor we can use it to fill stuff below
+    PreInit();
     const auto playerController = The::PlayerController(this);
 
-    static FText conveyorName = FText::FromString(TEXT("Conveyor"));
-    playerController->BlueprintHolder->ConstructionUI->Set(
-        conveyorName,
-        ConveyorImage,
-        AConveyor::ComputeCosts(0., 0, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, The::Encyclopedia(this)),
+    ConstructionUI->Init(constructionPlan, The::ConstructionManager(this));
+    ConstructionUI->ConstructionMaterials->UpdateNeed(
+        AConveyor::ComputeCosts(
+            0.,
+            0,
+            AConveyor::ESourceTargetType::Building,
+            AConveyor::ESourceTargetType::Building,
+            The::Encyclopedia(this)
+        ),
         The::ConstructionManager(this)
     );
-    playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->ConstructionUI);
-    
+    playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), ConstructionUI);
+
     // bind keys
     const auto inputComponent = playerController->InputComponent;
     inputComponent->BindAction("Select", IE_Pressed, this, &UConveyorBuilderMode::Confirm);
@@ -100,7 +96,7 @@ void UConveyorBuilderMode::TickSelectSource(const ACameraPawn& camera) {
 
 void UConveyorBuilderMode::ComputeCostSelectSource() const {
     const auto splitter = CurrentHighlightValid ? ToESourceTargetType(CurrentHighlight.Type) : AConveyor::ESourceTargetType::Building;
-    The::BPHolder(this)->ConstructionUI->Set(
+    ConstructionUI->ConstructionMaterials->UpdateNeed(
         AConveyor::ComputeCosts(0., 0, splitter, AConveyor::ESourceTargetType::Building, The::Encyclopedia(this)),
         The::ConstructionManager(this)
     );
@@ -152,7 +148,7 @@ void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {
     } else
         check(!NextLink->IsVisible());
 
-    The::BPHolder(this)->ConstructionUI->Set(
+    ConstructionUI->ConstructionMaterials->UpdateNeed(
         AConveyor::ComputeCosts(
             Source.Building->GetActorLocation(),
             end.IsSet() ? &*end : nullptr,
@@ -205,7 +201,7 @@ void UConveyorBuilderMode::ComputeCostInsertNode() const {
     if (InsertNodeHoverLink) // we want to add the cost of one conveyor node without increasing the link distance
         nodes.Add(end);
 
-    The::BPHolder(this)->ConstructionUI->Set(
+    ConstructionUI->ConstructionMaterials->UpdateNeed(
         AConveyor::ComputeCosts(
             Source.Building->GetActorLocation(),
             &end,
@@ -223,7 +219,7 @@ FVector UConveyorBuilderMode::ProjectOntoLink(FVector loc, const UConveyorLink* 
     return meshLocation + projection;
 }
 
-ABuilding* UConveyorBuilderMode::SpawnSplitter(bool isSource, const UResource* resource) const {
+ABuilding* UConveyorBuilderMode::SpawnSplitter(bool isSource, UResource* resource) const {
     ABuilding* building;
     if (CurrentHighlight.Type == SourceTarget::EType::ConveyorLink) {
         building = CurrentHighlight.Building;
@@ -686,11 +682,16 @@ void UConveyorBuilderMode::OnClickConfirm() {
     if (Source.Type == SourceTarget::EType::ConveyorNode || Source.Type == SourceTarget::EType::ConveyorLink) {
         Source.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
 
-        TArray<Material> material = encyclopedia->Splitter->Materials;
+        auto& materials = encyclopedia->Splitter->Materials;
         if (Source.Type == SourceTarget::EType::ConveyorNode)
-            Material::AddTo(material, encyclopedia->ConveyorNode->Materials, -1);
+            Material::AddTo(materials, encyclopedia->ConveyorNode->Materials, -1);
 
-        ConstructionSite* constructionSite = new ConstructionSite(Source.Building, encyclopedia->Splitter->Time, material, FConstructionFlags{false});
+        const auto constructionSite = NewObject<UConstructionSite>()->Init(
+            Source.Building,
+            encyclopedia->Splitter->Time,
+            materials,
+            NewObject<UConstructionOptions>()
+        );
         constructionManager->AddConstruction(constructionSite);
 
         // split the conveyor
@@ -703,13 +704,13 @@ void UConveyorBuilderMode::OnClickConfirm() {
         nodes.Reserve(Nodes.Num());
         for (const auto& node : Nodes)
             nodes.Push(node->GetComponentLocation());
-        AConveyor* conveyor = AConveyor::Create(GetWorld(), Source.Building, Target.Building, nodes, Resource);
-        FVector targetLoc = Target.Building->GetActorLocation();
-        ConstructionSite* constructionSite = new ConstructionSite(
+        const auto conveyor = AConveyor::Create(GetWorld(), Source.Building, Target.Building, nodes, Resource);
+        const FVector targetLoc = Target.Building->GetActorLocation();
+        const auto constructionSite = NewObject<UConstructionSite>()->Init(
             conveyor,
             1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
             AConveyor::ComputeCosts(Source.Building->GetActorLocation(), &targetLoc, nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, encyclopedia),
-            FConstructionFlags{false}
+            NewObject<UConstructionOptions>()
         ); 
         constructionManager->AddConstruction(constructionSite);
     }
@@ -718,22 +719,27 @@ void UConveyorBuilderMode::OnClickConfirm() {
     if (Target.Type == SourceTarget::EType::ConveyorNode || Target.Type == SourceTarget::EType::ConveyorLink) {
         Target.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
 
-        TArray<Material> material = encyclopedia->Merger->Materials;
+        auto& material = encyclopedia->Merger->Materials;
         if (Target.Type == SourceTarget::EType::ConveyorNode)
             Material::AddTo(material, encyclopedia->ConveyorNode->Materials, -1);
 
-        ConstructionSite* constructionSite = new ConstructionSite(Target.Building, encyclopedia->Merger->Time, material, FConstructionFlags{false});
+        const auto constructionSite = NewObject<UConstructionSite>()->Init(
+            Target.Building,
+            encyclopedia->Merger->Time,
+            material,
+            NewObject<UConstructionOptions>()
+        );
         constructionManager->AddConstruction(constructionSite);
 
         // split the conveyor
         Target.Conveyor->SplitAt(Target.ConveyorComponent, Target.Building);
     }
     
-    Stop(true);
+    Stop(NewObject<UConstructionOptions>());
 }
 
 void UConveyorBuilderMode::OnClickCancel() {
-    Stop(false);
+    Stop();
 }
 
 bool UConveyorBuilderMode::CheckValidSource(const ABuilding* building) {
@@ -747,7 +753,7 @@ bool UConveyorBuilderMode::CheckValidSource(const ABuilding* building) {
     return false;
 }
 
-const UResource* UConveyorBuilderMode::CheckValidTarget(const ABuilding* building) const {
+UResource* UConveyorBuilderMode::CheckValidTarget(const ABuilding* building) const {
     if (building == Source.Building)
         return nullptr;
     return AConveyor::FindCommonResource(Source.Building->GetComponentByClass<UInventoryComponent>(), building->GetComponentByClass<UInventoryComponent>());
@@ -757,12 +763,12 @@ UClass* UConveyorBuilderMode::IDK() {
     return AConveyor::StaticClass();
 }
 
-void UConveyorBuilderMode::Stop(bool success) {
+void UConveyorBuilderMode::Stop(UConstructionOptions* options) {
     if (Done)
         return;
     Done = true;
 
-    if (!success) {
+    if (!options) {
         if (Source.Type == SourceTarget::EType::ConveyorNode) {
             Source.Building->Destroy();
             Source.ConveyorComponent->SetVisibility(true);

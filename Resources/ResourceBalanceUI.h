@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Resource.h"
+#include "ResourceUI.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Border.h"
 #include "Components/StaticMeshComponent.h"
@@ -28,9 +29,10 @@ protected:
     UBorder* Border;
 
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UImage* ResourceImage;
+    UResourceUI* Resource;
 
 public:
     void SetHave(int have) const;
-    void SetNeed(int need, const UResource* resource);
+    void SetNeed(int need, UResource* resource);
+    int GetNeed() const;
 };

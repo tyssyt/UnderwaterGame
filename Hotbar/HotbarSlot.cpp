@@ -3,7 +3,7 @@
 #include "HotbarSlot.h"
 
 #include "Hotbar.h"
-#include "XD/Utils.h"
+#include "UI.h"
 
 UHotbar* UHotbarSlot::GetHotbar() {
     return UI::GetParentWidget<UHotbar>(this);

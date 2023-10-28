@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "IndoorBuilding.generated.h"
 
+class AHabitat;
 typedef TPair<int, int> Coordinate;
 
 enum class EGridOrientation { North, East, West, South };
@@ -17,19 +18,15 @@ class XD_API AIndoorBuilding : public ABuilding {
 
 public:
     AIndoorBuilding();
+    virtual AIndoorBuilding* Init(UConstructionPlan* constructionPlan) override;
 
-    class AHabitat* Habitat;
+    UPROPERTY()
+    AHabitat* Habitat;
     int GridX;
     int GridY;
     EGridOrientation Orientation;
 
-    virtual void Tick(float DeltaTime) override;
-
     void Rotate();
     virtual const TArray<Coordinate>* GetGridOffsets();
     virtual void SetCoordinates(int x, int y, AHabitat* habitat);
-
-protected:
-    virtual void BeginPlay() override;
-
 };

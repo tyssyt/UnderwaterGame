@@ -2,16 +2,16 @@
 
 #include "ElectricComponent.h"
 
-#include "XD/CameraPawn.h"
-#include "XD/GameInstanceX.h"
+#include "ElectricityManager.h"
 #include "PowerOverlay.h"
-#include "Components/BillboardComponent.h"
-#include "XD/Utils.h"
+#include "The.h"
+#include "XD/CameraPawn.h"
+#include "XD/Buildings/Substation.h"
+#include "XD/Construction/BuilderModeExtension.h"
 
 UElectricComponent::UElectricComponent() : State(PowerState::Initial) {
     PrimaryComponentTick.bCanEverTick = false;
 }
-
 
 PowerState UElectricComponent::GetState() const {
     return State;
@@ -68,4 +68,27 @@ void UElectricComponent::SetState(const PowerState newState) { // TODO understan
     }
     default: checkNoEntry();
     }
+}
+
+UResource* UElectricComponent::GetElectricity() const {
+    return ComponentInfo->Needs[0].Resource;
+}
+
+TSubclassOf<UBuilderModeExtension> UElectricComponent::GetBuilderModeExtension() const {
+    return UElectricityBuilderModeExtension::StaticClass();
+}
+
+void UElectricComponent::OnConstructionComplete(UConstructionOptions* options) {
+    bool connected = false;
+
+    const auto electricityOptions = options->Get<UElectricityConstructionOption>(UElectricityBuilderModeExtension::StaticClass());
+    if (!electricityOptions || electricityOptions->AutoConnectWires) {
+        if (ASubstation* substation = The::ElectricityManager(this)->FindNearestSubstation(GetOwner()->GetActorLocation())) {
+            substation->Connect(this);
+            connected = true;
+        }
+    }
+
+    if (!connected)
+        SetState(PowerState::Disconnected);
 }

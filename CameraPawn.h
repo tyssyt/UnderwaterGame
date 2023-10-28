@@ -46,6 +46,7 @@ public:
     void Deselect();
     
     void TogglePowerOverlay();
+    void OpenEncyclopedia();
 
     void ActivateHotbar(const int i) const;
     void Hotbar1();

@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Components/SplineMeshComponent.h"
-#include "XD/Buildings/Building.h"
 #include "WireComponent.generated.h"
+
+class ABuilding;
 
 UCLASS()
 class XD_API UWireComponent : public USplineMeshComponent {

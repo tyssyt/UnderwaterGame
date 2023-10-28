@@ -3,37 +3,40 @@
 #include "ConstructionSite.h"
 
 #include "ConstructionManager.h"
-#include "XD/Utils.h"
-#include "XD/Buildings/Building.h"
+#include "The.h"
 
-ConstructionSite::ConstructionSite(AXActor* building, const UConstructionPlan* constructionPlan, FConstructionFlags flags)
-        : ConstructionSite(building, constructionPlan->Time, constructionPlan->Materials, flags) {}
+UConstructionSite* UConstructionSite::Init(AXActor* building, const UConstructionPlan* constructionPlan, UConstructionOptions* options) {
+    return Init(building, constructionPlan->Time, constructionPlan->Materials, options);
+}
 
-ConstructionSite::ConstructionSite(AXActor* building, int time, const TArray<Material>& materials, FConstructionFlags flags)
-        : Building(building), Time(time), Materials(materials), Flags(flags) {
+UConstructionSite* UConstructionSite::Init(AXActor* building, int time, const TArray<Material>& materials, UConstructionOptions* options) {
+    Building = building;
+    Time = time;
+    Materials = materials;
+    ConstructionOptions = options;
+
     Building->SetActorTickEnabled(false);
     if (ABuilding* bbuilding = Cast<ABuilding>(building))
         bbuilding->constructionState = EConstructionState::ConstructionSite;
+    return this;
 }
 
-ConstructionSite::~ConstructionSite() {}
-
-void ConstructionSite::SetGhostMaterial(UMaterial* ghostMaterial) const {
+void UConstructionSite::SetGhostMaterial(UMaterial* ghostMaterial) const {
     Building->SetAllMaterials(ghostMaterial);
 }
 
-void ConstructionSite::BeginConstruction() {
+void UConstructionSite::BeginConstruction() {
     // for now, construction is instant so we complete it here
     Building->SetAllMaterials(nullptr);
     Building->SetActorTickEnabled(true);
 
     if (ABuilding* building = Cast<ABuilding>(Building))
-        building->OnConstructionComplete(Flags);
+        building->OnConstructionComplete(ConstructionOptions);
 
     The::ConstructionManager(Building)->FinishConstruction(this);
 }
 
-TPair<APickupPad*, Material> ConstructionSite::GetNextDelivery(TArray<ConstructionResource>& constructionResources) const {
+TPair<APickupPad*, Material> UConstructionSite::GetNextDelivery(TArray<ConstructionResource>& constructionResources) const {
     for (auto& neededMaterial : Materials) {
         int needed = neededMaterial.amount;
         if (const auto delivered = Material::Find(DeliveredMaterial, neededMaterial.resource))
@@ -50,7 +53,7 @@ TPair<APickupPad*, Material> ConstructionSite::GetNextDelivery(TArray<Constructi
     return MakeTuple(nullptr, Material(0, nullptr));
 }
 
-void ConstructionSite::DeliverMaterial(Material material) {
+void UConstructionSite::DeliverMaterial(Material material) {
     for (auto& mat : DeliveredMaterial) {
         if (mat.resource == material.resource) {
             mat.amount += material.amount;

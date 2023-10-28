@@ -24,12 +24,7 @@ public:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-protected:
-    virtual void BeginPlay() override;
-
-public:
-
-    virtual void OnConstructionComplete(FConstructionFlags flags) override;
+    virtual void OnConstructionComplete(UConstructionOptions* options) override;
 };
 
 

@@ -3,7 +3,7 @@
 #include "PlayerControllerX.h"
 
 #include "GameInstanceX.h"
-#include "Utils.h"
+#include "The.h"
 #include "Encyclopedia/ConfigLoader.h"
 #include "Hotbar/HotbarDock.h"
 
@@ -19,6 +19,7 @@ void APlayerControllerX::BeginPlay() {
     // TODO there probably is a better place to put this, but for now it can live here
     GetGameInstance<UGameInstanceX>()->TheEncyclopedia = ConfigLoader::Load(BlueprintHolder->MainUI->HotbarDock);
     UEncyclopedia* encyclopedia = The::Encyclopedia(this);
+    BlueprintHolder->EncyclopediaUI->Fill(encyclopedia);
     UConstructionManager* constructionManager = The::ConstructionManager(this);
     constructionManager->SetConstructionResources(encyclopedia->FindConstructionResources());
 

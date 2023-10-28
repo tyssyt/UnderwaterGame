@@ -4,16 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "XD/ComponentLoader.h"
+#include "XD/NaturalResources/NaturalResource.h"
 #include "XD/Resources/Resource.h"
 
 #include "ConstructionPlan.generated.h"
 
+class UEncyclopediaEntry;
 class UBuilderModeExtension;
 
 struct XD_API Material {
     Material();
     Material(int amount, UResource* resource);
-    ~Material();
 
     int amount;
     UResource* resource;
@@ -31,31 +33,47 @@ class XD_API UConstructionPlan : public UObject {
 public:
     UConstructionPlan* Init(
         UClass* buildingClass,
-        const TSubclassOf<UBuilderModeExtension> builderModeExtension,
         const FText& name,
         const TCHAR* image,
+        const TArray<UComponentLoader*>& componentLoaders,
         const int time,
+        UNaturalResource* constructedOn,
         const TArray<Material>& materials,
+        const FText& category,
         const FText& description
     );
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UClass* BuildingClass;
 
-    UPROPERTY(VisibleAnywhere)
-    TSubclassOf<UBuilderModeExtension> BuilderModeExtension;
-
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Name;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UTexture2D* Image;
 
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TArray<UComponentLoader*> ComponentLoaders;    
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     int Time;
 
-    TArray<Material> Materials;    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UNaturalResource* ConstructedOn;
 
-    UPROPERTY(VisibleAnywhere)
+    TArray<Material> Materials;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FText Category;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Description;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UEncyclopediaEntry* EncyclopediaEntry;
+
+    TArray<Material> GetNeeds() const;
+
+    bool operator<(const UConstructionPlan& other) const;
+    static bool CompareByComplexity(const UConstructionPlan& one, const UConstructionPlan& two);
 };

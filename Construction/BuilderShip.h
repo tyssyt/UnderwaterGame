@@ -27,26 +27,24 @@ public:
     static double SlowSpeed;
     static double RotationSpeed;
 
-    void StartConstructing(ConstructionSite* constructionSite);
+    void StartConstructing(UConstructionSite* constructionSite);
 
 
 protected:
     ShipState State = ShipState::IDLE;
     AActor* NextStop;
     
-    ConstructionSite* TargetSite;
+    UConstructionSite* TargetSite;
     Material Inventory;
 
     APickupPad* PickupFrom;
     Material PickupMaterial;
 
     
-    virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 
     void Idle();
     void Fly();
 
     void DoNextStop();
-
 };

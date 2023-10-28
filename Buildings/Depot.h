@@ -25,9 +25,6 @@ public:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-protected:
-    virtual void BeginPlay() override;
-
 };
 
 

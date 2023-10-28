@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "InventorySlotUI.h"
 
 void UInventorySlotUI::Set(const FInventorySlot* inventorySlot) {
@@ -11,25 +10,26 @@ void UInventorySlotUI::Set(const FInventorySlot* inventorySlot) {
     }
 }
 
-void UInventorySlotUI::Set(int current, int max, const UResource* resource) {
-    Current->SetText(FText::AsNumber(current));
-    Max->SetText(FText::AsNumber(max));
+void UInventorySlotUI::Set(int current, int max, UResource* resource) {
+    Current->SetText(FText::AsNumber(current, &FNumberFormattingOptions::DefaultNoGrouping()));
+    Max->SetText(FText::AsNumber(max, &FNumberFormattingOptions::DefaultNoGrouping()));
     if (max > 0) 
         SetFillPercent(static_cast<float>(current) / max);
     else
         SetFillPercent(.0f);
 
-    ResourceImage->SetOpacity(1.f);
-    ResourceImage->SetBrushFromTexture(resource->Image);
+    Resource->SetRenderOpacity(1.f);
+    Resource->Init(resource);
+    SetToolTipText(resource->Name);
 }
 
 void UInventorySlotUI::Clear() {   
-    Current->SetText(FText::AsNumber(0));
-    Max->SetText(FText::AsNumber(0));
+    Current->SetText(FText::FromString(TEXT("0")));
+    Max->SetText(FText::FromString(TEXT("0")));
     SetFillPercent(.0f);
-    
-    ResourceImage->SetOpacity(0.f);
-    ResourceImage->SetBrushFromTexture(nullptr);
+
+    Resource->SetRenderOpacity(0.f);
+    SetToolTipText(FText::FromString(TEXT(""))); // TODO test if this works
 }
 
 void UInventorySlotUI::SetFillPercent(float fill) const {

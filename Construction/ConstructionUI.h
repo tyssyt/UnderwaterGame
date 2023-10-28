@@ -3,13 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ConstructionMaterialsUI.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/CheckBox.h"
 #include "Components/TextBlock.h"
-#include "Components/WrapBox.h"
+#include "XD/Buildings/BuildingUI.h"
 #include "XD/Buildings/ConstructionPlan.h"
-#include "XD/Resources/Resource.h"
-#include "XD/Resources/ResourceBalanceUI.h"
 #include "ConstructionUI.generated.h"
 
 class UConstructionManager;
@@ -19,34 +18,19 @@ UCLASS(Abstract)
 class XD_API UConstructionUI : public UUserWidget {
     GENERATED_BODY()
 
-    struct MaterialToUpdate {
-        UResource* Material;
-        UResourceBalanceUI* Ui;
-    };
-
-    TArray<MaterialToUpdate> MaterialsToUpdate;
-
-protected:    
-
+protected:
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UImage* BuildingImage;
-    
+    UBuildingUI* Building;
+
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UTextBlock* BuildingName;
-    
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UWrapBox* Resources;
 
 public:    
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UCheckBox* TogglePower;
 
-    UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<UResourceBalanceUI> ResourceBalanceUIClass;
+    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+    UConstructionMaterialsUI* ConstructionMaterials;
 
-    void Set(const UConstructionPlan* constructionPlan, const UConstructionManager* constructionManager);
-    void Set(const FText& name, UTexture2D* image, const TArray<Material>& materials, const UConstructionManager* constructionManager);
-    void Set(const TArray<Material>& materials, const UConstructionManager* constructionManager);
-    void UpdateHave(const UConstructionManager* constructionManager);
-    UPanelSlot* AddExternalResource(UWidget* resource) const;
+    void Init(UConstructionPlan* constructionPlan, const UConstructionManager* constructionManager) const;
 };

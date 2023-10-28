@@ -23,7 +23,7 @@ public:
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UBlueprintHolder> BlueprintHolderClass;
 
-    UPROPERTY()
+    UPROPERTY(BlueprintReadOnly)
     UBlueprintHolder* BlueprintHolder;
 
     virtual void BeginPlay() override;

@@ -9,11 +9,8 @@
 #include "Components/CheckBox.h"
 #include "Components/WidgetComponent.h"
 #include "UObject/Object.h"
-#include "XD/Buildings/Building.h"
 #include "PowerOverlay.generated.h"
 
-
-class UWireComponent;
 class ABuilding;
 class APlayerControllerX;
 

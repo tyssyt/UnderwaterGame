@@ -2,11 +2,11 @@
 
 #include "ElectricityNetwork.h"
 
+#include "ElectricityManager.h"
 #include "PowerOverlay.h"
+#include "The.h"
 #include "XD/CameraPawn.h"
-#include "XD/GameInstanceX.h"
-#include "XD/PlayerControllerX.h"
-#include "XD/Utils.h"
+#include "XD/Buildings/Substation.h"
 
 ElectricityNetwork::ElectricityNetwork(ASubstation* substation) {
     substations.Add(substation);

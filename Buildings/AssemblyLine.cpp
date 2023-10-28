@@ -2,9 +2,8 @@
 
 #include "AssemblyLine.h"
 
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
-#include "XD/Recipes/Recipe.h"
+#include "The.h"
+#include "XD/Encyclopedia/Encyclopedia.h"
 
 AAssemblyLine::AAssemblyLine() {
     PrimaryActorTick.bCanEverTick = true;
@@ -15,14 +14,7 @@ AAssemblyLine::AAssemblyLine() {
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
-    Electricity->Consumption = 100;
 }
-
-void AAssemblyLine::BeginPlay() {
-    Super::BeginPlay();
-}
-
 
 void AAssemblyLine::Tick(float DeltaTime) {
     if (!activeRecipe)
@@ -66,7 +58,7 @@ void UAssemblyLineUI::Tick() {
 
 void UAssemblyLineUI::OnClickRecipeSelect(URecipeSelectorUI* recipeSelectorUI) {
     if (AssemblyLine) {
-        recipeSelectorUI->SetRecipes(
+        recipeSelectorUI->Init(
             The::Encyclopedia(AssemblyLine)->GetRecipes(AAssemblyLine::StaticClass()),
             [s = this->AssemblyLine](URecipe* recipe) {
                 s->SetRecipe(recipe);

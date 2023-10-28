@@ -2,8 +2,8 @@
 
 #include "ConductiveOreMine.h"
 
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
+#include "The.h"
+#include "XD/Encyclopedia/Encyclopedia.h"
 #include "XD/Recipes/Recipe.h"
 
 AConductiveOreMine::AConductiveOreMine() {
@@ -17,8 +17,6 @@ AConductiveOreMine::AConductiveOreMine() {
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
-    Electricity->Consumption = 100;
 }
 
 void AConductiveOreMine::BeginPlay() {
@@ -40,7 +38,7 @@ void AConductiveOreMine::Tick(float DeltaTime) {
 
 void UConductiveOreMineUI::Tick() {
     if (Mine) {
-        ProductionPerTick->SetText(FText::AsNumber(Mine->ProductionPerTick * 120)); // TODO use actual ticks/s
+        ProductionPerTick->SetText(FText::AsNumber(Mine->ProductionPerTick * 120, &FNumberFormattingOptions::DefaultNoGrouping())); // TODO use actual ticks/s
         ResourceImage->SetBrushFromTexture(Mine->Inventory->GetOutputs()[0].Resource->Image); // TODO save the resource somwhere else???
     }
 }

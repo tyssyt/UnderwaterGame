@@ -8,7 +8,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "CoreMinimal.h"
-#include "XD/Electricity/ElectricComponent.h"
+#include "XD/Inventory/InventoryComponent.h"
 #include "HardOreMine.generated.h"
 
 UCLASS()
@@ -22,10 +22,7 @@ public:
     int ProductionPerTick;
 
     UPROPERTY(EditAnywhere)
-    class UInventoryComponent* Inventory;
-
-    UPROPERTY(EditAnywhere)
-    UElectricComponent* Electricity;
+    UInventoryComponent* Inventory;
 
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;

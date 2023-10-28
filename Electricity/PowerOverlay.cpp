@@ -2,15 +2,12 @@
 
 #include "PowerOverlay.h"
 
-#include "Blueprint/WidgetTree.h"
-#include "Components/WidgetComponent.h"
+#include "ElectricityManager.h"
+#include "The.h"
+#include "XD/BlueprintHolder.h"
 #include "XD/CameraPawn.h"
 #include "XD/CollisionProfiles.h"
-#include "XD/GameInstanceX.h"
 #include "XD/PlayerControllerX.h"
-#include "XD/Utils.h"
-#include "XD/Electricity/WireComponent.h"
-
 
 UPowerOverlay::UPowerOverlay() : Active(false) {
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> MatPoweredFinder(TEXT("/Game/Assets/Materials/GhostMaterials/PowerOverlay_Powered"));
@@ -530,7 +527,7 @@ void UPowerOverlay::AddFloatingPowerUI(const ASubstation* substation) const {
 void UPowerOverlay::AddFloatingText(const UElectricComponent* building) const {    
    const auto  playerController = The::PlayerController(this);
    UTextUI* ui = CreateWidget<UTextUI>(playerController, playerController->BlueprintHolder->TextUIClass);
-   ui->Text->SetText(FText::AsNumber(-building->Consumption));
+   ui->Text->SetText(FText::AsNumber(-building->Consumption, &FNumberFormattingOptions::DefaultNoGrouping()));
    if (building->Consumption > 0)
        ui->Text->SetColorAndOpacity(PowerUI->GetConsumptionColor());
    else

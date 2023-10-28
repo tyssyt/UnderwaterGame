@@ -2,9 +2,8 @@
 
 #include "Smelter.h"
 
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
-#include "XD/Recipes/Recipe.h"
+#include "The.h"
+#include "XD/Encyclopedia/Encyclopedia.h"
 
 ASmelter::ASmelter() {
     PrimaryActorTick.bCanEverTick = true;
@@ -15,14 +14,7 @@ ASmelter::ASmelter() {
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
-    Electricity->Consumption = 100;
 }
-
-void ASmelter::BeginPlay() {
-    Super::BeginPlay();
-}
-
 
 void ASmelter::Tick(float DeltaTime) {
     if (!activeRecipe)
@@ -62,7 +54,7 @@ void USmelterUI::Tick() {
 
 void USmelterUI::OnClickRecipeSelect(URecipeSelectorUI* recipeSelectorUI) {
     if (Smelter) {
-        recipeSelectorUI->SetRecipes(
+        recipeSelectorUI->Init(
             The::Encyclopedia(Smelter)->GetRecipes(ASmelter::StaticClass()),
             [s = this->Smelter](URecipe* recipe) {
                 s->SetRecipe(recipe);

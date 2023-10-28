@@ -2,15 +2,12 @@
 
 #pragma once
 
-#include "XD/SelectedUI.h"
-
-#include "Components/Image.h"
 #include "CoreMinimal.h"
-#include "XD/Buildings/XActor.h"
+#include "NaturalResource.h"
 #include "OilFish.generated.h"
 
 UCLASS()
-class XD_API AOilFish : public AXActor {
+class XD_API AOilFish : public ANaturalResourceActor {
     GENERATED_BODY()
 
 public:
@@ -18,28 +15,4 @@ public:
 
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
-
-
-protected:
-    virtual void BeginPlay() override;
-
-};
-
-
-UCLASS(Abstract)
-class XD_API UOilFishUI : public USelectedUI {
-    GENERATED_BODY()
-
-protected:
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UImage* ResourceImage;
-
-public:
-    AOilFish* Deposit;
-
-    virtual void Tick() override;
-
-    UFUNCTION(BlueprintCallable)
-    void OnClickConstruct();
-
 };

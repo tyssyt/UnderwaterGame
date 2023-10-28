@@ -1,32 +1,39 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "BuilderModeExtension.h"
 
-#include "XD/GameInstanceX.h"
+#include "The.h"
 #include "XD/PlayerControllerX.h"
-#include "XD/Utils.h"
+#include "XD/Electricity/ElectricComponent.h"
+#include "XD/Electricity/ElectricityManager.h"
 
-void UElectricityBuilderModeExtension::Init(ABuilding* preview) {
+UElectricityConstructionOption* UElectricityConstructionOption::Init(bool autoConnectWires) {
+    AutoConnectWires = autoConnectWires;
+    return this;
+}
+
+void UElectricityBuilderModeExtension::Init(ABuilding* preview, UConstructionUI* constructionUI) {
     const auto elec = preview->GetComponentByClass<UElectricComponent>();
     check(elec);
     
     Preview = preview;
+    ConstructionUI = constructionUI;
     WireComponent = UWireComponent::Create(preview, preview, preview);
     WireComponent->SetHiddenInGame(true);
 
-    const auto constructionUI = The::BPHolder(this)->ConstructionUI;
     constructionUI->TogglePower->SetVisibility(ESlateVisibility::Visible);
 
-    PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionUI, constructionUI->ResourceBalanceUIClass);
-    PowerResourceUI->SetNeed(elec->Consumption, The::Encyclopedia(this)->Electricity);
-    constructionUI->AddExternalResource(PowerResourceUI);
+    const auto constructionMaterials = constructionUI->ConstructionMaterials;
+    PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionMaterials, constructionMaterials->ResourceBalanceUIClass);
+    PowerResourceUI->SetNeed(elec->Consumption, elec->GetElectricity());
+    if (elec->Consumption > 0)
+        constructionMaterials->AddExternalResource(PowerResourceUI);
 }
 
 void UElectricityBuilderModeExtension::Update() {
     const auto playerController = The::PlayerController(this);
 
-    if (playerController->BlueprintHolder->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
+    if (ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
         Last = MakeTuple(FVector(), FRotator());
         ConnectedSubstation = nullptr;
         if (PowerUI)
@@ -35,7 +42,7 @@ void UElectricityBuilderModeExtension::Update() {
         PowerResourceUI->SetHave(0);
         return;
     }
-    
+
     if (MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation()) == Last)
         return;
     Last = MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation());
@@ -79,21 +86,27 @@ void UElectricityBuilderModeExtension::Update() {
     
 }
 
-void UElectricityBuilderModeExtension::End() {
+void UElectricityBuilderModeExtension::End(UConstructionOptions* options) {
+    if (options) {
+        const bool checked = ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Checked;
+        options->Options.Add(StaticClass(), NewObject<UElectricityConstructionOption>()->Init(checked));
+    }
+
     WireComponent->DestroyComponent();
     if (PowerUI)
         PowerUI->DestroyComponent();
 }
 
-void USubstationBuilderModeExtension::Init(ABuilding* preview) {
+void USubstationBuilderModeExtension::Init(ABuilding* preview, UConstructionUI* constructionUI) {
     check(preview->IsA(ASubstation::StaticClass()));
     Preview = Cast<ASubstation>(preview);
+    ConstructionUI = constructionUI;
 
-    The::BPHolder(this)->ConstructionUI->TogglePower->SetVisibility(ESlateVisibility::Visible);
+    constructionUI->TogglePower->SetVisibility(ESlateVisibility::Visible);
 }
 
 void USubstationBuilderModeExtension::Update() {
-    if (The::BPHolder(this)->ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
+    if (ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
         Last = MakeTuple(FVector(), FRotator());
         
         for (UWireComponent* wire : Wires)
@@ -133,34 +146,40 @@ void USubstationBuilderModeExtension::Update() {
     }
 }
 
-void USubstationBuilderModeExtension::End() {
+void USubstationBuilderModeExtension::End(UConstructionOptions* options) {
+    if (options) {
+        const bool checked = ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Checked;
+        options->Options.Add(StaticClass(), NewObject<UElectricityConstructionOption>()->Init(checked));
+    }
+
     for (UWireComponent* wire : Wires)
         wire->DestroyComponent();
 }
 
-void UIndoorElectricityBuilderModeExtension::Init(ABuilding* preview) {
+void UIndoorElectricityBuilderModeExtension::Init(ABuilding* preview, UConstructionUI* constructionUI) {
     checkNoEntry(); // TODO this is wip, I need a special kind of electric component for indoors, because it should connect to the habitat
     check(preview->IsA(AIndoorBuilding::StaticClass()));
     Preview = Cast<AIndoorBuilding>(preview);
+    ConstructionUI = constructionUI;
 
-    UElectricComponent* elec = preview->GetComponentByClass<UElectricComponent>();
+    const auto elec = preview->GetComponentByClass<UElectricComponent>();
     check(elec);
     
-    const auto constructionUI = The::BPHolder(this)->ConstructionUI;
-    PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionUI, constructionUI->ResourceBalanceUIClass);
-    PowerResourceUI->SetNeed(elec->Consumption, The::Encyclopedia(this)->Electricity);
-    constructionUI->AddExternalResource(PowerResourceUI);
+    const auto constructionMaterials = constructionUI->ConstructionMaterials;
+    PowerResourceUI = CreateWidget<UResourceBalanceUI>(constructionMaterials, constructionMaterials->ResourceBalanceUIClass);
+    PowerResourceUI->SetNeed(elec->Consumption, elec->GetElectricity());
+    if (elec->Consumption > 0)
+        constructionMaterials->AddExternalResource(PowerResourceUI);
 }
 
 void UIndoorElectricityBuilderModeExtension::Update() {
-    if (Preview->Habitat) {
-        if (const ASubstation* substation = Preview->Habitat->Electricity->Substation)
-            PowerResourceUI->SetHave(substation->Network->GetTotalConstantProduction() - substation->Network->GetTotalConstantConsumption());
-        else 
-            PowerResourceUI->SetHave(0); // maybe show the complete power deficit if the habitat
-    } else
-        PowerResourceUI->SetHave(0);
+    int have = 0;
+    if (Preview->Habitat)
+        if (const auto electricComponent = Preview->Habitat->GetComponentByClass<UElectricComponent>())
+            if (const ASubstation* substation = electricComponent->Substation)
+                have = substation->Network->GetTotalConstantProduction() - substation->Network->GetTotalConstantConsumption();
+    PowerResourceUI->SetHave(have);
 }
 
-void UIndoorElectricityBuilderModeExtension::End() {
+void UIndoorElectricityBuilderModeExtension::End(UConstructionOptions* options) {
 }

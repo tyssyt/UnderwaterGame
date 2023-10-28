@@ -1,10 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Resource.h"
-
-UResource::UResource() {}
-UResource::~UResource() {}
 
 UResource* UResource::Init(const FText& name, const TCHAR* image, const FText& description) {
     if (name.IsEmptyOrWhitespace()) {
@@ -17,4 +13,8 @@ UResource* UResource::Init(const FText& name, const TCHAR* image, const FText& d
         UE_LOG(LogTemp, Error, TEXT("Failed to load Texture %s"), image);
     Description = description;
     return this;
+}
+
+bool UResource::operator<(const UResource& other) const {
+    return Name.CompareTo(other.Name) < 0;
 }

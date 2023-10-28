@@ -5,26 +5,31 @@
 #include "XD/Buildings/ConstructionPlan.h"
 #include "XD/Buildings/PickupPad.h"
 #include "GameFramework/Actor.h"
+#include "ConstructionSite.generated.h"
 
-class XD_API ConstructionSite {
+UCLASS()
+class XD_API UConstructionSite : public UObject {
+    GENERATED_BODY()
+
+protected:
+    TArray<Material> DeliveredMaterial;
+    UPROPERTY()
+    UConstructionOptions* ConstructionOptions;
+
 public:
-    ConstructionSite(AXActor* building, const UConstructionPlan* constructionPlan, FConstructionFlags flags); 
-    ConstructionSite(AXActor* building, int time, const TArray<Material>& materials, FConstructionFlags flags);
-    ~ConstructionSite();
+    UConstructionSite* Init(AXActor* building, const UConstructionPlan* constructionPlan, UConstructionOptions* options); 
+    UConstructionSite* Init(AXActor* building, int time, const TArray<Material>& materials, UConstructionOptions* options);
     
     void SetGhostMaterial(UMaterial* ghostMaterial) const;
     void BeginConstruction();
 
+    UPROPERTY()
     AXActor* Building;
+    UPROPERTY()
     int Time;    
     TArray<Material> Materials;
     //class ABuilderShip* BuilderShip;
 
     TPair<APickupPad*, Material> GetNextDelivery(TArray<struct ConstructionResource>& constructionResources) const;
     void DeliverMaterial(Material material);
-
-private:
-    TArray<Material> DeliveredMaterial;
-    FConstructionFlags Flags;
-
 };

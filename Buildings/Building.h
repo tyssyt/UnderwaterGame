@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ConstructionPlan.h"
 #include "XActor.h"
+#include "XD/Construction/ConstructionOptions.h"
 #include "Building.generated.h"
+
+class UBuilderModeExtension;
 
 UENUM(BlueprintType)
 enum class EConstructionState { BuilderMode, ConstructionSite, Done };
-
-struct XD_API FConstructionFlags {
-    bool autoConnectWires;
-};
 
 UCLASS()
 class XD_API ABuilding : public AXActor {
@@ -23,11 +23,10 @@ public:
     UPROPERTY(EditAnywhere)
     EConstructionState constructionState;
 
-protected:
-    virtual void BeginPlay() override;
+    virtual ABuilding* Init(UConstructionPlan* constructionPlan);
+    virtual void OnConstructionComplete(UConstructionOptions* options);
 
-public:
-    virtual void Tick(float DeltaTime) override;
-    virtual void OnConstructionComplete(FConstructionFlags flags); // TODO maybe there is some unreal lifecycle method we can hook into?
-
+    virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const {
+        return nullptr;
+    }
 };

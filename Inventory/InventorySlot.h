@@ -18,7 +18,7 @@ struct XD_API FInventorySlot : public FTableRowBase {
 
 public:
     FInventorySlot();
-    explicit FInventorySlot(int max, const UResource* resource = nullptr, AConveyor* conveyor = nullptr);
+    explicit FInventorySlot(int max, UResource* resource = nullptr, AConveyor* conveyor = nullptr);
     virtual ~FInventorySlot() override;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -27,7 +27,7 @@ public:
     int Max;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    const UResource* Resource;
+    UResource* Resource;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     AConveyor* Conveyor;

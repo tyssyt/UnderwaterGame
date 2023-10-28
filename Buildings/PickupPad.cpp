@@ -2,9 +2,8 @@
 
 #include "PickupPad.h"
 
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
-
+#include "The.h"
+#include "XD/Construction/ConstructionManager.h"
 
 APickupPad::APickupPad() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Pickup_Pad"));
@@ -19,25 +18,21 @@ APickupPad::APickupPad() {
     Inventory->GetInputs().Emplace(50000);
 }
 
-void APickupPad::BeginPlay() {
-    Super::BeginPlay();
-}
-
-void APickupPad::OnConstructionComplete(FConstructionFlags flags) {
-    Super::OnConstructionComplete(flags);
+void APickupPad::OnConstructionComplete(UConstructionOptions* options) {
+    Super::OnConstructionComplete(options);
     The::ConstructionManager(this)->AddPickupPad(this);
 }
 
 
 void UPickupPadUI::Tick() {
     if (PickupPad) {
-        FInventorySlot* inv1 = &PickupPad->Inventory->GetInputs()[0];
+        const FInventorySlot* inv1 = &PickupPad->Inventory->GetInputs()[0];
         InventorySlot_1->Set(inv1);
-        FInventorySlot* inv2 = &PickupPad->Inventory->GetInputs()[1];
+        const FInventorySlot* inv2 = &PickupPad->Inventory->GetInputs()[1];
         InventorySlot_2->Set(inv2);
-        FInventorySlot* inv3 = &PickupPad->Inventory->GetInputs()[2];
+        const FInventorySlot* inv3 = &PickupPad->Inventory->GetInputs()[2];
         InventorySlot_3->Set(inv3);
-        FInventorySlot* inv4 = &PickupPad->Inventory->GetInputs()[3];
+        const FInventorySlot* inv4 = &PickupPad->Inventory->GetInputs()[3];
         InventorySlot_4->Set(inv4);
     }
 }

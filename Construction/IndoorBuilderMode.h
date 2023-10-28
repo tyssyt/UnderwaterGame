@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "BuilderMode.h"
-#include "XD/Buildings/ConstructionPlan.h"
 #include "XD/Buildings/IndoorBuilding.h"
 #include "IndoorBuilderMode.generated.h"
 
@@ -30,7 +29,7 @@ public:
 
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;
-    virtual void Stop(bool success) override;
+    virtual void Stop(UConstructionOptions* options = nullptr) override;
 
 private:
     void Position(const ACameraPawn& camera);

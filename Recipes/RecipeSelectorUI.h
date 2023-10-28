@@ -2,55 +2,29 @@
 
 #pragma once
 
-#include "Recipe.h"
-
-#include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
-#include "Containers/Array.h"
-#include "Components/WrapBox.h"
-#include "Components/VerticalBox.h"
-#include "Components/TextBlock.h"
-#include "Components/Image.h"
-
 #include <functional>
+
+#include "Blueprint/UserWidget.h"
+#include "CoreMinimal.h"
+#include "Recipe.h"
+#include "RecipeUI.h"
+#include "Components/VerticalBox.h"
 
 #include "RecipeSelectorUI.generated.h"
 
 UCLASS(Abstract)
-class XD_API UIngredientUI : public UUserWidget {
+class XD_API URecipeButtonUI : public UUserWidget {
     GENERATED_BODY()
 
 protected:
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UTextBlock* Count;
-
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UImage* ResourceImage;
-
-public:
-    void SetIngredient(const Ingredient* ingredient);
-
-};
-
-UCLASS(Abstract)
-class XD_API URecipeUI : public UUserWidget {
-    GENERATED_BODY()
-
-protected:
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UWrapBox* Ingredients;
-
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UWrapBox* Results;
-
-    UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<UIngredientUI> IngredientUIClass;
+    URecipeUI* Recipe;
 
     URecipe* RecipeIHateCPP;
     std::function<void(URecipe*)> Callback;
 
 public:
-    void SetRecipe(URecipe* recipe, const std::function<void(URecipe*)>& callback);
+    URecipeButtonUI* Init(URecipe* recipe, const std::function<void(URecipe*)>& callback);
 
     UFUNCTION(BlueprintCallable)
     void OnClickRecipeSelect();
@@ -65,9 +39,11 @@ protected:
     UVerticalBox* RecipeList;
 
     UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<URecipeUI> RecipeUIClass;
+    TSubclassOf<URecipeButtonUI> RecipeButtonUIClass;
 
 public:
-    void SetRecipes(const TArray<URecipe*>& recipes, const std::function<void(URecipe*)>& callback);
+    URecipeSelectorUI* Init(const TArray<URecipe*>& recipes, const std::function<void(URecipe*)>& callback);
 
+    UFUNCTION(BlueprintCallable)
+    void OnClose();
 };

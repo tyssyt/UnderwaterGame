@@ -16,6 +16,8 @@
 #include "XD/Resources/Resource.h"
 #include "Conveyor.generated.h"
 
+class AMerger;
+class ASplitter;
 struct Material;
 
 UCLASS()
@@ -26,7 +28,7 @@ public:
 
     enum class ESourceTargetType { Building, ConveyorNode, ConveyorLink };
 
-    static AConveyor* Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, const UResource* resource);
+    static AConveyor* Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, UResource* resource);
     AConveyor();
 
     UPROPERTY(VisibleAnywhere)
@@ -49,20 +51,18 @@ public:
     FInventorySlot* TargetInv;
 
 protected:
-    virtual void BeginPlay() override;
-
     void MakeNode(FVector location);
     void MakeLink(FVector start, FVector end);
-    void DisconnectFromSplitter(class ASplitter* splitter) const;
-    void DisconnectFromMerger(class AMerger* merger) const;
+    void DisconnectFromSplitter(ASplitter* splitter) const;
+    void DisconnectFromMerger(AMerger* merger) const;
 
 public:
     virtual void Tick(float DeltaTime) override;
 
     UFUNCTION(CallInEditor, Category="Conveyor")
-    void Connect(const UResource* resource = nullptr);
+    void Connect(UResource* resource = nullptr);
 
-    static const UResource* FindCommonResource(UInventoryComponent* source, UInventoryComponent* target);
+    static UResource* FindCommonResource(UInventoryComponent* source, UInventoryComponent* target);
     static TArray<Material> ComputeCosts(FVector start, const FVector* end, const TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia);
     static TArray<Material> ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia);
 

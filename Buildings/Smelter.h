@@ -6,7 +6,6 @@
 #include "XD/SelectedUI.h"
 #include "XD/Inventory/InventorySlotUI.h"
 #include "XD/Inventory/InventoryComponent.h"
-#include "XD/Electricity/ElectricComponent.h"
 #include "XD/Recipes/Recipe.h"
 #include "XD/Recipes/RecipeSelectorUI.h"
 
@@ -25,9 +24,6 @@ public:
     UInventoryComponent* Inventory;
 
     UPROPERTY(EditAnywhere)
-    UElectricComponent* Electricity;
-
-    UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
     URecipe* activeRecipe;
@@ -35,7 +31,6 @@ public:
     void SetRecipe(URecipe* recipe);
 
 protected:
-    virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 
 };

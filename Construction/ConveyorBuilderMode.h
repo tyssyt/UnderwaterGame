@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "BuilderMode.h"
-#include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Conveyor.h"
 #include "ConveyorBuilderMode.generated.h"
 
@@ -33,25 +32,23 @@ private:
 
     bool Done = false;
     bool HasOverlap = false;
-    
+
     UPROPERTY()
     UMaterialInstance* RedMaterial;
     UPROPERTY()
     UMaterialInstance* GreenMaterial;
-    UPROPERTY()
-    UTexture2D* ConveyorImage;        
-    
+
     SourceTarget Source;
     SourceTarget Target;
     SourceTarget CurrentHighlight;
     bool CurrentHighlightValid = false;;
     UPROPERTY()
-    const UResource* Resource;
+    UResource* Resource;
     
     UPROPERTY()
     AActor* Preview;
-    
-    
+
+
     UPROPERTY()
     FVector NextLinkStartPos;
     UPROPERTY()
@@ -62,22 +59,22 @@ private:
     TArray<UConveyorNode*> Nodes;
     UPROPERTY()
     TArray<UConveyorLink*> Links;
-    
+
     UPROPERTY()
     UWidgetComponent* ConfirmSymbol;
     UPROPERTY()
     TArray<UButtonWorkaround*> ButtonWorkarounds;
     UPROPERTY()
     UConveyorLink* InsertNodeHoverLink;
-    
+
 
 public:
     UConveyorBuilderMode();
     UConveyorBuilderMode* Init(UConstructionPlan* constructionPlan);
-    
+
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;
-    virtual void Stop(bool success) override;
+    virtual void Stop(UConstructionOptions* options = nullptr) override;
 
     void RemoveNode(UConveyorNode* node);
 
@@ -90,7 +87,7 @@ private:
     void TickInsertNode(const ACameraPawn& camera);
     void ComputeCostInsertNode() const;
     static FVector ProjectOntoLink(FVector loc, const UConveyorLink* link);
-    ABuilding* SpawnSplitter(bool isSource, const UResource* resource) const;
+    ABuilding* SpawnSplitter(bool isSource, UResource* resource) const;
     bool HighlightUnderCursor(const APlayerControllerX* playerController, bool isSource);
     void CheckOverlap();
     bool CheckOverlapLinks();
@@ -111,7 +108,7 @@ private:
     void OnClickCancel();
 
     static bool CheckValidSource(const ABuilding* building);
-    const UResource* CheckValidTarget(const ABuilding* building) const;
+    UResource* CheckValidTarget(const ABuilding* building) const;
 };
 
 // Helper Class because the OnClick of the Button has no Parameters

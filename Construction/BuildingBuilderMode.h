@@ -5,11 +5,9 @@
 #include "CoreMinimal.h"
 #include "ArrowMover.h"
 #include "BuilderMode.h"
+#include "Components/WidgetComponent.h"
+#include "XD/Buildings/ConstructionPlan.h"
 #include "BuildingBuilderMode.generated.h"
-
-class UConstructionPlan;
-class ABuilding;
-class UWidgetComponent;
 
 UCLASS()
 class XD_API UBuildingBuilderMode : public UBuilderMode {
@@ -68,5 +66,5 @@ public:
     UBuildingBuilderMode* Init(UConstructionPlan* constructionPlan);
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;
-    virtual void Stop(bool success) override;
+    virtual void Stop(UConstructionOptions* options = nullptr) override;
 };

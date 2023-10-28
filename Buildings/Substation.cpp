@@ -2,18 +2,13 @@
 
 #include "Substation.h"
 
-#include "Components/ProgressBar.h"
-#include "XD/Electricity/ElectricityNetwork.h"
+#include "XD/Construction/BuilderModeExtension.h"
 
 ASubstation::ASubstation() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Substation"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
     SetRootComponent(Mesh);
-}
-
-void ASubstation::BeginPlay() {
-    Super::BeginPlay();
 }
 
 void ASubstation::Connect(UElectricComponent* building) {
@@ -56,10 +51,12 @@ void ASubstation::ReconnectNoRecompute(UElectricComponent* building) {
     ConnectedBuildings.Add(building);
 }
 
-void ASubstation::OnConstructionComplete(FConstructionFlags flags) {
-    Super::OnConstructionComplete(flags);
+void ASubstation::OnConstructionComplete(UConstructionOptions* options) {
+    Super::OnConstructionComplete(options);
 
-    if (!flags.autoConnectWires) {
+    const auto electricityOptions = options->Get<UElectricityConstructionOption>(USubstationBuilderModeExtension::StaticClass());
+    check(electricityOptions);
+    if (electricityOptions && !electricityOptions->AutoConnectWires) {
         Network = new ElectricityNetwork(this);
         Network->RecomputeStats();
         return;
@@ -75,39 +72,59 @@ void ASubstation::OnConstructionComplete(FConstructionFlags flags) {
         }
     } else
         Network = new ElectricityNetwork(this);
-    
+
     for (UElectricComponent* nearbyElec : nearby.Value) {
         if (nearbyElec->Substation) {
             // check if we are on the same network and closer then the substation currently used
-            FVector elecLocation = nearbyElec->GetOwner()->GetActorLocation();
-            if (nearbyElec->Substation->Network == Network && FVector::Distance(GetActorLocation(), elecLocation) < FVector::Distance(nearbyElec->Substation->GetActorLocation(), elecLocation)) {
+            FVector elecLoc = nearbyElec->GetOwner()->GetActorLocation();
+            if (nearbyElec->Substation->Network == Network
+                && FVector::Distance(GetActorLocation(), elecLoc) < FVector::Distance(nearbyElec->Substation->GetActorLocation(), elecLoc)
+            ) {
                 ReconnectNoRecompute(nearbyElec);
             }
-        } else // Always connect unconnected components            
+        } else // Always connect unconnected components
             ConnectNoRecompute(nearbyElec);
     }
 
     Network->RecomputeStats();
 }
 
-TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby() const {    
+TSubclassOf<UBuilderModeExtension> ASubstation::GetBuilderModeExtension() const {
+    return USubstationBuilderModeExtension::StaticClass();
+}
+
+TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby() const {
     const static FName NAME_QUERY_PARAMS = FName(TEXT(""));
     const FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, this);
-    const FCollisionObjectQueryParams objectQueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects); // TODO make a custom collision channel with substations and maybe electricComponents
+    const FCollisionObjectQueryParams objectQueryParams = FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects);
+    // TODO make a custom collision channel with substations and maybe electricComponents
 
     TArray<FOverlapResult> overlaps;
-    GetWorld()->OverlapMultiByObjectType(overlaps, GetActorLocation(), FQuat::Identity, objectQueryParams, FCollisionShape::MakeSphere(ElectricityNetwork::MAX_WIRE_DISTANCE), queryParams);
+    GetWorld()->OverlapMultiByObjectType(
+        overlaps,
+        GetActorLocation(),
+        FQuat::Identity,
+        objectQueryParams,
+        FCollisionShape::MakeSphere(ElectricityNetwork::MAX_WIRE_DISTANCE),
+        queryParams
+    );
 
     TArray<ASubstation*> nearbySubstations;
     TArray<UElectricComponent*> nearbyElecs;
     for (const FOverlapResult& overlap : overlaps) {
         ASubstation* nearbySubstation = Cast<ASubstation>(overlap.GetActor());
-        if (nearbySubstation && nearbySubstation->constructionState == EConstructionState::Done && FVector::Distance(GetActorLocation(), nearbySubstation->GetActorLocation()) < ElectricityNetwork::MAX_WIRE_DISTANCE) {
+        if (nearbySubstation && nearbySubstation->constructionState == EConstructionState::Done && FVector::Distance(
+            GetActorLocation(),
+            nearbySubstation->GetActorLocation()
+        ) < ElectricityNetwork::MAX_WIRE_DISTANCE) {
             nearbySubstations.Add(nearbySubstation);
         }
 
         UElectricComponent* nearbyElec = overlap.GetActor()->FindComponentByClass<UElectricComponent>();
-        if (nearbyElec && nearbyElec->GetState() != PowerState::Initial && FVector::Distance(GetActorLocation(), nearbyElec->GetOwner()->GetActorLocation()) < ElectricityNetwork::MAX_WIRE_DISTANCE) {
+        if (nearbyElec && nearbyElec->GetState() != PowerState::Initial && FVector::Distance(
+            GetActorLocation(),
+            nearbyElec->GetOwner()->GetActorLocation()
+        ) < ElectricityNetwork::MAX_WIRE_DISTANCE) {
             nearbyElecs.Add(nearbyElec);
         }
     }

@@ -11,11 +11,11 @@
 class UConstructionPlan;
 
 struct XD_API Ingredient {
-    Ingredient(int amount, const UResource* resource);
+    Ingredient(int amount, UResource* resource);
     ~Ingredient();
 
     const int amount;
-    const UResource* const resource;
+    UResource* const resource;
 };
 
 typedef Ingredient Result;
@@ -35,4 +35,5 @@ public:
 
     bool HasSize(int ingredients, int results) const;
 
+    bool operator<(const URecipe& other) const;
 };

@@ -22,12 +22,7 @@ public:
 
     int Connections = 0;
 
-protected:
-    virtual void BeginPlay() override;
-
-public:
     virtual void Tick(float DeltaTime) override;
-    
 };
 
 
@@ -46,10 +41,5 @@ public:
 
     int Connections = 0;
 
-protected:
-    virtual void BeginPlay() override;
-
-public:
     virtual void Tick(float DeltaTime) override;
-    
 };

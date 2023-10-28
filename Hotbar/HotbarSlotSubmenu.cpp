@@ -3,7 +3,7 @@
 #include "HotbarSlotSubmenu.h"
 
 #include "HotbarDock.h"
-#include "XD/Utils.h"
+#include "UI.h"
 
 
 UTexture2D* GetTexture2D(const UImage* Image) {

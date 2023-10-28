@@ -2,8 +2,8 @@
 
 #include "Excavator.h"
 
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
+#include "The.h"
+#include "XD/Encyclopedia/Encyclopedia.h"
 #include "XD/Recipes/Recipe.h"
 
 AExcavator::AExcavator() {
@@ -25,8 +25,6 @@ AExcavator::AExcavator() {
     WheelMesh->AddLocalOffset(FVector(102.62, 0., 15.));
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
-    Electricity->Consumption = 100;
 }
 
 void AExcavator::BeginPlay() {
@@ -50,7 +48,7 @@ void AExcavator::Tick(float DeltaTime) {
 
 void UExcavatorUI::Tick() {
     if (Excavator) {
-        ProductionPerTick->SetText(FText::AsNumber(Excavator->ProductionPerTick * 120)); // TODO use actual ticks/s
+        ProductionPerTick->SetText(FText::AsNumber(Excavator->ProductionPerTick * 120, &FNumberFormattingOptions::DefaultNoGrouping())); // TODO use actual ticks/s
         ResourceImage->SetBrushFromTexture(Excavator->Inventory->GetOutputs()[0].Resource->Image); // TODO save the resource somwhere else???
     }
 }

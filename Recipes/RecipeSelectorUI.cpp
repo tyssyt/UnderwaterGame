@@ -1,39 +1,29 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "RecipeSelectorUI.h"
 
-void UIngredientUI::SetIngredient(const Ingredient* ingredient) {
-    Count->SetText(FText::AsNumber(ingredient->amount));
-    ResourceImage->SetBrushFromTexture(ingredient->resource->Image);
-}
-
-void URecipeUI::SetRecipe(URecipe* recipe, const std::function<void(URecipe*)>& callback) {
+URecipeButtonUI* URecipeButtonUI::Init(URecipe* recipe, const std::function<void(URecipe*)>& callback) {
     RecipeIHateCPP = recipe;
     Callback = callback;
-
-    for (Ingredient const& ingredient : recipe->Ingredients) {
-        // TODO is there a way to do this but still have a Pointer?
-        UIngredientUI* ingredientUI = CreateWidget<UIngredientUI>(this, IngredientUIClass);
-        ingredientUI->SetIngredient(&ingredient);
-        Ingredients->AddChildToWrapBox(ingredientUI);
-    }
-    for (Result const& result : recipe->Results) {
-        // TODO is there a way to do this but still have a Pointer?
-        UIngredientUI* ingredientUI = CreateWidget<UIngredientUI>(this, IngredientUIClass);
-        ingredientUI->SetIngredient(&result);
-        Results->AddChildToWrapBox(ingredientUI);
-    }
+    Recipe->Init(recipe);
+    return this;
 }
 
-void URecipeUI::OnClickRecipeSelect() {
+void URecipeButtonUI::OnClickRecipeSelect() {
     Callback(RecipeIHateCPP);
 }
 
-void URecipeSelectorUI::SetRecipes(const TArray<URecipe*>& recipes, const std::function<void(URecipe*)>& callback) {
-    for (URecipe* recipe : recipes) {
-        URecipeUI* recipeUI = CreateWidget<URecipeUI>(this, RecipeUIClass);
-        recipeUI->SetRecipe(recipe, callback);
+URecipeSelectorUI* URecipeSelectorUI::Init(const TArray<URecipe*>& recipes, const std::function<void(URecipe*)>& callback) {
+    RecipeList->ClearChildren();
+    for (const auto recipe : recipes) {
+        const auto recipeUI = CreateWidget<URecipeButtonUI>(this, RecipeButtonUIClass)->Init(recipe, callback);
         RecipeList->AddChildToVerticalBox(recipeUI);
     }
+    GetOwningPlayer()->InputComponent->BindAction("Deselect", IE_Pressed, this, &URecipeSelectorUI::OnClose);
+    return this;
+}
+
+void URecipeSelectorUI::OnClose() {
+    RemoveFromParent();
+    GetOwningPlayer()->InputComponent->RemoveActionBinding("Deselect", IE_Pressed);
 }

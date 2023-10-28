@@ -2,8 +2,8 @@
 
 #include "Habitat.h"
 
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
+#include "The.h"
+#include "XD/Encyclopedia/Encyclopedia.h"
 
 const float AHabitat::CELL_WIDTH = 10.f; // why c++ be like this?
 
@@ -42,9 +42,6 @@ AHabitat::AHabitat() : PopulationManager(new HabitatPopulationManager(this)),
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    
-    Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
-    Electricity->Consumption = 1000;
 }
 
 AHabitat::~AHabitat() {
@@ -135,5 +132,5 @@ void UHabitatUI::Tick() {
 
     const HabitatPopulationManager* populationManager = Habitat->PopulationManager;
     People->Set(populationManager->GetSettledPop(), populationManager->GetMaxPop(), The::Encyclopedia(Habitat)->People);
-    Workforce->SetText(FText::AsNumber(populationManager->GetWorkforce()));
+    Workforce->SetText(FText::AsNumber(populationManager->GetWorkforce(), &FNumberFormattingOptions::DefaultNoGrouping()));
 }

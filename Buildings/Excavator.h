@@ -8,7 +8,6 @@
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "CoreMinimal.h"
-#include "XD/Electricity/ElectricComponent.h"
 #include "XD/Inventory/InventoryComponent.h"
 #include "Excavator.generated.h"
 
@@ -24,9 +23,6 @@ public:
 
     UPROPERTY(EditAnywhere)
     UInventoryComponent* Inventory;
-
-    UPROPERTY(EditAnywhere)
-    UElectricComponent* Electricity;
 
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;

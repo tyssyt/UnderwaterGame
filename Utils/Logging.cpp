@@ -1,8 +1,8 @@
-#include "Utils.h"
+#include "Logging.h"
 
 template <class IntType>
 bool IntToString(FProperty* prop, UObject* obj, FString& string) {
-    if (const auto intProp = CastField<TProperty_Numeric<IntType>>(prop)) {
+    if (const auto intProp = ExactCastField<TProperty_Numeric<IntType>>(prop)) {
         string += FString::Printf(TEXT("%d"), *intProp->template ContainerPtrToValuePtr<IntType>(obj));
         return true;
     }
@@ -10,7 +10,7 @@ bool IntToString(FProperty* prop, UObject* obj, FString& string) {
 }
 template <class FloatType>
 bool FloatToString(FProperty* prop, UObject* obj, FString& string) {
-    if (const auto floatProp = CastField<TProperty_Numeric<FloatType>>(prop)) {
+    if (const auto floatProp = ExactCastField<TProperty_Numeric<FloatType>>(prop)) {
         string += FString::Printf(TEXT("%f"), *floatProp->template ContainerPtrToValuePtr<FloatType>(obj));
         return true;
     }
@@ -35,18 +35,22 @@ FString Logging::ToString(UObject* obj, bool includeEngineClasses, EFieldIterati
         string += TEXT('=');
 
         // obj pointer
-        if (const auto objProp = CastField<FObjectProperty>(rawProp))
+        if (const auto objProp = ExactCastField<FObjectProperty>(rawProp))
             string += ToString(*objProp->ContainerPtrToValuePtr<UObject*>(obj));
         // string types
-        else if (const auto textProp = CastField<FTextProperty>(rawProp))
+        else if (const auto textProp = ExactCastField<FTextProperty>(rawProp))
             string += *textProp->ContainerPtrToValuePtr<FText>(obj)->ToString();
-        else if (const auto nameProp = CastField<FNameProperty>(rawProp))
+        else if (const auto nameProp = ExactCastField<FNameProperty>(rawProp))
             string += *nameProp->ContainerPtrToValuePtr<FName>(obj)->ToString();
-        else if (const auto strProp = CastField<FStrProperty>(rawProp))
+        else if (const auto strProp = ExactCastField<FStrProperty>(rawProp))
             string += *strProp->ContainerPtrToValuePtr<FString>(obj);
         // int types
-        else if (const auto boolProp = CastField<FIntProperty>(rawProp))
+        else if (const auto boolProp = ExactCastField<FBoolProperty>(rawProp))
             string +=  *boolProp->ContainerPtrToValuePtr<bool>(obj) ? TEXT("true") : TEXT("false");
+        // TODO this is broken because an int32 property can cast to int8, unless you use exactCast
+        // TODO exactCast is broken because it is not a TProperty_Numeric<int32> but an FIntProperty
+        // TODO however, if they cast to each other I can just use int64 and everything should fit in there?
+        // TODO I guess the same problem should appear for float and double
         else if (IntToString<int8>(rawProp, obj, string)) {}
         else if (IntToString<int16>(rawProp, obj, string)) {}
         else if (IntToString<int32>(rawProp, obj, string)) {}

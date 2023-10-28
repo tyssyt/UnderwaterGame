@@ -2,8 +2,8 @@
 
 #include "WorkerHouse.h"
 #include "Habitat.h"
-#include "XD/GameInstanceX.h"
-#include "XD/Utils.h"
+#include "The.h"
+#include "XD/Encyclopedia/Encyclopedia.h"
 
 AWorkerHouse::AWorkerHouse() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/WorkerHouse"));
@@ -13,10 +13,6 @@ AWorkerHouse::AWorkerHouse() {
     
     // Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
     // Electricity->Consumption = 20;
-}
-
-void AWorkerHouse::BeginPlay() {
-    Super::BeginPlay();
 }
 
 
@@ -45,5 +41,5 @@ void UWorkerHouseUI::Tick() {
         return;
 
     People->Set(House->Residents, AWorkerHouse::RESIDENT_LIMIT, The::Encyclopedia(House)->People);
-    Workforce->SetText(FText::AsNumber(House->Residents)); // TODO update once we have a different formula for Workforce
+    Workforce->SetText(FText::AsNumber(House->Residents, &FNumberFormattingOptions::DefaultNoGrouping())); // TODO update once we have a different formula for Workforce
 }

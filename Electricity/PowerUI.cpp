@@ -3,11 +3,11 @@
 #include "PowerUI.h"
 
 void UPowerUI::Set(int production, int consumption) const {
-    Production->SetText(FText::AsNumber(production));
-    Consumption->SetText(FText::AsNumber(consumption));
+    Production->SetText(FText::AsNumber(production, &FNumberFormattingOptions::DefaultNoGrouping()));
+    Consumption->SetText(FText::AsNumber(consumption, &FNumberFormattingOptions::DefaultNoGrouping()));
 
     const int balance = production - consumption;
-    Balance->SetText(FText::AsNumber(balance));
+    Balance->SetText(FText::AsNumber(balance, &FNumberFormattingOptions::DefaultNoGrouping()));
     if (balance < 0)
         Balance->SetColorAndOpacity(GetConsumptionColor());
     else
