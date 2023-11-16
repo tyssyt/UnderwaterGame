@@ -173,12 +173,12 @@ void UEncyclopediaUI::OpenPage(UEncyclopediaEntry* entry) {
     SetContentForSlot(TEXT("Page"), entry->Page);
 
     UEncyclopediaCategory* oldCat = nullptr;
-    UEncyclopediaCategory* currentCat = UI::GetParentWidget<UEncyclopediaCategory>(entry);
+    UEncyclopediaCategory* currentCat = UX::GetParentWidget<UEncyclopediaCategory>(entry);
     while(currentCat) {
         currentCat->CollapseAll(oldCat, false);
         currentCat->ExpandableArea->SetIsExpanded_Animated(true);
         oldCat = currentCat;
-        currentCat = UI::GetParentWidget<UEncyclopediaCategory>(currentCat);
+        currentCat = UX::GetParentWidget<UEncyclopediaCategory>(currentCat);
     }
     CollapseAll(oldCat);
 
@@ -211,7 +211,7 @@ UEncyclopediaCategory* UEncyclopediaCategory::Init(const FText& label) {
 }
 
 UEncyclopediaEntry* UEncyclopediaCategory::AddEntry(const FString& title, UEncyclopediaPage* page) const {
-    const auto encyclopedia = UI::GetParentWidget<UEncyclopediaUI>(this);
+    const auto encyclopedia = UX::GetParentWidget<UEncyclopediaUI>(this);
     const auto entry = CreateWidget<UEncyclopediaEntry>(
         GetOwningPlayer(),
         encyclopedia->EncyclopediaEntryClass)->Init(FText::FromString(title), page);
@@ -220,7 +220,7 @@ UEncyclopediaEntry* UEncyclopediaCategory::AddEntry(const FString& title, UEncyc
 }
 
 UEncyclopediaCategory* UEncyclopediaCategory::AddSubCategory(const FString& name) const {
-    const auto encyclopedia = UI::GetParentWidget<UEncyclopediaUI>(this);
+    const auto encyclopedia = UX::GetParentWidget<UEncyclopediaUI>(this);
     const auto category = CreateWidget<UEncyclopediaCategory>(
         GetOwningPlayer(),
         encyclopedia->EncyclopediaCategoryClass)->Init(FText::FromString(name));
@@ -254,7 +254,7 @@ void UEncyclopediaEntry::SetHighlight(bool highlight) const {
 }
 
 void UEncyclopediaEntry::OnClicked() {
-    UI::GetParentWidget<UEncyclopediaUI>(this)->OpenPage(this);
+    UX::GetParentWidget<UEncyclopediaUI>(this)->OpenPage(this);
 }
 
 void UEncyclopediaEntry::SetOpen(bool open) {

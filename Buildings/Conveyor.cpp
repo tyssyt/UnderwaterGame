@@ -334,6 +334,7 @@ void AConveyor::DisconnectFromMerger(AMerger* merger) const {
 UConveyorLink::UConveyorLink() {    
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Cube"));
     UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
+    SetRenderCustomDepth(true);
 }
 
 void UConveyorLink::Connect(FVector start, FVector end) {     
@@ -355,6 +356,7 @@ void UConveyorLink::Connect(FVector start, FVector end) {
 UConveyorNode::UConveyorNode() {    
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Cylinder"));
     UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
+    SetRenderCustomDepth(true);
     SetWorldScale3D(FVector(.3, .3, .1));
 }
 

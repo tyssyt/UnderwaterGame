@@ -27,7 +27,7 @@ UHotbarSlotSubmenu* UHotbarSlotSubmenu::Init(UHotbar* submenu) {
 void UHotbarSlotSubmenu::Activate() {
     GetDock()->OpenSubmenu(Submenu, GetHotbar());
 
-    const auto button = UI::GetParentWidget<UButton>(this);
+    const auto button = UX::GetParentWidget<UButton>(this);
     button->SetBackgroundColor(FLinearColor::Yellow);
 }
 

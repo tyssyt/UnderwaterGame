@@ -8,7 +8,7 @@ void UConstructionMaterialsUI::AddMaterials(const TArray<Material>& materials) {
     for (const auto& mat : materials) {
         const auto ui = CreateWidget<UResourceBalanceUI>(this, ResourceBalanceUIClass);
         ui->SetNeed(mat.amount, mat.resource);
-        Materials->AddChild(UI::Sized(this, ui, 60.f, 60.f));
+        Materials->AddChild(UX::Sized(this->WidgetTree, ui, 60.f, 60.f));
         MaterialsToUpdate.Emplace(MaterialToUpdate{mat.resource, ui});
     }
 }
@@ -57,5 +57,5 @@ void UConstructionMaterialsUI::UpdateHave(const UConstructionManager* constructi
 }
 
 UPanelSlot* UConstructionMaterialsUI::AddExternalResource(UWidget* resource) const {
-    return Materials->AddChild(UI::Sized(this, resource, 60.f, 60.f));
+    return Materials->AddChild(UX::Sized(this->WidgetTree, resource, 60.f, 60.f));
 }

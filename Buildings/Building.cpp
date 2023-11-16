@@ -13,12 +13,26 @@ ABuilding* ABuilding::Init(UConstructionPlan* constructionPlan) {
     return this;
 }
 
-void ABuilding::OnConstructionComplete(UConstructionOptions* options) {    
+void ABuilding::OnConstructionComplete(UConstructionOptions* options) {
     constructionState = EConstructionState::Done;
 
     TInlineComponentArray<UComponentX*> components;
-    GetComponents<UComponentX>(components);
+    GetComponents<>(components);
     for (const auto component : components)
         component->OnConstructionComplete(options);
+}
+
+void ABuilding::InitSelectedUI(UBuildingSelectedUI* selectedUI) {
+    TInlineComponentArray<UComponentX*> components;
+    GetComponents<>(components);
+    for (const auto component : components)
+        component->AddToSelectedUI(selectedUI);
+}
+
+void ABuilding::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
+    TInlineComponentArray<UComponentX*> components;
+    GetComponents<>(components);
+    for (const auto component : components)
+        component->UpdateSelectedUI(selectedUI);
 }
 

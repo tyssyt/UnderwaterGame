@@ -8,6 +8,7 @@
 #include "XD/Construction/ConstructionOptions.h"
 #include "Building.generated.h"
 
+class UBuildingSelectedUI;
 class UBuilderModeExtension;
 
 UENUM(BlueprintType)
@@ -29,4 +30,7 @@ public:
     virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const {
         return nullptr;
     }
+
+    virtual void InitSelectedUI(UBuildingSelectedUI* selectedUI);
+    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI);
 };

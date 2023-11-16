@@ -6,7 +6,9 @@
 #include "XD/ComponentX.h"
 #include "XD/Construction/ConstructionOptions.h"
 #include "Components/BillboardComponent.h"
+#include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Resources/Resource.h"
+#include "XD/Resources/ResourceBalanceUI.h"
 #include "ElectricComponent.generated.h"
 
 class ASubstation;
@@ -39,4 +41,18 @@ public:
 
     virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const override;
     virtual void OnConstructionComplete(UConstructionOptions* options) override;
+    virtual void AddToSelectedUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI) override;
+};
+
+UCLASS()
+class XD_API UElectricComponentSelectedData : public USelectedUIData {
+    GENERATED_BODY()
+
+public:
+    UPROPERTY()
+    UResourceBalanceUI* UI;
+
+    UElectricComponentSelectedData* Init(UResourceBalanceUI* ui);
+    
 };

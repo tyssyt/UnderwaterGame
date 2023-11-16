@@ -9,6 +9,7 @@ AWorkerHouse::AWorkerHouse() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/WorkerHouse"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
+    Mesh->SetRenderCustomDepth(true);
     SetRootComponent(Mesh);
     
     // Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));

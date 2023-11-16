@@ -15,6 +15,7 @@ ABuilderShip::ABuilderShip() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/BuilderShip"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
+    Mesh->SetRenderCustomDepth(true);
     SetRootComponent(Mesh);
 }
 

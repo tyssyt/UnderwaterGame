@@ -44,7 +44,7 @@ UHotbar* UHotbar::Init(
 }
 
 UHotbarDock* UHotbar::GetDock() {
-    return UI::GetParentWidget<UHotbarDock>(this);
+    return UX::GetParentWidget<UHotbarDock>(this);
 }
 
 UHotbarSlot* UHotbar::GetSlot(const int i) const {

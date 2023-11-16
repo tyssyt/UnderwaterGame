@@ -3,10 +3,7 @@
 #pragma once
 
 #include "Building.h"
-#include "XD/SelectedUI.h"
 #include "XD/Inventory/InventoryComponent.h"
-#include "XD/Inventory/InventorySlotUI.h"
-
 #include "CoreMinimal.h"
 #include "PickupPad.generated.h"
 
@@ -14,40 +11,15 @@ UCLASS()
 class XD_API APickupPad : public ABuilding {
     GENERATED_BODY()
 
-public:
-    APickupPad();
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UInventoryComponent* Inventory;
-
-
+protected:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-    virtual void OnConstructionComplete(UConstructionOptions* options) override;
-};
-
-
-UCLASS(Abstract)
-class XD_API UPickupPadUI : public USelectedUI {
-    GENERATED_BODY()
-
-protected:
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UInventorySlotUI* InventorySlot_1;
-    
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UInventorySlotUI* InventorySlot_2;
-    
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UInventorySlotUI* InventorySlot_3;
-    
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UInventorySlotUI* InventorySlot_4;
-
 public:
-    APickupPad* PickupPad;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UInventoryComponent* Inventory;
 
-    virtual void Tick() override;
+    APickupPad();
 
+    virtual void OnConstructionComplete(UConstructionOptions* options) override;
 };

@@ -69,7 +69,7 @@ UEncyclopediaPageResource* UEncyclopediaPageResource::Init(UResource* resource, 
             const auto outerBox = WidgetTree->ConstructWidget<UHorizontalBox>();
             const auto arrowText = WidgetTree->ConstructWidget<UTextBlock>();
             arrowText->SetText(FText::FromString(TEXT("⇒")));
-            arrowText->SetFont(UI::WithSize(arrowText->GetFont(), 30));
+            arrowText->SetFont(UX::WithSize(arrowText->GetFont(), 30));
             const auto buildingUI = CreateWidget<UBuildingUI>(GetOwningPlayer(), BuildingUIClass)->Init(building);
             if (isPos) {
                 outerBox->AddChildToHorizontalBox(needsBox);

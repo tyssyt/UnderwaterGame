@@ -1,10 +1,11 @@
 #pragma once
 
+#include "XD/GameInstanceX.h"
+
 class UBlueprintHolder;
 class ACameraPawn;
 class APlayerControllerX;
 class UElectricityManager;
-class UGameInstanceX;
 class UConstructionManager;
 class UEncyclopedia;
 

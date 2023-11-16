@@ -40,8 +40,8 @@ public:
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UResourceUI* Resource;
 
-    void Set(const FInventorySlot* inventorySlot);
-    void Set(int current, int max, UResource* resource);
+    UInventorySlotUI* Set(const FInventorySlot* inventorySlot);
+    UInventorySlotUI* Set(int current, int max, UResource* resource);
     void Clear();
 
 private:

@@ -2,10 +2,18 @@
 
 #include "Recipe.h"
 
+#include "ProductionComponent.h"
 #include "XD/Buildings/ConstructionPlan.h"
 
 Ingredient::Ingredient(int amount, UResource* resource) : amount(amount), resource(resource) {}
 Ingredient::~Ingredient() {}
+
+bool HasProductionComponent(UConstructionPlan* building) {
+    for (const auto component : building->ComponentLoaders)
+        if (component->ComponentInfo->ComponentClass == UProductionComponent::StaticClass())
+            return true;
+    return false;
+}
 
 URecipe* URecipe::Init(const TArray<UConstructionPlan*>& buildings, const TArray<Ingredient>& ingredients, const TArray<Result>& results) {
     if (buildings.Num() == 0) {
@@ -16,6 +24,8 @@ URecipe* URecipe::Init(const TArray<UConstructionPlan*>& buildings, const TArray
         UE_LOG(LogTemp, Error, TEXT("Recipe must have at least one Ingredient or Result"));
         return nullptr;
     }
+    for (const auto building : buildings)
+        check(HasProductionComponent(building));
 
     Buildings.Append(buildings);
     Ingredients.Append(ingredients);

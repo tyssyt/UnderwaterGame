@@ -6,16 +6,11 @@ ADepot::ADepot() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Depot"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
+    Mesh->SetRenderCustomDepth(true);
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Inventory->GetInputs().Emplace(50000);
+    Inventory->GetInputs().Emplace(40000);
     Inventory->SetBuffer();
-}
-
-void UDepotUI::Tick() {
-    if (Depot) {
-        FInventorySlot* inv = &Depot->Inventory->GetInputs()[0];
-        InventorySlot->Set(inv);
-    }
+    Inventory->AddToUI = true;
 }

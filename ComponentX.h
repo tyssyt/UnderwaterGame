@@ -7,6 +7,7 @@
 #include "Construction/ConstructionOptions.h"
 #include "ComponentX.generated.h"
 
+class UBuildingSelectedUI;
 class UComponentInfo;
 class UBuilderModeExtension;
 
@@ -26,4 +27,6 @@ public:
     }
     
     virtual void OnConstructionComplete(UConstructionOptions* options) {}
+    virtual void AddToSelectedUI(UBuildingSelectedUI* selectedUI) {}
+    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {}
 };

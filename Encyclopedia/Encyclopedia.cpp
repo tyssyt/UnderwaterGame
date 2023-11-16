@@ -4,6 +4,7 @@
 
 #include "Collections.h"
 #include "XD/Buildings/ConstructionPlan.h"
+#include "XD/Buildings/Farm.h"
 #include "XD/Recipes/Recipe.h"
 
 UEncyclopedia* UEncyclopedia::Init(
@@ -71,10 +72,6 @@ UEncyclopedia* UEncyclopedia::Init(
     ConveyorLink = buildings[TEXT("Conveyor Link")];
     Splitter = buildings[TEXT("Splitter")];
     Merger = buildings[TEXT("Merger")];
-    
-    HardOreMine = buildings[TEXT("Hard Ore Mine")];
-    ConductiveOreMine = buildings[TEXT("Conductive Ore Mine")];
-    OilFishHarvester = buildings[TEXT("Oil Fish Harvester")];    
     
     return this;
 }
@@ -154,4 +151,42 @@ TSet<UResource*> UEncyclopedia::FindNeeds() {
         for (const auto& need : building->GetNeeds())
             needs.Add(need.resource);
     return MoveTemp(needs);
+}
+
+CropData* UEncyclopedia::GetCrop(URecipe* recipe) {
+    // TODO store this in config
+    static const auto FOOD_CROP = new CropData( // TODO what happens if I don't make this a pointer?
+        {
+            TEXT("/Game/Megascans/3D_Plants/Goldenrods_xg1lbfxia/S_Goldenrods_xg1lbfxia_Var2_lod0"),
+            TEXT("/Game/Megascans/3D_Plants/Goldenrods_xg1lbfxia/S_Goldenrods_xg1lbfxia_Var4_lod0"),
+        },
+        7,
+        16,
+        FVector(1. ,1., 0.),
+        FVector(0.18),
+        FVector(0.03)
+        );
+    static const auto ALGAE_CROP =  new CropData(
+        {
+            TEXT("/Game/Megascans/3D_Plants/Janet_Craig_Dracaena_siBl5/S_Janet_Craig_Dracaena_siBl5_Var1_lod0"),
+            TEXT("/Game/Megascans/3D_Plants/Janet_Craig_Dracaena_siBl5/S_Janet_Craig_Dracaena_siBl5_Var2_lod0"),
+            TEXT("/Game/Megascans/3D_Plants/Janet_Craig_Dracaena_siBl5/S_Janet_Craig_Dracaena_siBl5_Var4_lod0"),
+            TEXT("/Game/Megascans/3D_Plants/Janet_Craig_Dracaena_siBl5/S_Janet_Craig_Dracaena_siBl5_Var5_lod0"),
+        },
+        7,
+        14,
+        FVector(1. ,1., 0.),
+        FVector(0.15),
+        FVector(0.03)
+    );
+    // Periwinkle is also nice for a crop
+
+    const auto name = recipe->Results[0].resource->Name;
+    if (name.EqualTo(FText::FromString(TEXT("Food"))))
+        return FOOD_CROP;
+    if (name.EqualTo(FText::FromString(TEXT("Algae"))))
+        return ALGAE_CROP;
+
+    checkNoEntry();
+    return FOOD_CROP;
 }

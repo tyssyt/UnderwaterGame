@@ -3,11 +3,7 @@
 #pragma once
 
 #include "Building.h"
-#include "XD/SelectedUI.h"
 #include "XD/Inventory/InventoryComponent.h"
-#include "XD/Inventory/InventorySlotUI.h"
-
-#include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"
 #include "Depot.generated.h"
 
@@ -15,30 +11,13 @@ UCLASS()
 class XD_API ADepot : public ABuilding {
     GENERATED_BODY()
 
-public:
-    ADepot();
-
-    UPROPERTY(EditAnywhere)
-    UInventoryComponent* Inventory;
-
-
+protected:
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
 
-};
-
-
-UCLASS(Abstract)
-class XD_API UDepotUI : public USelectedUI {
-    GENERATED_BODY()
-
-protected:
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UInventorySlotUI* InventorySlot;
-
 public:
-    ADepot* Depot;
+    UPROPERTY(EditAnywhere)
+    UInventoryComponent* Inventory;
 
-    virtual void Tick() override;
-
+    ADepot();
 };

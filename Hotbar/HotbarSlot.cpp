@@ -6,9 +6,9 @@
 #include "UI.h"
 
 UHotbar* UHotbarSlot::GetHotbar() {
-    return UI::GetParentWidget<UHotbar>(this);
+    return UX::GetParentWidget<UHotbar>(this);
 }
 
 UHotbarDock* UHotbarSlot::GetDock() {
-    return UI::GetParentWidget<UHotbarDock>(this);
+    return UX::GetParentWidget<UHotbarDock>(this);
 }

@@ -7,7 +7,6 @@
 
 #include "Recipe.generated.h"
 
-
 class UConstructionPlan;
 
 struct XD_API Ingredient {

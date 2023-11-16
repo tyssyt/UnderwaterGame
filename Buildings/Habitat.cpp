@@ -39,6 +39,7 @@ AHabitat::AHabitat() : PopulationManager(new HabitatPopulationManager(this)),
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/SM_Habitat"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
+    Mesh->SetRenderCustomDepth(true);
     SetRootComponent(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));

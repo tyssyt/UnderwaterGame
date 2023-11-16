@@ -2,12 +2,16 @@
 
 #include "Substation.h"
 
+#include "The.h"
+#include "Components/VerticalBoxSlot.h"
+#include "XD/BlueprintHolder.h"
 #include "XD/Construction/BuilderModeExtension.h"
 
 ASubstation::ASubstation() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Substation"));
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
+    Mesh->SetRenderCustomDepth(true);
     SetRootComponent(Mesh);
 }
 
@@ -93,6 +97,33 @@ TSubclassOf<UBuilderModeExtension> ASubstation::GetBuilderModeExtension() const 
     return USubstationBuilderModeExtension::StaticClass();
 }
 
+void ASubstation::InitSelectedUI(UBuildingSelectedUI* selectedUI) {
+    const auto ui = CreateWidget<USubstationUI>(selectedUI->WidgetTree, The::BPHolder(this)->SubstationUIClass);
+    const auto slot = selectedUI->Content->AddChildToVerticalBox(ui);
+    slot->SetVerticalAlignment(VAlign_Center);
+    slot->SetHorizontalAlignment(HAlign_Fill);
+    selectedUI->Storage->Data.Add(StaticClass(), NewObject<USubstationSelectedData>()->Init(ui));
+    Super::InitSelectedUI(selectedUI);
+}
+
+void ASubstation::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
+    const auto data = selectedUI->Storage->Get<USubstationSelectedData>(StaticClass());
+    check(data);
+    
+    if (Network) {
+        const int production = Network->GetTotalConstantProduction();
+        const int consumption = Network->GetTotalConstantConsumption();
+
+        data->UI->PowerUI->Set(production, consumption);
+        data->UI->FillLevel->SetPercent(static_cast<float>(consumption) / production);
+    } else {
+        data->UI->PowerUI->Set(0, 0);
+        data->UI->FillLevel->SetPercent(0.);
+    }
+    
+    Super::UpdateSelectedUI(selectedUI);
+}
+
 TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby() const {
     const static FName NAME_QUERY_PARAMS = FName(TEXT(""));
     const FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, this);
@@ -132,17 +163,7 @@ TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby
     return MakeTuple(MoveTemp(nearbySubstations), MoveTemp(nearbyElecs));
 }
 
-void USubstationUI::Tick() {
-    if (Substation) {
-        if (Substation->Network) {
-            const int production = Substation->Network->GetTotalConstantProduction();
-            const int consumption = Substation->Network->GetTotalConstantConsumption();
-
-            PowerUI->Set(production, consumption);
-            FillLevel->SetPercent(static_cast<float>(consumption) / production);
-        } else {
-            PowerUI->Set(0, 0);
-            FillLevel->SetPercent(0.);
-        }
-    }
+USubstationSelectedData* USubstationSelectedData::Init(USubstationUI* ui) {
+    UI = ui;
+    return this;
 }

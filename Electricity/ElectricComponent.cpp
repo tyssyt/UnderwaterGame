@@ -5,7 +5,10 @@
 #include "ElectricityManager.h"
 #include "PowerOverlay.h"
 #include "The.h"
+#include "UI.h"
+#include "XD/BlueprintHolder.h"
 #include "XD/CameraPawn.h"
+#include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Buildings/Substation.h"
 #include "XD/Construction/BuilderModeExtension.h"
 
@@ -91,4 +94,34 @@ void UElectricComponent::OnConstructionComplete(UConstructionOptions* options) {
 
     if (!connected)
         SetState(PowerState::Disconnected);
+}
+
+void UElectricComponent::AddToSelectedUI(UBuildingSelectedUI* selectedUI) {
+    if (Consumption > 0) {
+        const auto ui = CreateWidget<UResourceBalanceUI>(
+            The::PlayerController(this),
+            The::BPHolder(this)->ResourceBalanceUIClass);
+        ui->SetNeed(Consumption, GetElectricity());
+        ui->SetHave(State == PowerState::Powered ? Consumption : 0);
+        selectedUI->Top->AddChildToWrapBox(UX::Sized(selectedUI->WidgetTree, ui, 60.f, 60.f));
+        selectedUI->Storage->Data.Add(StaticClass(), NewObject<UElectricComponentSelectedData>()->Init(ui));
+    } else {
+        selectedUI->Top->AddChildToWrapBox(CreateWidget<UResourceAmountUI>(
+            The::PlayerController(this),
+            The::BPHolder(this)->ResourceAmountUIClass
+        )->Init(-Consumption, GetElectricity()));
+    }
+}
+
+void UElectricComponent::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
+    if (Consumption > 0) {
+        const auto data = selectedUI->Storage->Get<UElectricComponentSelectedData>(StaticClass());
+        check (data);
+        data->UI->SetHave(State == PowerState::Powered ? Consumption : 0);
+    }
+}
+
+UElectricComponentSelectedData* UElectricComponentSelectedData::Init(UResourceBalanceUI* ui) {
+    UI = ui;
+    return this;
 }

@@ -7,6 +7,6 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogConfigLoader, Log, All);
 
-namespace ConfigLoader {
+struct ConfigLoader { // TODO could just be a namespace, but that breaks the build somehow -.- <3 unreal
     static UEncyclopedia* Load(const UHotbarDock* dock);
 };

@@ -2,15 +2,16 @@
 
 #include "InventorySlotUI.h"
 
-void UInventorySlotUI::Set(const FInventorySlot* inventorySlot) {
+UInventorySlotUI* UInventorySlotUI::Set(const FInventorySlot* inventorySlot) {
     if (!inventorySlot || !inventorySlot->Resource) {
         Clear();
     } else {
         Set(inventorySlot->Current, inventorySlot->Max, inventorySlot->Resource);
     }
+    return this;
 }
 
-void UInventorySlotUI::Set(int current, int max, UResource* resource) {
+UInventorySlotUI* UInventorySlotUI::Set(int current, int max, UResource* resource) {
     Current->SetText(FText::AsNumber(current, &FNumberFormattingOptions::DefaultNoGrouping()));
     Max->SetText(FText::AsNumber(max, &FNumberFormattingOptions::DefaultNoGrouping()));
     if (max > 0) 
@@ -21,6 +22,7 @@ void UInventorySlotUI::Set(int current, int max, UResource* resource) {
     Resource->SetRenderOpacity(1.f);
     Resource->Init(resource);
     SetToolTipText(resource->Name);
+    return this;
 }
 
 void UInventorySlotUI::Clear() {   

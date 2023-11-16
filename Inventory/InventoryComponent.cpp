@@ -2,6 +2,9 @@
 
 #include "InventoryComponent.h"
 
+#include "The.h"
+#include "Components/VerticalBoxSlot.h"
+#include "XD/BlueprintHolder.h"
 #include "XD/Recipes/Recipe.h"
 
 UInventoryComponent::UInventoryComponent() {
@@ -33,4 +36,26 @@ void UInventoryComponent::SetRecipe(URecipe* recipe) {
     Outputs.Empty();
     for (const auto& result : recipe->Results)
         Outputs.Emplace(result.amount*2, result.resource);
+}
+
+void UInventoryComponent::AddToSelectedUI(UBuildingSelectedUI* selectedUI) {
+    if (!AddToUI)
+        return;
+    const auto ui = CreateWidget<UInventoryUI>(selectedUI, The::BPHolder(this)->InventoryUIClass)->Init(this);
+    const auto slot = selectedUI->Content->AddChildToVerticalBox(ui);
+    slot->SetHorizontalAlignment(HAlign_Center);
+    selectedUI->Storage->Data.Add(StaticClass(), NewObject<UInventoryComponentSelectedData>()->Init(ui));
+}
+
+void UInventoryComponent::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
+    if (!AddToUI)
+        return;
+    const auto data = selectedUI->Storage->Get<UInventoryComponentSelectedData>(StaticClass());
+    check(data);
+    data->UI->Tick();
+}
+
+UInventoryComponentSelectedData* UInventoryComponentSelectedData::Init(UInventoryUI* ui) {
+    UI = ui;
+    return this;
 }

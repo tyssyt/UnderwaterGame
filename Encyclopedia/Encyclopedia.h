@@ -7,6 +7,7 @@
 #include "XD/NaturalResources/NaturalResource.h"
 #include "Encyclopedia.generated.h"
 
+struct CropData;
 class URecipe;
 class UResource;
 class UConstructionPlan;
@@ -64,14 +65,6 @@ public:
     UPROPERTY()
     UConstructionPlan* Merger;
 
-    // TODO these can be removed from special cases once we configure building upgrades in config
-    UPROPERTY()
-    UConstructionPlan* HardOreMine;
-    UPROPERTY()
-    UConstructionPlan* ConductiveOreMine;
-    UPROPERTY()
-    UConstructionPlan* OilFishHarvester;
-
     TArray<UResource*>& GetAllResources();
     TArray<UNaturalResource*>& GetAllNaturalResources();
     TArray<UConstructionPlan*>& GetAllBuildings();
@@ -92,4 +85,7 @@ public:
     TSet<UResource*> FindConstructionResources();
     TSet<UResource*> FindRawMaterials();
     TSet<UResource*> FindNeeds();
+
+    // TODO some more general mechanism, i.e. Metadata
+    CropData* GetCrop(URecipe* recipe);
 };
