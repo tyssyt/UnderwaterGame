@@ -10,11 +10,20 @@
 
 //TODO understand the whole UStruct thing better, I just threw random google results at it until I could edit the fields in the editor...
 
+class AJunction;
+class UInventoryComponent;
 class AConveyor;
 
 USTRUCT(BlueprintType)
 struct XD_API FInventorySlot : public FTableRowBase {
     GENERATED_BODY()
+
+    friend UInventoryComponent;
+    friend AJunction;
+
+protected:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    AConveyor* Conveyor;
 
 public:
     FInventorySlot();
@@ -28,9 +37,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UResource* Resource;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    AConveyor* Conveyor;
 
     int PushInto(int amount);
     int PullFrom(int amount);

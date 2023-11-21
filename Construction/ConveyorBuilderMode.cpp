@@ -7,19 +7,193 @@
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Splitter.h"
+#include "XD/Inventory/ConveyorGate.h"
 
-AConveyor::ESourceTargetType ToESourceTargetType(UConveyorBuilderMode::SourceTarget::EType type) {
-    switch (type) {
-    case UConveyorBuilderMode::SourceTarget::EType::Building:
+bool UConveyorBuilderMode::SourceTarget::IsSet() const {
+    return Type != EType::NotSet;
+}
+bool UConveyorBuilderMode::SourceTarget::IsValid() const {
+    return IsSet() && Valid;
+}
+bool UConveyorBuilderMode::SourceTarget::IsConveyorNode(const UConveyorNode* node) const {
+    return Type == EType::ConveyorNode && ConveyorComponent == node;
+}
+bool UConveyorBuilderMode::SourceTarget::IsConveyorLink(const UConveyorLink* link) const {
+    return Type == EType::ConveyorLink && ConveyorComponent == link;
+}
+
+FVector UConveyorBuilderMode::SourceTarget::GetLocation() const {
+    check(IsValid());
+     
+    switch (Type) {
+    case EType::Building:
+        return Gate->GetComponentLocation();
+    case EType::ConveyorLink:
+    case EType::ConveyorNode:
+        return Building->GetActorLocation();
+    case EType::NotSet:
+    default:
+        checkNoEntry()
+        return FVector::Zero();
+    }
+}
+
+AConveyor::ESourceTargetType UConveyorBuilderMode::SourceTarget::ToConveyorType() const {    
+    switch (Type) {
+    case EType::Building:
         return AConveyor::ESourceTargetType::Building;
-    case UConveyorBuilderMode::SourceTarget::EType::ConveyorLink:
+    case EType::ConveyorLink:
         return AConveyor::ESourceTargetType::ConveyorLink;
-    case UConveyorBuilderMode::SourceTarget::EType::ConveyorNode:
+    case EType::ConveyorNode:
         return AConveyor::ESourceTargetType::ConveyorNode;
-    case UConveyorBuilderMode::SourceTarget::EType::NotSet:
     default:
         checkNoEntry();
         return AConveyor::ESourceTargetType::Building;
+    }
+}
+
+void UConveyorBuilderMode::SourceTarget::RemoveHighlight() {
+    switch (Type) {
+    case EType::NotSet:
+        return;
+    case EType::Building:
+        Building->SetAllMaterials(nullptr);
+        Building = nullptr;
+        Gate = nullptr;
+        break;
+    case EType::ConveyorNode:
+        ConveyorComponent->SetVisibility(true);
+        // fallthrough
+    case EType::ConveyorLink:
+        Building->Destroy();
+        Building = nullptr;
+        Conveyor = nullptr;
+        ConveyorComponent = nullptr;
+        break;
+    default: checkNoEntry();
+    }
+    Valid = false;
+    Type = EType::NotSet;
+}
+void UConveyorBuilderMode::SourceTarget::HighlightInvalid(ABuilding* building) {
+    check(building);
+    if (Valid == false && Type == EType::Building && Building == building)
+        return;
+    RemoveHighlight();
+
+    Valid = false;
+    Type = EType::Building;
+    Building = building;
+
+    Building->SetAllMaterials(Parent->RedMaterial);
+}
+
+void UConveyorBuilderMode::SourceTarget::Highlight(UConveyorGate* gate, const TArray<UConveyorGate*>& otherGates) {
+    check(gate);
+    if (Gate == gate)
+        return;
+    RemoveHighlight();
+
+    Valid = true;
+    Type = EType::Building;
+    Building = gate->GetOwner<ABuilding>();
+    Gate = gate;
+
+    Building->SetAllMaterials(Parent->GreenMaterial);
+    
+    for (const auto otherGate : otherGates) {
+        if (otherGate == gate)
+            continue;
+        for (int i=0; i < otherGate->GetMaterials().Num(); ++i)
+            otherGate->SetMaterial(i, Parent->YellowMaterial);
+    }
+}
+void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyor* conveyor, UConveyorNode* node, bool valid) {
+    check(node);
+
+    if (IsConveyorNode(node)) {
+        // with the current calls, we check this early and never should get here
+        checkNoEntry();
+        return;
+    }
+    RemoveHighlight();
+
+    Valid = valid;
+    Type = EType::ConveyorNode;
+    Building = building;
+    Conveyor = conveyor;
+    ConveyorComponent = node;
+
+    Building->SetAllMaterials(valid ? Parent->GreenMaterial : Parent->RedMaterial);
+    node->SetVisibility(false);
+}
+void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyor* conveyor, UConveyorLink* link, bool valid) {
+    check(link);
+    if (IsConveyorLink(link)) {
+        check(building == Building);
+        // even if we are on the same link, we still could be in a different location, so update valid
+        Valid = valid;
+        Building->SetAllMaterials(valid ? Parent->GreenMaterial : Parent->RedMaterial);
+        return;
+    }
+    RemoveHighlight();
+
+    Valid = valid;
+    Type = EType::ConveyorLink;
+    Building = building;
+    Conveyor = conveyor;
+    ConveyorComponent = link;
+
+    Building->SetAllMaterials(valid ? Parent->GreenMaterial : Parent->RedMaterial);
+}
+
+void UConveyorBuilderMode::SourceTarget::Reset() {
+    // TODO if the building/conveyor is under construction, this should restore the blue ghost material of construction
+    Building->SetAllMaterials(nullptr); 
+    Type = EType::NotSet;
+    Building = nullptr;
+    Gate = nullptr;
+    Conveyor = nullptr;
+    ConveyorComponent = nullptr;
+}
+
+UConstructionSite* UConveyorBuilderMode::SourceTarget::CreateConstructionSite(const UEncyclopedia* encyclopedia) const {
+    if (Type != EType::ConveyorNode && Type != EType::ConveyorLink)
+        return nullptr;
+
+    Conveyor->SplitAt(ConveyorComponent, Building);
+
+    Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
+
+    auto& materials = encyclopedia->Splitter->Materials;
+    if (Type == EType::ConveyorNode)
+        Material::AddTo(materials, encyclopedia->ConveyorNode->Materials, -1);
+
+    return NewObject<UConstructionSite>()->Init(
+        Building,
+        encyclopedia->Splitter->Time,
+        materials,
+        NewObject<UConstructionOptions>()
+    );
+}
+
+void UConveyorBuilderMode::SourceTarget::GetOverlapIgnore(TArray<AActor*>& allowedActors, TArray<UStaticMeshComponent*>& allowedMeshes) const {
+    if (!IsValid())
+        return;
+    switch (Type) {
+    case EType::Building:
+        allowedMeshes.Add(Gate);
+        break;
+    case EType::ConveyorLink:
+        allowedActors.Add(Building);
+        break;
+    case EType::ConveyorNode:
+        allowedActors.Add(Building);
+        allowedMeshes.Add(ConveyorComponent);
+        break;
+    case EType::NotSet:
+    default:
+        checkNoEntry();
     }
 }
 
@@ -28,9 +202,11 @@ UConveyorBuilderMode::UConveyorBuilderMode() {
     RedMaterial = RedMaterialFinder.Object; 
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> GreenMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_Buildable"));
     GreenMaterial = GreenMaterialFinder.Object;
+    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> YellowMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostYellow"));
+    YellowMaterial = YellowMaterialFinder.Object;
 }
 
-UConveyorBuilderMode* UConveyorBuilderMode::Init(UConstructionPlan* constructionPlan) { // TODO currently that plan is ConveyorLink, once it is Conveyor we can use it to fill stuff below
+UConveyorBuilderMode* UConveyorBuilderMode::Init(UConstructionPlan* constructionPlan) {
     PreInit();
     const auto playerController = The::PlayerController(this);
 
@@ -71,11 +247,11 @@ void UConveyorBuilderMode::CreateNextLinkAndNode() {
 bool UConveyorBuilderMode::Tick(const ACameraPawn& camera) {
     if (Done)
         return true;
-    
-    if (Source.Type == SourceTarget::EType::NotSet) {
+
+    if (!Source.IsSet()) {
         TickSelectSource(camera);
         ComputeCostSelectSource();
-    } else if (Target.Type == SourceTarget::EType::NotSet) {
+    } else if (!Target.IsSet()) {
         TickSelectNextPoint(camera);
         ComputeCostSelectNextPoint();
         CheckOverlap();
@@ -95,9 +271,9 @@ void UConveyorBuilderMode::TickSelectSource(const ACameraPawn& camera) {
 }
 
 void UConveyorBuilderMode::ComputeCostSelectSource() const {
-    const auto splitter = CurrentHighlightValid ? ToESourceTargetType(CurrentHighlight.Type) : AConveyor::ESourceTargetType::Building;
+    const auto type = CurrentHighlight.IsSet() ? CurrentHighlight.ToConveyorType() : AConveyor::ESourceTargetType::Building;
     ConstructionUI->ConstructionMaterials->UpdateNeed(
-        AConveyor::ComputeCosts(0., 0, splitter, AConveyor::ESourceTargetType::Building, The::Encyclopedia(this)),
+        AConveyor::ComputeCosts(0., 0, type, AConveyor::ESourceTargetType::Building, The::Encyclopedia(this)),
         The::ConstructionManager(this)
     );
 }
@@ -109,10 +285,17 @@ void UConveyorBuilderMode::TickSelectNextPoint(const ACameraPawn& camera) {
         NextLink->SetVisibility(false);
         return;
     }
+
+    const auto startLoc = Nodes.IsEmpty() ? Source.GetLocation() : Nodes.Last()->GetComponentLocation();
+    const auto startType = Nodes.IsEmpty() ? Source.ToConveyorType() : AConveyor::ESourceTargetType::ConveyorNode;
     
     if (HighlightUnderCursor(playerController, false)) {
-        if (CurrentHighlightValid) {
-            DrawNextLink(CurrentHighlight.Building->GetActorLocation(), false);
+        if (CurrentHighlight.IsValid()) {
+            FVector endLoc = CurrentHighlight.GetLocation();
+            NextLink->Connect(startLoc, startType, endLoc, CurrentHighlight.ToConveyorType());
+            NextLink->SetVisibility(true); 
+            NextNode->SetWorldLocation(endLoc + FVector(0, 0, 5000)); // the invisible node can still cause collision, so we move it away
+            NextNode->SetVisibility(false);
         } else {
             NextNode->SetVisibility(false);
             NextLink->SetVisibility(false);
@@ -125,7 +308,11 @@ void UConveyorBuilderMode::TickSelectNextPoint(const ACameraPawn& camera) {
             landscapeUnderCursor
         )) {
             // keep z-Offset in sync with UArrowMoverUp
-            DrawNextLink(landscapeUnderCursor.ImpactPoint + FVector(0, 0, 15), true);
+            FVector endLoc = landscapeUnderCursor.ImpactPoint + FVector(0, 0, 15);
+            NextLink->Connect(startLoc, startType, endLoc, AConveyor::ESourceTargetType::ConveyorNode);
+            NextLink->SetVisibility(true);            
+            NextNode->SetWorldLocation(endLoc);
+            NextNode->SetVisibility(true);            
         } else {
             NextNode->SetVisibility(false);
             NextLink->SetVisibility(false);
@@ -133,29 +320,26 @@ void UConveyorBuilderMode::TickSelectNextPoint(const ACameraPawn& camera) {
     }
 }
 
-void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {    
+void UConveyorBuilderMode::ComputeCostSelectNextPoint() const {
     TArray<FVector> nodes;
+    nodes.Add(Source.GetLocation());
     for (const auto node : Nodes)
         nodes.Add(node->GetComponentLocation());
 
-    TOptional<FVector> end;
-    auto merger = AConveyor::ESourceTargetType::Building;
-    if (NextNode->IsVisible()) {
-        nodes.Add(NextNode->GetComponentLocation());
-    } else if (CurrentHighlightValid) {
-        end = CurrentHighlight.Building->GetActorLocation();
-        merger = ToESourceTargetType(CurrentHighlight.Type);
-    } else
-        check(!NextLink->IsVisible());
+    AConveyor::ESourceTargetType targetType;
+    if (CurrentHighlight.IsValid()) {
+        nodes.Add(CurrentHighlight.GetLocation());
+        targetType = CurrentHighlight.ToConveyorType();
+    } else {
+        if (NextNode->IsVisible())
+            nodes.Add(NextNode->GetComponentLocation());
+        // the conveyor ends in a node, so we add a fake last node as pseudo Building for correct costs
+        nodes.Emplace(nodes.Last());
+        targetType = AConveyor::ESourceTargetType::Building;
+    }
 
     ConstructionUI->ConstructionMaterials->UpdateNeed(
-        AConveyor::ComputeCosts(
-            Source.Building->GetActorLocation(),
-            end.IsSet() ? &*end : nullptr,
-            nodes,
-            ToESourceTargetType(Source.Type),
-            merger,
-            The::Encyclopedia(this)),
+        AConveyor::ComputeCosts(nodes, Source.ToConveyorType(), targetType, The::Encyclopedia(this)),
         The::ConstructionManager(this)
     );
 }
@@ -193,27 +377,22 @@ void UConveyorBuilderMode::TickInsertNode(const ACameraPawn& camera) {
 }
 
 void UConveyorBuilderMode::ComputeCostInsertNode() const {
-    const FVector end = Target.Building->GetActorLocation();
-
     TArray<FVector> nodes;
+    nodes.Add(Source.GetLocation());
     for (const auto node : Nodes)
         nodes.Add(node->GetComponentLocation());
-    if (InsertNodeHoverLink) // we want to add the cost of one conveyor node without increasing the link distance
-        nodes.Add(end);
+    nodes.Add(Target.GetLocation());
+
+    if (InsertNodeHoverLink) // we want to add the cost of the hovered node without increasing the link distance
+        nodes.Emplace(nodes.Last());
 
     ConstructionUI->ConstructionMaterials->UpdateNeed(
-        AConveyor::ComputeCosts(
-            Source.Building->GetActorLocation(),
-            &end,
-            nodes,
-            ToESourceTargetType(Source.Type),
-            ToESourceTargetType(Target.Type),
-            The::Encyclopedia(this)),
+        AConveyor::ComputeCosts(nodes, Source.ToConveyorType(), Target.ToConveyorType(), The::Encyclopedia(this)),
         The::ConstructionManager(this)
     );
 }
 
-FVector UConveyorBuilderMode::ProjectOntoLink(FVector loc, const UConveyorLink* link) {
+FVector UConveyorBuilderMode::ProjectOntoLink(const FVector& loc, const UConveyorLink* link) {
     const FVector meshLocation = link->GetComponentLocation();
     const FVector projection = (loc - meshLocation).ProjectOnToNormal(link->GetComponentRotation().Vector());
     return meshLocation + projection;
@@ -221,17 +400,13 @@ FVector UConveyorBuilderMode::ProjectOntoLink(FVector loc, const UConveyorLink* 
 
 ABuilding* UConveyorBuilderMode::SpawnSplitter(bool isSource, UResource* resource) const {
     ABuilding* building;
-    if (CurrentHighlight.Type == SourceTarget::EType::ConveyorLink) {
-        building = CurrentHighlight.Building;
-    } else {
-        if (isSource)
-            building = GetWorld()->SpawnActor<ASplitter>();
-        else
-            building = GetWorld()->SpawnActor<AMerger>();
-        building->SetActorTickEnabled(false);
-        building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
-    }
-    
+    if (isSource)
+        building = GetWorld()->SpawnActor<ASplitter>();
+    else
+        building = GetWorld()->SpawnActor<AMerger>();
+    building->SetActorTickEnabled(false);
+    building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
+
     UInventoryComponent* inventory = building->GetComponentByClass<UInventoryComponent>();    
     for (auto& input : inventory->GetInputs())
         input.Resource = resource;
@@ -243,105 +418,80 @@ ABuilding* UConveyorBuilderMode::SpawnSplitter(bool isSource, UResource* resourc
 bool UConveyorBuilderMode::HighlightUnderCursor(const APlayerControllerX* playerController, bool isSource) {
     FHitResult hitResult;
     if (!playerController->GetHitResultUnderCursor(ECC_Visibility, true, hitResult)) {
-        RemoveCurrentHighlight();
+        CurrentHighlight.RemoveHighlight();
         return false;
     }
 
-    // Check if Cursor is over a Conveyor, if so we Start with a Splitter
     if (AConveyor* conveyor = Cast<AConveyor>(hitResult.GetActor())) {
-
-        if (UConveyorNode* node = Cast<UConveyorNode>(hitResult.GetComponent())) {
-            
-            if (CurrentHighlight.Type == SourceTarget::EType::ConveyorNode && CurrentHighlight.Conveyor == conveyor && CurrentHighlight.ConveyorComponent == node)
-                return true; // already highlighted
-
-            ABuilding* building = SpawnSplitter(isSource, conveyor->SourceInv->Resource);
-            building->SetActorLocation(node->GetComponentLocation());
-
-            if (isSource) {
-                SetHighlight(building, CheckValidSource(building));
-            } else {                
-                if (conveyor == Source.Conveyor) {
-                    // TODO The current splitting on construction cannot handle 2 splits in the same conveyor
-                    SetHighlight(building, false);
-                } else {
-                    Resource = CheckValidTarget(building);
-                    SetHighlight(building, Resource != nullptr);
-                }
-            }
-            
-            CurrentHighlight.Type = SourceTarget::EType::ConveyorNode;
-            CurrentHighlight.Conveyor = conveyor;
-            CurrentHighlight.ConveyorComponent = node;
-
-            // hide the original conveyor node, because the splitter is right on top of it
-            node->SetVisibility(false);
-            return true;
-        }
-        
-        if (UConveyorLink* link = Cast<UConveyorLink>(hitResult.GetComponent())) {
-            
-            ABuilding* building = SpawnSplitter(isSource, conveyor->SourceInv->Resource);;
-            building->SetActorLocation(ProjectOntoLink(hitResult.ImpactPoint, link));
-
-            if (isSource) {
-                if (CheckOverlap(building->GetComponentByClass<UStaticMeshComponent>(), {link}, {}))
-                    SetHighlight(building, false);
-                else
-                    SetHighlight(building, CheckValidSource(building));
-            } else {
-                if (conveyor == Source.Conveyor // TODO The current splitting on construction cannot handle 2 splits in the same conveyor
-                    || CheckOverlap(building->GetComponentByClass<UStaticMeshComponent>(), {link, NextLink, NextNode}, {})) {
-                    SetHighlight(building, false);
-                } else {
-                    Resource = CheckValidTarget(building);
-                    SetHighlight(building, Resource != nullptr);
-                }
-            }
-            
-            CurrentHighlight.Type = SourceTarget::EType::ConveyorLink;
-            CurrentHighlight.Conveyor = conveyor;
-            CurrentHighlight.ConveyorComponent = link;
-
-            return true;
-        }
-        
+        if (UConveyorNode* node = Cast<UConveyorNode>(hitResult.GetComponent()))
+            return HighlightConveyorNodeUnderCursor(conveyor, node, isSource);
+        if (UConveyorLink* link = Cast<UConveyorLink>(hitResult.GetComponent()))
+            return HighlightConveyorLinkUnderCursor(conveyor, link, hitResult.ImpactPoint, isSource);
+ 
         checkNoEntry();
         return false;
     }
-    
-    ABuilding* underCursor = Cast<ABuilding>(hitResult.GetActor());
-    if (!underCursor) {
-        RemoveCurrentHighlight();
-        return false;
-    }
-    
-    if (underCursor == CurrentHighlight.Building)
-        return true;
 
-    if (isSource) {
-        SetHighlight(underCursor, CheckValidSource(underCursor));
-    } else {
-        Resource = CheckValidTarget(underCursor);
-        SetHighlight(underCursor, Resource != nullptr);
-    }
-    CurrentHighlight.Type = SourceTarget::EType::Building;
+    if (ABuilding* building = Cast<ABuilding>(hitResult.GetActor()))
+        return HighlightBuildingUnderCursor(building, hitResult.ImpactPoint, isSource);
+
+    CurrentHighlight.RemoveHighlight();
+    return false;
+}
+
+bool UConveyorBuilderMode::HighlightConveyorNodeUnderCursor(AConveyor* conveyor, UConveyorNode* node, bool isSource) {
+    if (CurrentHighlight.IsConveyorNode(node))
+        return true; // already highlighted
+
+    const auto splitter = SpawnSplitter(isSource, conveyor->SourceInv->Resource);
+    splitter->SetActorLocation(node->GetComponentLocation());
+
+    bool valid = CheckValidBuilding(splitter, isSource);
+    // TODO The current splitting on construction cannot handle 2 splits in the same conveyor, so we just forbid it here
+    valid &= isSource || Source.GetConveyor() != conveyor;
+    CurrentHighlight.Highlight(splitter, conveyor, node, valid);
     return true;
 }
 
-void UConveyorBuilderMode::DrawNextLink(FVector target, bool drawNode) const {
-    // draw Link
-    NextLink->Connect(NextLinkStartPos, target);
-    NextLink->SetVisibility(true);
+    
+bool UConveyorBuilderMode::HighlightConveyorLinkUnderCursor(AConveyor* conveyor, UConveyorLink* link, const FVector& hitLoc, bool isSource) {
+    const auto splitter = CurrentHighlight.IsConveyorLink(link) ? CurrentHighlight.GetBuilding() : SpawnSplitter(isSource, conveyor->SourceInv->Resource);
+    splitter->SetActorLocation(ProjectOntoLink(hitLoc, link));
 
-    // draw Node
-    if (drawNode) {
-        NextNode->SetWorldLocation(target);
-        NextNode->SetVisibility(true);
+    bool valid = CheckValidBuilding(splitter, isSource);
+    // TODO The current splitting on construction cannot handle 2 splits in the same conveyor, so we just forbid it here
+    valid &= isSource || Source.GetConveyor() != conveyor;
+
+    if (isSource)
+        valid &= !CheckOverlap(splitter->GetComponentByClass<UStaticMeshComponent>(), {link}, {});
+    else
+        valid &= !CheckOverlap(splitter->GetComponentByClass<UStaticMeshComponent>(), {link, NextLink, NextNode}, {});
+
+    CurrentHighlight.Highlight(splitter, conveyor, link, valid);
+    return true;
+}
+
+bool UConveyorBuilderMode::HighlightBuildingUnderCursor(ABuilding* building, const FVector& hitLoc, bool isSource) {
+    TArray<UConveyorGate*> gates;
+    building->GetComponents<UConveyorGate>(gates);
+    gates.RemoveAllSwap([isSource](const UConveyorGate* it){return it->Conveyor != nullptr || isSource == it->IsInput();});
+
+    double nearestDist = INFINITY;
+    UConveyorGate* nearestGate = nullptr;
+    for (const auto gate : gates) {
+        const double dist = FVector::Distance(gate->GetComponentLocation(), hitLoc);
+        if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestGate = gate;
+        }
+    }
+
+    if (nearestGate != nullptr && CheckValidBuilding(building, isSource)) {
+        CurrentHighlight.Highlight(nearestGate, gates);
+        return true;
     } else {
-        NextNode->SetVisibility(false);
-        // the invisible node can still cause collision, so we move it away
-        NextNode->SetWorldLocation(target + FVector(0, 0, 5000));
+        CurrentHighlight.HighlightInvalid(building);
+        return false;
     }
 }
 
@@ -352,8 +502,7 @@ void UConveyorBuilderMode::CheckOverlap() {
         ConfirmSymbol->SetVisibility(!HasOverlap);
 }
 bool UConveyorBuilderMode::CheckOverlapLinks() {
-    const bool targetSet = Target.Type != SourceTarget::EType::NotSet;
-    if (targetSet && Links.Num() == 1) {
+    if (Target.IsSet() && Links.Num() == 1) {
         // special case for 1 segment conveyor
         return CheckOverlap(Links[0], {}, {&Source, &Target});
     }
@@ -363,17 +512,17 @@ bool UConveyorBuilderMode::CheckOverlapLinks() {
         // The first Link is allowed to overlap the Source and the first Node
         hasOverlapLinks |= CheckOverlap(Links[0], {Nodes[0]}, {&Source});
     }
-    const int numNormalLink = targetSet ? Links.Num() - 1 : Links.Num();
+    const int numNormalLink = Target.IsSet() ? Links.Num() - 1 : Links.Num();
     for (int i=1; i < numNormalLink; ++i) {
         // Normal Links may overlap the Nodes before and after them
         hasOverlapLinks |= CheckOverlap(Links[i], {Nodes[i-1], Nodes[i]}, {});
     }
-    if (targetSet && Links.Num() > 1) {
+    if (Target.IsSet() && Links.Num() > 1) {
         // if the Target is set, the last Link may overlap the Target and the last Node
         hasOverlapLinks |= CheckOverlap(Links.Last(), {Nodes.Last()}, {&Target}); 
     }
 
-    if (!targetSet && NextLink->IsVisible()) {
+    if (!Target.IsSet() && NextLink->IsVisible()) {
         TArray<UStaticMeshComponent*> allowedMeshes;
         TArray<SourceTarget*> allowed;
 
@@ -383,26 +532,25 @@ bool UConveyorBuilderMode::CheckOverlapLinks() {
         else
             allowed.Add(&Source);
 
-        if (CurrentHighlight.Type != SourceTarget::EType::NotSet)
+        if (CurrentHighlight.IsSet())
             allowed.Add(&CurrentHighlight);
 
         if (NextNode->IsVisible())
             allowedMeshes.Add(NextNode);
         
-        hasOverlapLinks |= CheckOverlap(NextLink, allowedMeshes, allowed);         
+        hasOverlapLinks |= CheckOverlap(NextLink, allowedMeshes, allowed);
     }
 
     return hasOverlapLinks;
 }
 bool UConveyorBuilderMode::CheckOverlapNodes() {
-    const bool targetSet = Target.Type != SourceTarget::EType::NotSet;
     bool hasOverlapNodes = false;
     if (Nodes.Num() > 0) {
         for (int i=0; i < Nodes.Num()-1; ++i) {
             // Normal Nodes may overlap the link before and after them
             hasOverlapNodes |= CheckOverlap(Nodes[i], {Links[i], Links[i+1]}, {});
         }
-        if (targetSet) {
+        if (Target.IsSet()) {
             // if the Target is set, the last nodes behaves like a normal Node
             hasOverlapNodes |= CheckOverlap(Nodes.Last(), {Links[Links.Num()-2], Links.Last()}, {});
         } else {
@@ -411,7 +559,7 @@ bool UConveyorBuilderMode::CheckOverlapNodes() {
         }
     }
 
-    if (!targetSet && NextNode->IsVisible()) {
+    if (!Target.IsSet() && NextNode->IsVisible()) {
         // NextNode may overlap NextLink
         hasOverlapNodes |= CheckOverlap(NextNode, {NextLink}, {});
     }
@@ -426,27 +574,24 @@ bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, const TArray
 
     TArray<AActor*> allowedActors;
     TArray<UStaticMeshComponent*> allowedNodes;
-    for (const auto a : allowed) {
-        allowedActors.Add(a->Building);
-        if (a->Type == SourceTarget::EType::ConveyorNode)
-            allowedNodes.Add(a->ConveyorComponent);
-    }
+    for (const auto a : allowed)
+        a->GetOverlapIgnore(allowedActors, allowedNodes);
         
     bool hasOverlap = false;        
     for (const auto overlap : overlaps) {
         if (allowedMeshes.Contains(overlap) || allowedNodes.Contains(overlap) || allowedActors.Contains(overlap->GetAttachmentRootActor()))
             continue;
         hasOverlap = true;
+        UE_LOG(LogTemp, Error, TEXT("%s on %s overlaps with %s on %s"), *mesh->GetName(), *mesh->GetOwner()->GetName(), *overlap->GetName(), *overlap->GetOwner()->GetName());
         break;
-    }    
+    }
     
-    if (hasOverlap) {
+    if (hasOverlap)
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
             mesh->SetMaterial(i, RedMaterial);
-    } else {   
+    else
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
             mesh->SetMaterial(i, nullptr);
-    }
 
     return hasOverlap;
 }
@@ -499,19 +644,12 @@ void UConveyorBuilderMode::AddArrowsToNode(UConveyorNode* node, UTexture2D* canc
 }
 
 void UConveyorBuilderMode::Confirm() {
-    if (Source.Type == SourceTarget::EType::NotSet) {
-        if (CurrentHighlight.Type == SourceTarget::EType::NotSet || !CurrentHighlightValid)
+    if (!Source.IsSet()) {
+        if (!CurrentHighlight.IsValid())
             return;
 
         Source = CurrentHighlight;
-        CurrentHighlight.Type = SourceTarget::EType::NotSet;
-        CurrentHighlight.Building = nullptr;
-        CurrentHighlight.Conveyor = nullptr;
-        CurrentHighlight.ConveyorComponent = nullptr;
-        
-        // TODO if the building/conveyor is under construction, this should restore the blue ghost material of construction
-        Source.Building->SetAllMaterials(nullptr); 
-        NextLinkStartPos = Source.Building->GetActorLocation();        
+        CurrentHighlight.Reset();
 
         Preview = GetWorld()->SpawnActor<AActor>();
         Preview->SetActorTickEnabled(false);
@@ -520,29 +658,38 @@ void UConveyorBuilderMode::Confirm() {
         return;
     }
 
-    if (Target.Type == SourceTarget::EType::NotSet) {
-        if (CurrentHighlight.Type == SourceTarget::EType::NotSet) {
+    if (!Target.IsSet()) {
+        if (!CurrentHighlight.IsSet()) {
             if (NextNode->IsVisible() && NextLink->IsVisible()) {
                 // create new Node
                 Nodes.Push(NextNode);
                 Links.Push(NextLink);
-                NextLinkStartPos = NextNode->GetComponentLocation();
                 CreateNextLinkAndNode();
             }
             return;
         }
 
-        if (!CurrentHighlightValid)
+        if (!CurrentHighlight.IsValid())
             return;
 
-        Target = CurrentHighlight;
-        CurrentHighlight.Type = SourceTarget::EType::NotSet;
-        CurrentHighlight.Building = nullptr;
-        CurrentHighlight.Conveyor = nullptr;
-        CurrentHighlight.ConveyorComponent = nullptr;
+        // find common resource
+        const auto resources = AConveyor::FindCommonResources(Source.GetBuilding()->FindComponentByClass<UInventoryComponent>(), CurrentHighlight.GetBuilding()->FindComponentByClass<UInventoryComponent>());
+        if (resources.IsEmpty()) {
+            checkNoEntry();
+            return;
+        }
+        if (resources.Num() > 1) {
+            UE_LOG(LogTemp, Error, TEXT("Multiple Matches found"));
+            return; // TODO show a dialog to select the input
+            // TODO if the input/target is untyped, and there are multiple outputs/sources, also prompt
+            // TODO think about if we want the vice versa of the above
+            // TODO think about depot to depot connections... if neither of them is connected to something else in the chain...
+        }
+        Resource = *resources.begin();
+
         
-        // TODO if the building/conveyor is under construction, this should restore the blue ghost material of construction
-        Target.Building->SetAllMaterials(nullptr); 
+        Target = CurrentHighlight;
+        CurrentHighlight.Reset();
         
         Links.Push(NextLink);
         NextLink = nullptr;
@@ -568,7 +715,7 @@ void UConveyorBuilderMode::Confirm() {
         ConfirmSymbol->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
         ConfirmSymbol->SetWidgetSpace(EWidgetSpace::Screen);
         ConfirmSymbol->SetWidget(confirmImageUI);
-        ConfirmSymbol->SetWorldLocation(Target.Building->GetActorLocation());
+        ConfirmSymbol->SetWorldLocation(Target.GetBuilding()->GetActorLocation());
         ConfirmSymbol->SetDrawSize(FVector2D(80, 80)); // TODO scale every tick based on distance to camera
         ConfirmSymbol->SetPivot(FVector2D(-0.5, -0.5));
         ConfirmSymbol->SetGenerateOverlapEvents(false);
@@ -584,7 +731,7 @@ void UConveyorBuilderMode::Confirm() {
         cancelSymbol->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
         cancelSymbol->SetWidgetSpace(EWidgetSpace::Screen);
         cancelSymbol->SetWidget(cancelImageUI);
-        cancelSymbol->SetWorldLocation(Target.Building->GetActorLocation());
+        cancelSymbol->SetWorldLocation(Target.GetBuilding()->GetActorLocation());
         cancelSymbol->SetDrawSize(FVector2D(80, 80)); // TODO scale every tick based on distance to camera
         cancelSymbol->SetPivot(FVector2D(1.5, -0.5));
         cancelSymbol->SetGenerateOverlapEvents(false);
@@ -615,58 +762,27 @@ void UConveyorBuilderMode::Confirm() {
     }
 }
 
-void UConveyorBuilderMode::SetHighlight(ABuilding* building, bool valid) {
-    if (CurrentHighlight.Building != building) {
-        RemoveCurrentHighlight();
-        CurrentHighlight.Building = building;
-    }
-    CurrentHighlightValid = valid;
-    building->SetAllMaterials(valid ? GreenMaterial : RedMaterial);
-}
-
-void UConveyorBuilderMode::RemoveCurrentHighlight() {
-    // TODO if the building/conveyor is under construction, this should restore the blue ghost material of construction
-    // or instead, just disallow selecting buildings/conveyors under construction?
-    switch (CurrentHighlight.Type) {
-    case SourceTarget::EType::NotSet:
-        return;
-    case SourceTarget::EType::Building:
-        CurrentHighlight.Building->SetAllMaterials(nullptr);
-        CurrentHighlight.Building = nullptr;
-        break;
-    case SourceTarget::EType::ConveyorNode:
-        CurrentHighlight.ConveyorComponent->SetVisibility(true);
-        // fallthrough
-    case SourceTarget::EType::ConveyorLink:
-        CurrentHighlight.Building->Destroy();
-        CurrentHighlight.Building = nullptr;
-        CurrentHighlight.Conveyor = nullptr;
-        CurrentHighlight.ConveyorComponent = nullptr;
-        break;
-    default: checkNoEntry();
-    }
-    CurrentHighlight.Type = SourceTarget::EType::NotSet;
-    CurrentHighlightValid = false;
-}
-
 void UConveyorBuilderMode::UpdateLinks(UConveyorNode* node) {
     const auto idx = Nodes.Find(node);
     check(idx != INDEX_NONE);
+    const FVector nodeLoc = node->GetComponentLocation();
 
     // update link before Node
     {
         UConveyorLink* link = Links[idx];
-        const FVector start = idx <= 0 ? Source.Building->GetActorLocation() : Nodes[idx-1]->GetComponentLocation();
-        const FVector end = node->GetComponentLocation();
-        link->Connect(start, end);
+        if (idx <= 0)
+            link->Connect(Source.GetLocation(), Source.ToConveyorType(), nodeLoc, AConveyor::ESourceTargetType::ConveyorNode);
+        else
+            link->Connect(Nodes[idx-1]->GetComponentLocation(), AConveyor::ESourceTargetType::ConveyorNode, nodeLoc, AConveyor::ESourceTargetType::ConveyorNode);
     }    
 
     // update link after Node
     {
         UConveyorLink* link = Links[idx+1];
-        const FVector start = node->GetComponentLocation();
-        const FVector end = idx >= Nodes.Num()-1 ? Target.Building->GetActorLocation() : Nodes[idx+1]->GetComponentLocation();
-        link->Connect(start, end);
+        if (idx >= Nodes.Num()-1)
+            link->Connect(nodeLoc, AConveyor::ESourceTargetType::ConveyorNode, Target.GetLocation(), Target.ToConveyorType());
+        else
+            link->Connect(nodeLoc, AConveyor::ESourceTargetType::ConveyorNode, Nodes[idx+1]->GetComponentLocation(), AConveyor::ESourceTargetType::ConveyorNode);
     }
     CheckOverlap();
 }
@@ -679,61 +795,35 @@ void UConveyorBuilderMode::OnClickConfirm() {
     const auto constructionManager = The::ConstructionManager(this);
 
     // Splitter
-    if (Source.Type == SourceTarget::EType::ConveyorNode || Source.Type == SourceTarget::EType::ConveyorLink) {
-        Source.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
-
-        auto& materials = encyclopedia->Splitter->Materials;
-        if (Source.Type == SourceTarget::EType::ConveyorNode)
-            Material::AddTo(materials, encyclopedia->ConveyorNode->Materials, -1);
-
-        const auto constructionSite = NewObject<UConstructionSite>()->Init(
-            Source.Building,
-            encyclopedia->Splitter->Time,
-            materials,
-            NewObject<UConstructionOptions>()
-        );
-        constructionManager->AddConstruction(constructionSite);
-
-        // split the conveyor
-        Source.Conveyor->SplitAt(Source.ConveyorComponent, Source.Building);
-    }
+    if (const auto constructionSite = Source.CreateConstructionSite(encyclopedia))
+        constructionManager->AddConstruction(constructionSite);  
+    // Merger
+    if (const auto constructionSite = Target.CreateConstructionSite(encyclopedia))
+        constructionManager->AddConstruction(constructionSite);     
             
     // Conveyor
-    {
-        TArray<FVector> nodes;
-        nodes.Reserve(Nodes.Num());
-        for (const auto& node : Nodes)
-            nodes.Push(node->GetComponentLocation());
-        const auto conveyor = AConveyor::Create(GetWorld(), Source.Building, Target.Building, nodes, Resource);
-        const FVector targetLoc = Target.Building->GetActorLocation();
-        const auto constructionSite = NewObject<UConstructionSite>()->Init(
-            conveyor,
-            1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
-            AConveyor::ComputeCosts(Source.Building->GetActorLocation(), &targetLoc, nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, encyclopedia),
-            NewObject<UConstructionOptions>()
-        ); 
-        constructionManager->AddConstruction(constructionSite);
-    }
-    
-    // Merger
-    if (Target.Type == SourceTarget::EType::ConveyorNode || Target.Type == SourceTarget::EType::ConveyorLink) {
-        Target.Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
+    TArray<FVector> nodes;
+    nodes.Add(Source.GetLocation());
+    for (const auto& node : Nodes)
+        nodes.Add(node->GetComponentLocation());
+    nodes.Add(Target.GetLocation());
 
-        auto& material = encyclopedia->Merger->Materials;
-        if (Target.Type == SourceTarget::EType::ConveyorNode)
-            Material::AddTo(material, encyclopedia->ConveyorNode->Materials, -1);
-
-        const auto constructionSite = NewObject<UConstructionSite>()->Init(
-            Target.Building,
-            encyclopedia->Merger->Time,
-            material,
-            NewObject<UConstructionOptions>()
-        );
-        constructionManager->AddConstruction(constructionSite);
-
-        // split the conveyor
-        Target.Conveyor->SplitAt(Target.ConveyorComponent, Target.Building);
-    }
+    const auto conveyor = AConveyor::Create(
+        GetWorld(),
+        Source.GetBuilding(),
+        Source.GetGate(),
+        Target.GetBuilding(),
+        Target.GetGate(),
+        nodes,
+        Resource
+    );
+    const auto constructionSite = NewObject<UConstructionSite>()->Init(
+        conveyor,
+        1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
+        AConveyor::ComputeCosts(nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, encyclopedia),
+        NewObject<UConstructionOptions>()
+    ); 
+    constructionManager->AddConstruction(constructionSite);
     
     Stop(NewObject<UConstructionOptions>());
 }
@@ -742,21 +832,15 @@ void UConveyorBuilderMode::OnClickCancel() {
     Stop();
 }
 
-bool UConveyorBuilderMode::CheckValidSource(const ABuilding* building) {
-    UInventoryComponent* inventory = building->GetComponentByClass<UInventoryComponent>();
+bool UConveyorBuilderMode::CheckValidBuilding(const ABuilding* building, const bool isSource) const {
+    const auto inventory = building->GetComponentByClass<UInventoryComponent>();
     if (!inventory)
         return false;
-    for (const auto& output : inventory->GetOutputs()) { // TODO handle buffer
-        if (!output.Conveyor)
-            return true;
-    }
-    return false;
-}
 
-UResource* UConveyorBuilderMode::CheckValidTarget(const ABuilding* building) const {
-    if (building == Source.Building)
-        return nullptr;
-    return AConveyor::FindCommonResource(Source.Building->GetComponentByClass<UInventoryComponent>(), building->GetComponentByClass<UInventoryComponent>());
+    if (isSource)
+        return inventory->GetUnconnected(false).Num() > 0;
+    else
+        return AConveyor::HasCommonResource(Source.GetBuilding()->GetComponentByClass<UInventoryComponent>(), inventory);
 }
 
 UClass* UConveyorBuilderMode::IDK() {
@@ -769,22 +853,11 @@ void UConveyorBuilderMode::Stop(UConstructionOptions* options) {
     Done = true;
 
     if (!options) {
-        if (Source.Type == SourceTarget::EType::ConveyorNode) {
-            Source.Building->Destroy();
-            Source.ConveyorComponent->SetVisibility(true);
-        } else if (Source.Type == SourceTarget::EType::ConveyorLink) {
-            Source.Building->Destroy();
-        }
-    
-        if (Target.Type == SourceTarget::EType::ConveyorNode) {
-            Target.Building->Destroy();
-            Target.ConveyorComponent->SetVisibility(true);
-        } else if (Target.Type == SourceTarget::EType::ConveyorLink) {
-            Target.Building->Destroy();
-        }
+        Source.RemoveHighlight();
+        Target.RemoveHighlight();
     }
-    
-    RemoveCurrentHighlight();
+
+    CurrentHighlight.RemoveHighlight();
 
     if (Preview) {
         Preview->Destroy();
@@ -815,7 +888,7 @@ void UConveyorBuilderMode::RemoveNode(UConveyorNode* node) {
     if (Nodes.Num() > 0) {
         UpdateLinks(Nodes[FMath::Min(idx, Nodes.Num()-1)]);
     } else {
-        Links[0]->Connect(Source.Building->GetActorLocation(), Target.Building->GetActorLocation());
+        Links[0]->Connect(Source.GetLocation(), Source.ToConveyorType(), Target.GetLocation(), Target.ToConveyorType());
         CheckOverlap();
     }
 }

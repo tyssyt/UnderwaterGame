@@ -1,7 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Farm.h"
+
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "XD/Inventory/ConveyorGate.h"
 
 AFarm::AFarm() {
     PrimaryActorTick.bCanEverTick = true;
@@ -17,6 +19,11 @@ AFarm::AFarm() {
     CraneMesh->SetStaticMesh(CraneMeshFinder.Object);
     CraneMesh->SetRenderCustomDepth(true);
     CraneMesh->SetupAttachment(Mesh);
+
+    const auto conveyorGate = CreateDefaultSubobject<UConveyorGate>(TEXT("ConveyorGate"));
+    conveyorGate->SetRelativeLocation(FVector(103.33, 0., 8.));
+    conveyorGate->SetRenderCustomDepth(true);
+    conveyorGate->SetupAttachment(Mesh);
 }
 
 

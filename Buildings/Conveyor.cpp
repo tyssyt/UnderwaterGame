@@ -3,12 +3,22 @@
 #include "Conveyor.h"
 
 #include "Splitter.h"
+#include "XD/Inventory/ConveyorGate.h"
 
-
-AConveyor* AConveyor::Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, UResource* resource) {
+AConveyor* AConveyor::Create(
+    UWorld* world,
+    ABuilding* source,
+    UConveyorGate* sourceGate,
+    ABuilding* target,
+    UConveyorGate* targetGate,
+    const TArray<FVector>& nodes,
+    UResource* resource
+) {
     AConveyor* conveyor = world->SpawnActor<AConveyor>();
     conveyor->Source = source;
+    conveyor->SourceGate = sourceGate;
     conveyor->Target = target;
+    conveyor->TargetGate = targetGate;
     conveyor->Nodes = nodes;
     conveyor->Connect(resource);
     return conveyor;
@@ -41,9 +51,10 @@ void AConveyor::Connect(UResource* resource) {
     }
     
     if (!resource) {
-        resource = FindCommonResource(Source->GetComponentByClass<UInventoryComponent>(), Target->GetComponentByClass<UInventoryComponent>());
-        if (!resource)
+        const auto resources = FindCommonResources(Source->GetComponentByClass<UInventoryComponent>(), Target->GetComponentByClass<UInventoryComponent>());
+        if (resources.Num() != 1)
             return;
+        resource = *resources.begin();
     }
     
     SourceInv = nullptr;
@@ -51,26 +62,24 @@ void AConveyor::Connect(UResource* resource) {
 
     // TODO extract common code from hande Target & handle Source
     
-    // handle Source    
+    // handle Source
     UInventoryComponent* sourceInventory = Source->FindComponentByClass<UInventoryComponent>();
     if (!sourceInventory)
         return;
-    auto& outputs = sourceInventory->GetOutputs();
-    for (auto& output : outputs) {
-        if (output.Conveyor)
-            continue;
-        if (output.Resource == resource) {
-            SourceInv = &output;
+    auto outputs = sourceInventory->GetUnconnected(false);
+    for (const auto output : outputs) {
+        if (output->Resource == resource) {
+            SourceInv = output;
             break;
         }
-        if (!output.Resource) {
-            SourceInv = &output;
-        }
+        if (!output->Resource)
+            SourceInv = output;
     }
     check(SourceInv != nullptr);
+
     if (!SourceInv->Resource) // we found a untyped input, type it
         SourceInv->Resource = resource;
-    SourceInv->Conveyor = this;
+    sourceInventory->SetConveyor(false, SourceInv, this);
     if (ASplitter* splitter = Cast<ASplitter>(Source))
         splitter->Connections++;
 
@@ -78,38 +87,58 @@ void AConveyor::Connect(UResource* resource) {
     UInventoryComponent* targetInventory = Target->FindComponentByClass<UInventoryComponent>();
     if (!targetInventory)
         return;
-    auto& inputs = targetInventory->GetInputs();
-    for (auto& input : inputs) {
-        if (input.Conveyor)
-            continue;
-        if (input.Resource == resource) {
-            TargetInv = &input;
+    auto inputs = targetInventory->GetUnconnected(true);
+    for (const auto input : inputs) {
+        if (input->Resource == resource) {
+            TargetInv = input;
             break;
         }
-        if (!input.Resource) {
-            TargetInv = &input;
+        if (!input->Resource) {
+            TargetInv = input;
         }
     }
     check(TargetInv != nullptr);
+
     if (!TargetInv->Resource) // we found a untyped input, type it
         TargetInv->Resource = resource;
-    TargetInv->Conveyor = this;
+    targetInventory->SetConveyor(true, TargetInv, this);
     if (AMerger* merger = Cast<AMerger>(Target))
         merger->Connections++;
 
+    if (SourceGate)
+        SourceGate->Conveyor = this;
+    if (TargetGate)
+        TargetGate->Conveyor = this;
+
     // Visually Connect Source to Target via Nodes
     SetActorLocation((Source->GetActorLocation() + Target->GetActorLocation()) * .5f);
+
+    ESourceTargetType startType;
+    if (Source->IsA<ASplitter>() || Source->IsA<AMerger>())
+        startType = ESourceTargetType::ConveyorNode;
+    else
+        startType = ESourceTargetType::Building;
     
-    FVector lastNode = Source->GetActorLocation();
-    for (auto nextNode : Nodes) {
-        MakeLink(lastNode, nextNode);
-        MakeNode(nextNode);
-        lastNode = nextNode;
+    ESourceTargetType endType;
+    if (Target->IsA<ASplitter>() || Target->IsA<AMerger>())
+        endType = ESourceTargetType::ConveyorNode;
+    else
+        endType = ESourceTargetType::Building;
+
+    if (Nodes.Num() == 2)
+        MakeLink(Nodes[0], startType, Nodes[1], endType);
+    else {
+        MakeLink(Nodes[0], startType, Nodes[1], ESourceTargetType::ConveyorNode);
+        for (int idx=1; idx < Nodes.Num()-2; idx++) {
+            MakeNode(Nodes[idx]);
+            MakeLink(Nodes[idx], ESourceTargetType::ConveyorNode, Nodes[idx+1], ESourceTargetType::ConveyorNode);
+        }
+        MakeNode(Nodes.Last(1));
+        MakeLink(Nodes.Last(1), ESourceTargetType::ConveyorNode, Nodes.Last(), endType);
     }
-    MakeLink(lastNode, Target->GetActorLocation());
 }
 
-void AConveyor::MakeNode(FVector location) {
+void AConveyor::MakeNode(const FVector& location) {
     UConveyorNode* node = NewObject<UConveyorNode>(this);
     node->RegisterComponent();
     node->AttachToComponent(GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
@@ -117,99 +146,87 @@ void AConveyor::MakeNode(FVector location) {
     this->AddInstanceComponent(node);    
 }
 
-void AConveyor::MakeLink(FVector start, FVector end) {
+void AConveyor::MakeLink(
+    const FVector& start,
+    ESourceTargetType startType,
+    const FVector& end,
+    ESourceTargetType endType
+) {
     UConveyorLink* nextLink = NewObject<UConveyorLink>(this);
     nextLink->RegisterComponent();
     nextLink->AttachToComponent(GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
     this->AddInstanceComponent(nextLink);
-    nextLink->Connect(start, end);
+    nextLink->Connect(start, startType, end, endType);
 }
 
-UResource* AConveyor::FindCommonResource(UInventoryComponent* source, UInventoryComponent* target) {
-    if (!source || !target || source == target || source->GetOutputs().Num() == 0 || target->GetInputs().Num() == 0)
-        return nullptr;
+bool AConveyor::HasCommonResource(UInventoryComponent* source, UInventoryComponent* target) {
+    return FindCommonResources(source, target).Num() > 0;
+}
 
-    auto& inputs = target->GetInputs();
-    auto& outputs = source->GetOutputs();    
+TSet<UResource*> AConveyor::FindCommonResources(UInventoryComponent* source, UInventoryComponent* target) {
+    if (!source || !target || source == target || source->GetOutputs().Num() == 0 || target->GetInputs().Num() == 0)
+        return {};
+
+    auto inputs = target->GetUnconnected(true);
+    auto outputs = source->GetUnconnected(false);
     
     // find matching in/outputs
     TSet<UResource*> resources;
     bool hasUntypedInput = false;
     bool hasUntypedOutput = false;
-    for (const auto& output : outputs) {
-        if (output.Conveyor)
-            continue;
-        if (!output.Resource) {
+    for (const auto output : outputs) {
+        if (!output->Resource) {
             hasUntypedOutput = true;
             continue;
         }
-        for (const auto& input : inputs) {
-            if (input.Conveyor)
-                continue;
-            if (!input.Resource)
+        for (const auto input : inputs) {
+            if (!input->Resource)
                 hasUntypedInput = true;
-            if (input.Resource == output.Resource)
-                resources.Add(input.Resource);
+            if (input->Resource == output->Resource)
+                resources.Add(input->Resource);
         }
     }
     
     if (resources.IsEmpty()) { // no matches found, check for untyped in- or outputs
-        if (hasUntypedInput) {
 
+        if (hasUntypedInput) {
             resources.Empty();
-            for (auto& output : outputs) {
-                if (!output.Conveyor)
-                    resources.Add(output.Resource);
-            }
+            for (const auto output : outputs)
+                resources.Add(output->Resource);
 
             if (resources.Num() == 1)
-                return *resources.begin();
+                return {*resources.begin()};
         }
 
         if (hasUntypedOutput) {
-
             resources.Empty();
-            for (auto& input : inputs) {
-                if (!input.Conveyor)
-                    resources.Add(input.Resource);
-            }
+            for (const auto input : inputs)
+                resources.Add(input->Resource);
 
             if (resources.Num() == 1)
-                return *resources.begin();
+                return {*resources.begin()};
         }
         
         if (hasUntypedInput ^ hasUntypedOutput)
             UE_LOG(LogTemp, Error, TEXT("No Matches found, even though there is an Untyped Input/Output"));
-        return nullptr;
+        return {};
     }
     if (resources.Num() == 1) // exactly one match found, connect them
-        return *resources.begin();
+        return {*resources.begin()};
 
-    // multiple matches found, show a dialog
-    UE_LOG(LogTemp, Error, TEXT("Multiple Matches found"));
-    return nullptr; // TODO show a dialog to select the input
-    // TODO if the input/target is untyped, and there are multiple outputs/sources, also prompt
-    // TODO think about if we want the vice versa of the above
-    // TODO think about depot to depot connections... if neither of them is connected to something else in the chain...
+    return MoveTemp(resources);
 }
 
-TArray<Material> AConveyor::ComputeCosts(FVector start, const FVector* end, const TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia) {
-    double linkDist = 0.;    
-    FVector last = start;
-    for (auto node : nodes) {
-        linkDist += FVector::Distance(last, node);
-        last = node;
-    }
-    if (end)
-        linkDist += FVector::Distance(last, *end);
-
-    return ComputeCosts(linkDist, nodes.Num(), splitter, merger, theEncyclopedia);
+TArray<Material> AConveyor::ComputeCosts(const TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia) {
+    double linkDist = 0.;
+    for (int idx=0; idx<nodes.Num()-1; idx++)
+        linkDist += FVector::Distance(nodes[idx], nodes[idx+1]);
+    return ComputeCosts(linkDist, FMath::Max(nodes.Num()-2, 0), splitter, merger, theEncyclopedia);
 }
 
 inline static constexpr double ConveyorLinkDistanceScale = 13.37; // TODO this needs to be explained somewhere in the encyclopedia
 TArray<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia) {
     TArray<Material> materials;
-
     Material::AddTo(materials, theEncyclopedia->ConveyorLink->Materials, static_cast<int>(linkDist / ConveyorLinkDistanceScale));
     Material::AddTo(materials, theEncyclopedia->ConveyorNode->Materials, numNodes);
 
@@ -245,11 +262,12 @@ TArray<Material> AConveyor::ComputeCosts(double linkDist, int numNodes, ESourceT
 TPair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABuilding* building) {
     TInlineComponentArray<UStaticMeshComponent*> meshes;
     GetComponents<UStaticMeshComponent>(meshes);
-
     check(meshes.Contains(mesh));
 
     TArray<FVector> nodes1;
     TArray<FVector> nodes2;
+    nodes1.Add(Nodes[0]);
+    nodes2.Add(building->GetActorLocation());
 
     TArray<FVector>* cur = &nodes1;
     for (const auto m : meshes) {
@@ -260,75 +278,25 @@ TPair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABu
         if (m->IsA<UConveyorNode>())
             cur->Push(m->GetComponentLocation());
     }
+    nodes1.Add(building->GetActorLocation());
+    nodes2.Add(Nodes.Last());
 
-    // TODO this should propably go to some generic onDelete
-
-    check(SourceInv->Conveyor == this);
-    if (ASplitter* splitter = Cast<ASplitter>(Source))
-        DisconnectFromSplitter(splitter);
+    // TODO this should probably go to some generic onDelete
+    if (const auto splitter = Cast<ASplitter>(Source))
+        splitter->Disconnect(this);
     else
-        SourceInv->Conveyor = nullptr;
+        Source->FindComponentByClass<UInventoryComponent>()->SetConveyor(false, SourceInv, nullptr);
 
-    check(TargetInv->Conveyor == this);
-    if (AMerger* merger = Cast<AMerger>(Target))
-        DisconnectFromMerger(merger);
+    if (const auto merger = Cast<AMerger>(Target))
+        merger->Disconnect(this);
     else
-        TargetInv->Conveyor = nullptr;
+        Target->FindComponentByClass<UInventoryComponent>()->SetConveyor(true, TargetInv, nullptr);
     
-    this->Destroy();    
-    return MakeTuple(Create(GetWorld(), Source, building, nodes1, SourceInv->Resource), Create(GetWorld(), building, Target, nodes2, SourceInv->Resource));
-}
-
-void AConveyor::DisconnectFromSplitter(ASplitter* splitter) const {
-    TArray<FInventorySlot>* outputs = &splitter->Inventory->GetOutputs();
-    FInventorySlot* slot = nullptr;
-    for (auto& output : *outputs) {
-        if (output.Conveyor == this) {
-            slot = &output;
-            break;
-        }
-    }
-    check(slot != nullptr);
-    FInventorySlot* last = &(*outputs)[splitter->Connections-1];
-    if (slot != last) {
-        // swap with last
-        FInventorySlot tmp = *last;
-        *last = *slot;
-        *slot = tmp;
-        // fix up pointer
-        slot->Conveyor->SourceInv = slot; // NPE if the last slot was empty
-    }
-    // make sure no items are lost
-    splitter->Inventory->GetInputs()[0].Current += last->Current;
-    last->Current = 0;
-    last->Conveyor = nullptr;
-    splitter->Connections--;    
-}
-
-void AConveyor::DisconnectFromMerger(AMerger* merger) const {
-    TArray<FInventorySlot>* inputs = &merger->Inventory->GetInputs();
-    FInventorySlot* slot = nullptr;
-    for (auto& input : *inputs) {
-        if (input.Conveyor == this) {
-            slot = &input;
-            break;
-        }
-    }
-    check(slot != nullptr);
-    FInventorySlot* last = &(*inputs)[merger->Connections-1];
-    if (slot != last) {
-        // swap with last
-        FInventorySlot tmp = *last;
-        *last = *slot;
-        *slot = tmp;
-        // fix up pointer
-        slot->Conveyor->TargetInv = slot;
-    }
-    // make sure no items are lost
-    merger->Inventory->GetOutputs()[0].Current += last->Current;
-    last->Current = 0;
-    last->Conveyor = nullptr;
-    merger->Connections--;    
+    this->Destroy();
+    return MakeTuple(
+        Create(GetWorld(), Source, SourceGate, building, nullptr, nodes1, SourceInv->Resource),
+        Create(GetWorld(), building, nullptr, Target, TargetGate, nodes2, SourceInv->Resource)
+    );
 }
 
 UConveyorLink::UConveyorLink() {    
@@ -337,14 +305,39 @@ UConveyorLink::UConveyorLink() {
     SetRenderCustomDepth(true);
 }
 
-void UConveyorLink::Connect(FVector start, FVector end) {     
+void UConveyorLink::Connect(
+    FVector start,
+    AConveyor::ESourceTargetType startType,
+    FVector end,
+    AConveyor::ESourceTargetType endType
+) {     
     FVector startToEnd = end - start;
 
     // Nudge start end end a little bit towards each other, not changing the z component
     FVector nudge = FVector(startToEnd.X, startToEnd.Y, 0.);
     if (nudge.Normalize()) {
-        start = start + 13 * nudge;
-        end = end - 13 * nudge;
+        switch (startType) {
+        case AConveyor::ESourceTargetType::Building:
+            start = start + 1 * nudge;
+            break;
+        case AConveyor::ESourceTargetType::ConveyorNode:
+        case AConveyor::ESourceTargetType::ConveyorLink:
+            start = start + 13 * nudge;
+            break;
+        default:
+            checkNoEntry();
+        }
+        switch (endType) {
+        case AConveyor::ESourceTargetType::Building:
+            end = end - 1 * nudge;
+            break;
+        case AConveyor::ESourceTargetType::ConveyorNode:
+        case AConveyor::ESourceTargetType::ConveyorLink:
+            end = end - 13 * nudge;
+            break;
+        default:
+            checkNoEntry();
+        }
         startToEnd = end - start;
     }
     

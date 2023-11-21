@@ -9,9 +9,12 @@ UInventoryUI* UInventoryUI::Init(UInventoryComponent* inventory) {
     Inputs->ClearChildren();
     for (const auto& input : inventory->GetInputs())
         Inputs->AddChildToWrapBox(CreateWidget<UInventorySlotUI>(WidgetTree, InventorySlotUIClass)->Set(&input));
+
     Outputs->ClearChildren();
-    for (const auto& output : inventory->GetOutputs())
-        Outputs->AddChildToWrapBox(CreateWidget<UInventorySlotUI>(WidgetTree, InventorySlotUIClass)->Set(&output));
+    if (!inventory->IsBuffer()) {
+        for (const auto& output : inventory->GetOutputs())
+            Outputs->AddChildToWrapBox(CreateWidget<UInventorySlotUI>(WidgetTree, InventorySlotUIClass)->Set(&output));
+    }
 
     if (Inputs->GetChildrenCount() == 0 || Outputs->GetChildrenCount() == 0)
         Arrows->SetVisibility(ESlateVisibility::Collapsed);
@@ -24,7 +27,9 @@ void UInventoryUI::Tick() const {
     for (int idx = 0; idx < inputs.Num(); idx++)
         Cast<UInventorySlotUI>(Inputs->GetChildAt(idx))->Set(&inputs[idx]);
 
-    const auto& outputs = Inventory->GetOutputs();
-    for (int idx = 0; idx < outputs.Num(); idx++)
-        Cast<UInventorySlotUI>(Outputs->GetChildAt(idx))->Set(&outputs[idx]);
+    if (!Inventory->IsBuffer()) {
+        const auto& outputs = Inventory->GetOutputs();
+        for (int idx = 0; idx < outputs.Num(); idx++)
+            Cast<UInventorySlotUI>(Outputs->GetChildAt(idx))->Set(&outputs[idx]);
+    }
 }

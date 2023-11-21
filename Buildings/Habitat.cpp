@@ -4,6 +4,7 @@
 
 #include "The.h"
 #include "XD/Encyclopedia/Encyclopedia.h"
+#include "XD/Inventory/ConveyorGate.h"
 
 const float AHabitat::CELL_WIDTH = 10.f; // why c++ be like this?
 
@@ -41,6 +42,12 @@ AHabitat::AHabitat() : PopulationManager(new HabitatPopulationManager(this)),
     Mesh->SetStaticMesh(MeshFinder.Object);
     Mesh->SetRenderCustomDepth(true);
     SetRootComponent(Mesh);
+
+    const auto conveyorGate = CreateDefaultSubobject<UConveyorGate>(TEXT("ConveyorGate"));
+    conveyorGate->SetInput(true);
+    conveyorGate->SetRelativeLocation(FVector(13., 0., 8.));
+    conveyorGate->SetRenderCustomDepth(true);
+    conveyorGate->SetupAttachment(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 }

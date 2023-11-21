@@ -5,6 +5,43 @@
 
 #include "Conveyor.h"
 
+constexpr int COMBINED_SLOT_SIZE = 150;
+constexpr int SPLIT_SLOT_SIZE = 100;
+constexpr double SPLIT_SLOT_SIZE_D = 100.;
+
+void AJunction::InternalDisconnect(bool isSplitter, UInventoryComponent* InventoryComponent, AConveyor* conveyor) {
+    auto& inventory = isSplitter ? InventoryComponent->GetOutputs() : InventoryComponent->GetInputs();
+
+    const int idx = (isSplitter ? conveyor->SourceInv : conveyor->TargetInv) - inventory.GetData();
+    check(idx >= 0 && idx < inventory.Num());
+
+    // we don't waste
+    if (isSplitter)
+        InventoryComponent->GetInputs()[0].Current += inventory[idx].Current;
+    else
+        InventoryComponent->GetOutputs()[0].Current += inventory[idx].Current;
+
+    // swap with last
+    if (idx != Connections-1) {
+        inventory[idx] = inventory[Connections-1];
+        if (isSplitter)
+            inventory[idx].Conveyor->SourceInv = &inventory[idx];
+        else
+            inventory[idx].Conveyor->TargetInv = &inventory[idx];
+    }
+
+    // reset connection
+    auto& toClear = inventory[Connections-1];
+    toClear.Current = 0;
+    toClear.Conveyor = nullptr;
+    Connections--;
+
+    if (isSplitter)
+        conveyor->SourceInv = nullptr;
+    else
+        conveyor->TargetInv = nullptr;
+}
+
 ASplitter::ASplitter() {
     PrimaryActorTick.bCanEverTick = true;
     
@@ -12,11 +49,11 @@ ASplitter::ASplitter() {
     SetRootComponent(Mesh);
     
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Inventory->GetInputs().Emplace(150);
-    Inventory->GetOutputs().Emplace(100);
-    Inventory->GetOutputs().Emplace(100);
-    Inventory->GetOutputs().Emplace(100);
-    Inventory->GetOutputs().Emplace(100);
+    Inventory->GetInputs().Emplace(COMBINED_SLOT_SIZE);
+    Inventory->GetOutputs().Emplace(SPLIT_SLOT_SIZE);
+    Inventory->GetOutputs().Emplace(SPLIT_SLOT_SIZE);
+    Inventory->GetOutputs().Emplace(SPLIT_SLOT_SIZE);
+    Inventory->GetOutputs().Emplace(SPLIT_SLOT_SIZE);
 }
 
 void ASplitter::Tick(float DeltaTime) {
@@ -24,7 +61,7 @@ void ASplitter::Tick(float DeltaTime) {
 
     FInventorySlot* input = &Inventory->GetInputs()[0];
     
-    const int amount = input->PullFrom(150);
+    const int amount = input->PullFrom(COMBINED_SLOT_SIZE);
     if (amount == 0)
         return;
     
@@ -33,11 +70,14 @@ void ASplitter::Tick(float DeltaTime) {
     const int amountPerConnection = amount / Connections;
     int overflow = amount % Connections;
     
-    for (int i = 0; i < Connections; ++i) {
+    for (int i = 0; i < Connections; ++i)
         overflow += amountPerConnection - (*outputs)[i].PushInto(amountPerConnection);
-    }
 
     input->Current += overflow;
+}
+
+void ASplitter::Disconnect(AConveyor* conveyor) {
+    InternalDisconnect(true, Inventory, conveyor);
 }
 
 AMerger::AMerger() {
@@ -47,18 +87,18 @@ AMerger::AMerger() {
     SetRootComponent(Mesh);
     
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Inventory->GetInputs().Emplace(100);
-    Inventory->GetInputs().Emplace(100);
-    Inventory->GetInputs().Emplace(100);
-    Inventory->GetInputs().Emplace(100);
-    Inventory->GetOutputs().Emplace(150);
+    Inventory->GetInputs().Emplace(SPLIT_SLOT_SIZE);
+    Inventory->GetInputs().Emplace(SPLIT_SLOT_SIZE);
+    Inventory->GetInputs().Emplace(SPLIT_SLOT_SIZE);
+    Inventory->GetInputs().Emplace(SPLIT_SLOT_SIZE);
+    Inventory->GetOutputs().Emplace(COMBINED_SLOT_SIZE);
 }
 
 void AMerger::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
     FInventorySlot* output = &Inventory->GetOutputs()[0];
-    if (output->Current >= 100)
+    if (output->Current >= SPLIT_SLOT_SIZE)
         return;
     
     
@@ -66,8 +106,8 @@ void AMerger::Tick(float DeltaTime) {
     int totalInput = 0;
     for (int i = 0; i < Connections; ++i)
         totalInput += (*inputs)[i].Current;
-    
-    float factor = FMath::Clamp((100. - output->Current) / totalInput, 0., 1.);
+
+    const float factor = FMath::Clamp((SPLIT_SLOT_SIZE_D - output->Current) / totalInput, 0., 1.);
 
     // TODO optimization
     // Idea 1: quite often, factor will be 1 so we can do a branch without float math and float/int conversion, but that adds a branch...
@@ -80,4 +120,8 @@ void AMerger::Tick(float DeltaTime) {
     }
 
     output->Current += pulled;
+}
+
+void AMerger::Disconnect(AConveyor* conveyor) {
+    InternalDisconnect(false, Inventory, conveyor);
 }

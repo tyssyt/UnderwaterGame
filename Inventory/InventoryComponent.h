@@ -26,14 +26,18 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FInventorySlot> Outputs;
 
-    bool IsBuffer = false;
+    bool bIsBuffer = false;
     
 public:
     UInventoryComponent();
 
     void SetBuffer();
-    TArray<FInventorySlot>& GetInputs();
-    TArray<FInventorySlot>& GetOutputs();
+    bool IsBuffer() const { return bIsBuffer; }
+    TArray<FInventorySlot>& GetInputs() { return Inputs; }
+    TArray<FInventorySlot>& GetOutputs() { return bIsBuffer ? Inputs : Outputs; }
+
+    TArray<FInventorySlot*> GetUnconnected(bool isInput);
+    void SetConveyor(bool isInput, FInventorySlot* slot, AConveyor* conveyor);
 
     void SetRecipe(URecipe* recipe);
 

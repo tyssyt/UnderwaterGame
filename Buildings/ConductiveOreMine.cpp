@@ -2,6 +2,8 @@
 
 #include "ConductiveOreMine.h"
 
+#include "XD/Inventory/ConveyorGate.h"
+
 AConductiveOreMine::AConductiveOreMine() {
     PrimaryActorTick.bCanEverTick = true;
 
@@ -9,7 +11,13 @@ AConductiveOreMine::AConductiveOreMine() {
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
     Mesh->SetStaticMesh(MeshFinder.Object);
     Mesh->SetRenderCustomDepth(true);
-    Mesh->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
-    Mesh->SetRelativeScale3D(FVector(1.f, 1.f, .25f));
+    Mesh->SetRelativeLocation(FVector(0., 0., 50.));
+    Mesh->SetRelativeScale3D(FVector(1., 1., .25));
     SetRootComponent(Mesh);
+
+    const auto conveyorGate = CreateDefaultSubobject<UConveyorGate>(TEXT("ConveyorGate"));
+    conveyorGate->SetRelativeLocation(FVector(52., 0., 0.));
+    conveyorGate->SetRelativeScale3D(FVector(1., 1., 4.));
+    conveyorGate->SetRenderCustomDepth(true);
+    conveyorGate->SetupAttachment(Mesh);
 }

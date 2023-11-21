@@ -2,6 +2,8 @@
 
 #include "Excavator.h"
 
+#include "XD/Inventory/ConveyorGate.h"
+
 AExcavator::AExcavator() {
     PrimaryActorTick.bCanEverTick = true;
 
@@ -21,6 +23,12 @@ AExcavator::AExcavator() {
     //WheelMesh->AddLocalOffset(FVector(102.62, 0., 13.099));
     WheelMesh->SetRelativeScale3D(FVector(0.9, 1, 0.9));
     WheelMesh->AddLocalOffset(FVector(102.62, 0., 15.));
+
+    const auto conveyorGate = CreateDefaultSubobject<UConveyorGate>(TEXT("ConveyorGate"));
+    conveyorGate->SetRelativeLocation(FVector(-28., 0., 8.));
+    conveyorGate->SetRelativeRotation(FRotator(0., 180., 0.));
+    conveyorGate->SetRenderCustomDepth(true);
+    conveyorGate->SetupAttachment(Mesh);
 }
 
 void AExcavator::Tick(float DeltaTime) {

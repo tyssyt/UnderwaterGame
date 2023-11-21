@@ -7,8 +7,20 @@
 #include "XD/Inventory/InventoryComponent.h"
 #include "Splitter.generated.h"
 
+
+UCLASS(Abstract)
+class XD_API AJunction : public ABuilding {
+    GENERATED_BODY()
+
+protected:
+    void InternalDisconnect(bool isSplitter, UInventoryComponent* InventoryComponent, AConveyor* conveyor);
+
+public:
+    int Connections = 0;
+};
+
 UCLASS()
-class XD_API ASplitter : public ABuilding {
+class XD_API ASplitter : public AJunction {
     GENERATED_BODY()
 
 public:
@@ -20,14 +32,13 @@ public:
     UPROPERTY(EditAnywhere)
     UConveyorNode* Mesh;
 
-    int Connections = 0;
-
     virtual void Tick(float DeltaTime) override;
+    void Disconnect(AConveyor* conveyor);
 };
 
 
 UCLASS()
-class XD_API AMerger : public ABuilding {
+class XD_API AMerger : public AJunction {
     GENERATED_BODY()
 
 public:
@@ -42,4 +53,5 @@ public:
     int Connections = 0;
 
     virtual void Tick(float DeltaTime) override;
+    void Disconnect(AConveyor* conveyor);
 };

@@ -16,6 +16,7 @@
 #include "XD/Resources/Resource.h"
 #include "Conveyor.generated.h"
 
+class UConveyorGate;
 class AMerger;
 class ASplitter;
 struct Material;
@@ -28,7 +29,15 @@ public:
 
     enum class ESourceTargetType { Building, ConveyorNode, ConveyorLink };
 
-    static AConveyor* Create(UWorld* world, ABuilding* source, ABuilding* target, TArray<FVector> nodes, UResource* resource);
+    static AConveyor* Create(
+        UWorld* world,
+        ABuilding* source,
+        UConveyorGate* sourceGate,
+        ABuilding* target,
+        UConveyorGate* targetGate,
+        const TArray<FVector>& nodes,
+        UResource* resource
+    );
     AConveyor();
 
     UPROPERTY(VisibleAnywhere)
@@ -43,7 +52,11 @@ public:
     UPROPERTY(EditAnywhere)
     ABuilding* Source;
     UPROPERTY(EditAnywhere)
+    UConveyorGate* SourceGate;
+    UPROPERTY(EditAnywhere)
     ABuilding* Target;
+    UPROPERTY(EditAnywhere)
+    UConveyorGate* TargetGate;
     UPROPERTY(EditAnywhere)
     TArray<FVector> Nodes;
 
@@ -51,10 +64,8 @@ public:
     FInventorySlot* TargetInv;
 
 protected:
-    void MakeNode(FVector location);
-    void MakeLink(FVector start, FVector end);
-    void DisconnectFromSplitter(ASplitter* splitter) const;
-    void DisconnectFromMerger(AMerger* merger) const;
+    void MakeNode(const FVector& location);
+    void MakeLink(const FVector& start, ESourceTargetType startType, const FVector& end, ESourceTargetType endType);
 
 public:
     virtual void Tick(float DeltaTime) override;
@@ -62,8 +73,9 @@ public:
     UFUNCTION(CallInEditor, Category="Conveyor")
     void Connect(UResource* resource = nullptr);
 
-    static UResource* FindCommonResource(UInventoryComponent* source, UInventoryComponent* target);
-    static TArray<Material> ComputeCosts(FVector start, const FVector* end, const TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia);
+    static bool HasCommonResource(UInventoryComponent* source, UInventoryComponent* target);
+    static TSet<UResource*> FindCommonResources(UInventoryComponent* source, UInventoryComponent* target);
+    static TArray<Material> ComputeCosts(const TArray<FVector>& nodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia);
     static TArray<Material> ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia);
 
     TPair<AConveyor*, AConveyor*> SplitAt(UStaticMeshComponent* mesh, ABuilding* building);
@@ -77,7 +89,7 @@ class XD_API UConveyorLink : public UStaticMeshComponent {
 public:
     UConveyorLink();
 
-    void Connect(FVector start, FVector end);
+    void Connect(FVector start, AConveyor::ESourceTargetType startType, FVector end, AConveyor::ESourceTargetType endType);
     
 };
 
@@ -109,5 +121,4 @@ public:
     AConveyor* Conveyor;
 
     virtual void Tick() override;
-
 };

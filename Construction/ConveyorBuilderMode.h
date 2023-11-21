@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BuilderMode.h"
+#include "Components/WidgetComponent.h"
 #include "XD/Buildings/Conveyor.h"
 #include "ConveyorBuilderMode.generated.h"
 
@@ -13,19 +14,49 @@ UCLASS()
 class XD_API UConveyorBuilderMode : public UBuilderMode {
     GENERATED_BODY()
 
-public:
-    struct SourceTarget { 
+    class SourceTarget {
         enum class EType {NotSet, Building, ConveyorLink, ConveyorNode};
 
-        EType Type = EType::NotSet;
-        ABuilding* Building;
+        UConveyorBuilderMode* Parent;
 
-        // the following properties are only set if this is a Spliltter/Merger
-        AConveyor* Conveyor;
-        UStaticMeshComponent* ConveyorComponent;
+        bool Valid = false;
+        EType Type = EType::NotSet;
+        ABuilding* Building = nullptr;
+
+        // for Building
+        UConveyorGate* Gate = nullptr;
+
+        // for ConveyorLink & ConveyorNode
+        AConveyor* Conveyor = nullptr;
+        UStaticMeshComponent* ConveyorComponent = nullptr;
+
+    public:
+        explicit SourceTarget(UConveyorBuilderMode* const parent) : Parent(parent) {}
+
+        bool IsSet() const;
+        bool IsValid() const;
+        bool IsConveyorNode(const UConveyorNode* node) const;
+        bool IsConveyorLink(const UConveyorLink* link) const;
+
+        ABuilding* GetBuilding() const { return Building; }
+        AConveyor* GetConveyor() const { return Conveyor; }
+        UConveyorGate* GetGate() const { return Gate; }
+        FVector GetLocation() const;
+        AConveyor::ESourceTargetType ToConveyorType() const;
+
+        void RemoveHighlight();
+        void HighlightInvalid(ABuilding* building);
+        void Highlight(UConveyorGate* gate, const TArray<UConveyorGate*>& otherGates);
+        void Highlight(ABuilding* building, AConveyor* conveyor, UConveyorNode* node, bool valid);
+        void Highlight(ABuilding* building, AConveyor* conveyor, UConveyorLink* link, bool valid);
+
+        void Reset();
+        UConstructionSite* CreateConstructionSite(const UEncyclopedia* encyclopedia) const;
+
+        // TODO I don't like this function
+        void GetOverlapIgnore(TArray<AActor*>& allowedActors, TArray<UStaticMeshComponent*>& allowedNodes) const;
     };
 
-private:
 
     // TODO have some form of alignment, i.e. to Neighbors or a global grid
     // TODO height adjustment via keys, both before and after target selection
@@ -37,20 +68,19 @@ private:
     UMaterialInstance* RedMaterial;
     UPROPERTY()
     UMaterialInstance* GreenMaterial;
+    UPROPERTY()
+    UMaterialInstance* YellowMaterial;
 
-    SourceTarget Source;
-    SourceTarget Target;
-    SourceTarget CurrentHighlight;
-    bool CurrentHighlightValid = false;;
+    SourceTarget Source = SourceTarget(this);
+    SourceTarget Target = SourceTarget(this);
+    SourceTarget CurrentHighlight = SourceTarget(this);
+
     UPROPERTY()
     UResource* Resource;
-    
+
     UPROPERTY()
     AActor* Preview;
 
-
-    UPROPERTY()
-    FVector NextLinkStartPos;
     UPROPERTY()
     UConveyorNode* NextNode;
     UPROPERTY()
@@ -86,9 +116,14 @@ private:
     void ComputeCostSelectNextPoint() const;
     void TickInsertNode(const ACameraPawn& camera);
     void ComputeCostInsertNode() const;
-    static FVector ProjectOntoLink(FVector loc, const UConveyorLink* link);
+    static FVector ProjectOntoLink(const FVector& loc, const UConveyorLink* link);
     ABuilding* SpawnSplitter(bool isSource, UResource* resource) const;
+
     bool HighlightUnderCursor(const APlayerControllerX* playerController, bool isSource);
+    bool HighlightConveyorNodeUnderCursor(AConveyor* conveyor, UConveyorNode* node, bool isSource);
+    bool HighlightConveyorLinkUnderCursor(AConveyor* conveyor, UConveyorLink* link, const FVector& hitLoc, bool isSource);
+    bool HighlightBuildingUnderCursor(ABuilding* building, const FVector& hitLoc, bool isSource);    
+
     void CheckOverlap();
     bool CheckOverlapLinks();
     bool CheckOverlapNodes();
@@ -96,9 +131,6 @@ private:
     void AddArrowsToNode(UConveyorNode* node, UTexture2D* cancelTexture);
 
     void Confirm();
-    void SetHighlight(ABuilding* building, bool valid);
-    void RemoveCurrentHighlight();
-    void DrawNextLink(FVector target, bool drawNode) const;
 
     UFUNCTION()
     void UpdateLinks(UConveyorNode* node);
@@ -107,8 +139,7 @@ private:
     UFUNCTION()
     void OnClickCancel();
 
-    static bool CheckValidSource(const ABuilding* building);
-    UResource* CheckValidTarget(const ABuilding* building) const;
+    bool CheckValidBuilding(const ABuilding* building, bool isSource) const;
 };
 
 // Helper Class because the OnClick of the Button has no Parameters
