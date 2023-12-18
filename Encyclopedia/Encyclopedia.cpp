@@ -54,13 +54,13 @@ UEncyclopedia* UEncyclopedia::Init(
 
     // Special Resources
     // TODO configure start resources in config
-    StartResources.Emplace(resources[TEXT("Large Parts")], 3000);
-    StartResources.Emplace(resources[TEXT("Mechanical Components")], 1500);
-    StartResources.Emplace(resources[TEXT("Electrical Components")], 1500);
-    StartResources.Emplace(resources[TEXT("Cable")], 750);
-    StartResources.Emplace(resources[TEXT("Rubber")], 750);
-    StartResources.Emplace(resources[TEXT("Glass")], 750);
-    StartResources.Emplace(resources[TEXT("Life Support Equipment")], 750);
+    StartResources.Emplace(resources[TEXT("Large Parts")], 500);
+    StartResources.Emplace(resources[TEXT("Mechanical Components")], 800);
+    StartResources.Emplace(resources[TEXT("Electrical Components")], 2600);
+    StartResources.Emplace(resources[TEXT("Cable")], 800);
+    StartResources.Emplace(resources[TEXT("Rubber")], 100);
+    StartResources.Emplace(resources[TEXT("Glass")], 1500);
+    StartResources.Emplace(resources[TEXT("Life Support Equipment")], 850);
     
     Food = resources[TEXT("Food")];
     People = resources[TEXT("People")];

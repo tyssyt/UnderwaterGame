@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "BuilderMode.h"
 #include "Components/WidgetComponent.h"
+#include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Conveyor.h"
 #include "ConveyorBuilderMode.generated.h"
 

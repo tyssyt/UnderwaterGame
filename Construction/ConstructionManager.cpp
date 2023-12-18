@@ -100,16 +100,15 @@ void UConstructionManager::Tick(float DeltaTime) {
 }
 
 UConstructionSite* UConstructionManager::FindBuildableConstructionSite() {
-    for (auto it = NewConstructionSites.begin(); it != NewConstructionSites.end(); ++it) {
-        const auto cur = *it;
+    const int idx = NewConstructionSites.IndexOfByPredicate([this](const UConstructionSite* site) {
+        return HasResourcesFor(&site->Materials);
+    });
+    if (idx == INDEX_NONE)
+        return nullptr;
 
-        if (!HasResourcesFor(&cur->Materials))
-            continue;
-        
-        NewConstructionSites.Remove(*it);
-        return cur;
-    }
-    return nullptr;
+    const auto site = NewConstructionSites[idx];
+    NewConstructionSites.RemoveAt(idx); // TODO optimization if NewConstructionSites is a queue this should be a little faster?
+    return site;
 }
 
 bool UConstructionManager::HasResourcesFor(const TArray<Material>* materials) const {    

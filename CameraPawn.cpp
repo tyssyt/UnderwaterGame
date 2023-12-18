@@ -114,8 +114,7 @@ void ACameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 void ACameraPawn::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    APlayerControllerX* playerController = GetController<APlayerControllerX>();
-    if (playerController)
+    if (const auto playerController = GetController<APlayerControllerX>())
         playerController->TickUI();
 
     if (BuilderMode && BuilderMode->Tick(*this))

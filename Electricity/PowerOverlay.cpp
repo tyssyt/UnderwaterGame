@@ -36,12 +36,12 @@ void UPowerOverlay::Tick(float DeltaTime) {
     for (UWidgetComponent* widgetComponent : widgetComponents)
         ScaleFloatingWidget(widgetComponent, cameraLocation);
     
-    const EMode mode = The::BPHolder(this)->PowerOverlayUI->GetMode();
+    const EPowerOverlayMode mode = The::BPHolder(this)->PowerOverlayUI->GetMode();
     if (mode != ModeHighlight.Mode) {
         ResetModeHighlight(true);
         ModeHighlight.Mode = mode;
 
-        if (mode == EMode::Disconnect) {
+        if (mode == EPowerOverlayMode::Disconnect) {
             // set collision of wires
             TInlineComponentArray<UWireComponent*> wires;
             ComponentHolder->GetComponents<UWireComponent>(wires, true);
@@ -51,15 +51,15 @@ void UPowerOverlay::Tick(float DeltaTime) {
     }
 
     switch (mode) {
-    case EMode::None:
+    case EPowerOverlayMode::None:
         return;
-    case EMode::TogglePower:
+    case EPowerOverlayMode::TogglePower:
         TickTogglePower();
         break;
-    case EMode::Connect:
+    case EPowerOverlayMode::Connect:
         TickConnect();
         break;
-    case EMode::Disconnect:
+    case EPowerOverlayMode::Disconnect:
         TickDisconnect();
         break;
     default:
@@ -189,9 +189,9 @@ void UPowerOverlay::TickDisconnect() {
 
 void UPowerOverlay::ConfirmModeHighlight() { // TODO this could be less messy I guess...
     switch (ModeHighlight.Mode) {
-    case EMode::None:
+    case EPowerOverlayMode::None:
         return;
-    case EMode::TogglePower: {
+    case EPowerOverlayMode::TogglePower: {
         if (!ModeHighlight.Current)
             return;
         UElectricComponent* elec = ModeHighlight.Current->GetComponentByClass<UElectricComponent>();
@@ -209,7 +209,7 @@ void UPowerOverlay::ConfirmModeHighlight() { // TODO this could be less messy I 
         elec->Substation->Network->RecomputeStats();
         return;
     }
-    case EMode::Connect: {
+    case EPowerOverlayMode::Connect: {
         if (!ModeHighlight.Current)
             return;
         if (!ModeHighlight.Source) {
@@ -242,7 +242,7 @@ void UPowerOverlay::ConfirmModeHighlight() { // TODO this could be less messy I 
         checkNoEntry();
         return;
     }
-    case EMode::Disconnect: {
+    case EPowerOverlayMode::Disconnect: {
         if (ModeHighlight.Current) {
             Cast<ASubstation>(ModeHighlight.Current)->DisconnectFromNetwork();
         } else if (ModeHighlight.Wire) {
@@ -260,22 +260,22 @@ void UPowerOverlay::ConfirmModeHighlight() { // TODO this could be less messy I 
 
 void UPowerOverlay::ResetModeHighlight(bool deactivate) {
     switch (ModeHighlight.Mode) {
-    case EMode::None:
+    case EPowerOverlayMode::None:
         return;
-    case EMode::TogglePower:
+    case EPowerOverlayMode::TogglePower:
         ResetTogglePower();
         break;
-    case EMode::Connect:
+    case EPowerOverlayMode::Connect:
         ResetConnect(deactivate);
         break;
-    case EMode::Disconnect:
+    case EPowerOverlayMode::Disconnect:
         ResetDisconnect(deactivate);
         break;
     default:
         checkNoEntry();
         return;
     }
-    ModeHighlight.Mode = EMode::None;
+    ModeHighlight.Mode = EPowerOverlayMode::None;
 }
 void UPowerOverlay::ResetTogglePower() {    
     if (ModeHighlight.Current) {
@@ -587,20 +587,4 @@ void UPowerOverlay::Highlight(const UElectricComponent* building) const {
         checkNoEntry();
         break;
     }
-}
-
-UPowerOverlay::EMode UPowerOverlayUI::GetMode() const {
-    if (CheckBoxTogglePower->GetCheckedState() == ECheckBoxState::Checked)
-        return UPowerOverlay::EMode::TogglePower;
-    if (CheckBoxConnect->GetCheckedState() == ECheckBoxState::Checked)
-        return UPowerOverlay::EMode::Connect;
-    if (CheckBoxDisconnect->GetCheckedState() == ECheckBoxState::Checked)
-        return UPowerOverlay::EMode::Disconnect;
-    return UPowerOverlay::EMode::None;
-}
-
-void UPowerOverlayUI::Reset() const {
-    CheckBoxTogglePower->SetCheckedState(ECheckBoxState::Unchecked);
-    CheckBoxConnect->SetCheckedState(ECheckBoxState::Unchecked);
-    CheckBoxDisconnect->SetCheckedState(ECheckBoxState::Unchecked);
 }

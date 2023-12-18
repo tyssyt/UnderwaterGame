@@ -24,7 +24,7 @@ ADepot::ADepot() {
     outConveyorGate->SetupAttachment(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Inventory->GetInputs().Emplace(40000);
+    Inventory->GetInputs().Emplace(1000);
     Inventory->SetBuffer();
     Inventory->AddToUI = true;
 }

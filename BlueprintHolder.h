@@ -15,7 +15,7 @@
 #include "Buildings/BuildingSelectedUI.h"
 #include "Buildings/Substation.h"
 #include "Construction/ConstructionUI.h"
-#include "Electricity/PowerOverlay.h"
+#include "Electricity/PowerOverlayUI.h"
 #include "Encyclopedia/EncyclopediaUI.h"
 #include "Inventory/InventoryUI.h"
 #include "NaturalResources/NaturalResourceSelectedUI.h"

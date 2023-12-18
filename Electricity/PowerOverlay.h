@@ -3,23 +3,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "XD/PlayerControllerX.h"
 #include "ElectricComponent.h"
 #include "PowerUI.h"
 #include "WireComponent.h"
-#include "Components/CheckBox.h"
 #include "Components/WidgetComponent.h"
 #include "UObject/Object.h"
 #include "PowerOverlay.generated.h"
 
 class ABuilding;
-class APlayerControllerX;
+
+
+enum class EPowerOverlayMode {None, TogglePower, Connect, Disconnect};
 
 UCLASS()
 class XD_API UPowerOverlay : public UObject, public FTickableGameObject {
     GENERATED_BODY()
-
-public:
-    enum class EMode {None, TogglePower, Connect, Disconnect};
 
 private:
 
@@ -42,7 +41,7 @@ private:
     UMaterialInstance* MatHighlight;
 
     struct UModeHighlight {
-        EMode Mode;
+        EPowerOverlayMode Mode;
         ABuilding* Current;
 
         ABuilding* Source; // for Connect
@@ -98,24 +97,4 @@ private:
     void AddFloatingWidget(FVector location, UUserWidget* widget, const APlayerControllerX* playerController) const;
     static void ScaleFloatingWidget(UWidgetComponent* widgetComponent, FVector cameraLocation);
     void Highlight(const UElectricComponent* building) const;
-};
-
-UCLASS(Abstract)
-class XD_API UPowerOverlayUI : public UUserWidget {
-    GENERATED_BODY()
-  
-protected:
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UCheckBox* CheckBoxTogglePower;
-    
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UCheckBox* CheckBoxConnect;
-    
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UCheckBox* CheckBoxDisconnect;
-
-public:
-
-    UPowerOverlay::EMode GetMode() const;
-    void Reset() const;
 };

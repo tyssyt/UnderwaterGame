@@ -41,10 +41,10 @@ APickupPad::APickupPad() {
     conveyorGate4->SetupAttachment(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
-    Inventory->GetInputs().Emplace(40000);
-    Inventory->GetInputs().Emplace(40000);
-    Inventory->GetInputs().Emplace(40000);
-    Inventory->GetInputs().Emplace(40000);
+    Inventory->GetInputs().Emplace(2500);
+    Inventory->GetInputs().Emplace(2500);
+    Inventory->GetInputs().Emplace(2500);
+    Inventory->GetInputs().Emplace(2500);
     Inventory->AddToUI = true;
 }
 

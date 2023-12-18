@@ -300,7 +300,7 @@ TPair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABu
 }
 
 UConveyorLink::UConveyorLink() {    
-    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Cube"));
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Conveyor/ConveyorLink"));
     UStaticMeshComponent::SetStaticMesh(MeshFinder.Object);
     SetRenderCustomDepth(true);
 }
