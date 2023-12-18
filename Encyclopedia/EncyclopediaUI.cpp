@@ -15,20 +15,32 @@ UEncyclopediaCategory* UEncyclopediaUI::AddCategory(const FString& name) const {
     return category;
 }
 
-UEncyclopediaPageResource* UEncyclopediaUI::CreateResourcePage(UResource* resource) const {
-    return CreateWidget<UEncyclopediaPageResource>(
+UEncyclopediaEntry* UEncyclopediaUI::CreateResourcePage(const UEncyclopediaCategory* category, UResource* resource) {
+    const auto title = resource->Name.ToString();
+    const auto page = CreateWidget<UEncyclopediaPageResource>(
         GetOwningPlayer(),
         EncyclopediaPageResourceClass)->Init(resource, Encyclopedia);
+    const auto entry = category->AddEntry(title, page);
+    Entries.Add(title, entry);
+    return entry;
 }
-UEncyclopediaPageNaturalResource* UEncyclopediaUI::CreateNaturalResourcePage(UNaturalResource* naturalResource) const {
-    return CreateWidget<UEncyclopediaPageNaturalResource>(
+UEncyclopediaEntry* UEncyclopediaUI::CreateNaturalResourcePage(const UEncyclopediaCategory* category,UNaturalResource* naturalResource) {
+    const auto title = naturalResource->Name.ToString();
+    const auto page = CreateWidget<UEncyclopediaPageNaturalResource>(
         GetOwningPlayer(),
         EncyclopediaPageNaturalResourceClass)->Init(naturalResource, Encyclopedia);
+    const auto entry = category->AddEntry(title, page);
+    Entries.Add(title, entry);
+    return entry;
 }
-UEncyclopediaPageBuilding* UEncyclopediaUI::CreateBuildingPage(UConstructionPlan* building) const {
-    return CreateWidget<UEncyclopediaPageBuilding>(
+UEncyclopediaEntry* UEncyclopediaUI::CreateBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building) {
+    const auto title = building->Name.ToString();
+    const auto page = CreateWidget<UEncyclopediaPageBuilding>(
         GetOwningPlayer(),
         EncyclopediaPageBuildingClass)->Init(building, Encyclopedia);
+    const auto entry = category->AddEntry(title, page);
+    Entries.Add(title, entry);
+    return entry;
 }
 
 void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia) {
@@ -90,32 +102,31 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia) {
 
         const auto rawCategory = resources->AddSubCategory(TEXT("Raw Materials"));
         for (const auto resource : rawMaterials)
-            resource->EncyclopediaEntry = rawCategory->AddEntry(resource->Name.ToString(), CreateResourcePage(resource));
+            resource->EncyclopediaEntry = CreateResourcePage(rawCategory, resource);
         
-        // TODO should somehow redirect to people & workforce
-        encyclopedia->Food->EncyclopediaEntry = rawCategory->AddEntry(encyclopedia->Food->Name.ToString(), nullptr); // TODO add Page
-
         const auto intermediateCategory = resources->AddSubCategory(TEXT("Intermediate Products"));
         for (const auto resource : intermediateProducts)
-            resource->EncyclopediaEntry = intermediateCategory->AddEntry(resource->Name.ToString(), CreateResourcePage(resource));
+            resource->EncyclopediaEntry = CreateResourcePage(intermediateCategory, resource);
         
         const auto constructionCategory = resources->AddSubCategory(TEXT("Construction Materials"));
         for (const auto resource : constructionResources)
-            resource->EncyclopediaEntry = constructionCategory->AddEntry(resource->Name.ToString(), CreateResourcePage(resource));
+            resource->EncyclopediaEntry = CreateResourcePage(constructionCategory, resource);
 
         const auto needsCategory = resources->AddSubCategory(TEXT("Needs"));
         for (const auto resource : needs)
-            resource->EncyclopediaEntry = needsCategory->AddEntry(resource->Name.ToString(), CreateResourcePage(resource));
+            resource->EncyclopediaEntry = CreateResourcePage(needsCategory, resource);
 
         const auto peoplePage = needsCategory->AddEntry(TEXT("People & Workforce"), nullptr); // TODO add special page
         encyclopedia->People->EncyclopediaEntry = peoplePage;
         encyclopedia->Workforce->EncyclopediaEntry = peoplePage;
+
+        // TODO show in food category that people need it, and have both pages link to each other
     }
 
     {
         const auto naturalResources = AddCategory(TEXT("Natural Resources"));
         for (const auto naturalResource : encyclopedia->GetAllNaturalResources())
-            naturalResource->EncyclopediaEntry = naturalResources->AddEntry(naturalResource->Name.ToString(), CreateNaturalResourcePage(naturalResource));
+            naturalResource->EncyclopediaEntry = CreateNaturalResourcePage(naturalResources, naturalResource);
     }
 
     {
@@ -140,7 +151,7 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia) {
                     encyclopedia->ConveyorNode->EncyclopediaEntry = building->EncyclopediaEntry;
                     encyclopedia->ConveyorLink->EncyclopediaEntry = building->EncyclopediaEntry;
                 } else
-                    building->EncyclopediaEntry = category->AddEntry(building->Name.ToString(), CreateBuildingPage(building));
+                    building->EncyclopediaEntry = CreateBuildingPage(category, building);
             }
         }
     }
@@ -185,6 +196,11 @@ void UEncyclopediaUI::OpenPage(UEncyclopediaEntry* entry) {
     OpenedEntry = entry;
 }
 
+void UEncyclopediaUI::OpenPageByName(FText name) {
+    if (const auto entry = FindPage(name))
+        OpenPage(entry);
+}
+
 void UEncyclopediaUI::ClosePage() {
     if (!OpenedEntry)
         return;
@@ -195,6 +211,12 @@ void UEncyclopediaUI::ClosePage() {
     SetContentForSlot(TEXT("Page"), nullptr);
 
     OpenedEntry = nullptr;
+}
+
+UEncyclopediaEntry* UEncyclopediaUI::FindPage(const FText& name) const {
+    if (const auto entry = Entries.Find(name.ToString()))
+        return *entry;
+    return nullptr;
 }
 
 void UEncyclopediaUI::CollapseAll(UEncyclopediaCategory* ignore) const {    
@@ -215,6 +237,7 @@ UEncyclopediaEntry* UEncyclopediaCategory::AddEntry(const FString& title, UEncyc
     const auto entry = CreateWidget<UEncyclopediaEntry>(
         GetOwningPlayer(),
         encyclopedia->EncyclopediaEntryClass)->Init(FText::FromString(title), page);
+    // TODO I convert FText->FString->FText again, which is likely not what I need... once translations start this will all be a mess...
     Entries->AddChild(entry);
     return entry;
 }

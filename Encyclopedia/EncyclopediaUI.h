@@ -24,11 +24,13 @@ class XD_API UEncyclopediaUI : public UUserWidget {
     GENERATED_BODY()
 
     UEncyclopediaCategory* AddCategory(const FString& name) const;
-    UEncyclopediaPageResource* CreateResourcePage(UResource* resource) const;
-    UEncyclopediaPageNaturalResource* CreateNaturalResourcePage(UNaturalResource* naturalResource) const;
-    UEncyclopediaPageBuilding* CreateBuildingPage(UConstructionPlan* building) const;
+    UEncyclopediaEntry* CreateResourcePage(const UEncyclopediaCategory* category, UResource* resource);
+    UEncyclopediaEntry* CreateNaturalResourcePage(const UEncyclopediaCategory* category, UNaturalResource* naturalResource);
+    UEncyclopediaEntry* CreateBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building);
 
 protected:
+    UPROPERTY()
+    TMap<FString, UEncyclopediaEntry*> Entries;
     UPROPERTY(BlueprintReadOnly)
     UEncyclopedia* Encyclopedia;
     UPROPERTY(BlueprintReadOnly)
@@ -50,7 +52,12 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void OpenPage(UEncyclopediaEntry* entry);
+    UFUNCTION(BlueprintCallable)
+    void OpenPageByName(FText name);
+    UFUNCTION(BlueprintCallable)
     void ClosePage();
+
+    UEncyclopediaEntry* FindPage(const FText& name) const;
 
     UFUNCTION(BlueprintCallable)
     void CollapseAll(UEncyclopediaCategory* ignore = nullptr) const;
