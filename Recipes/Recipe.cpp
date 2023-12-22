@@ -33,6 +33,13 @@ URecipe* URecipe::Init(const TArray<UConstructionPlan*>& buildings, const TArray
     return this;
 }
 
+URecipe* URecipe::InitUnchecked(const TArray<UConstructionPlan*>& buildings, const TArray<Ingredient>& ingredients, const TArray<Result>& results) {
+    Buildings.Append(buildings);
+    Ingredients.Append(ingredients);
+    Results.Append(results);
+    return this;
+}
+
 bool URecipe::HasSize(int ingredients, int results) const {
     return ingredients == Ingredients.Num() && results == Results.Num();
 }

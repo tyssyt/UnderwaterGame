@@ -7,6 +7,7 @@
 #include "EncyclopediaPageBuilding.h"
 #include "EncyclopediaPageNaturalResource.h"
 #include "EncyclopediaPageResource.h"
+#include "EncyclopediaPageText.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
 #include "Components/ExpandableArea.h"
@@ -24,9 +25,11 @@ class XD_API UEncyclopediaUI : public UUserWidget {
     GENERATED_BODY()
 
     UEncyclopediaCategory* AddCategory(const FString& name) const;
-    UEncyclopediaEntry* CreateResourcePage(const UEncyclopediaCategory* category, UResource* resource);
-    UEncyclopediaEntry* CreateNaturalResourcePage(const UEncyclopediaCategory* category, UNaturalResource* naturalResource);
-    UEncyclopediaEntry* CreateBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building);
+    UEncyclopediaEntry* CreateAndAddResourcePage(const UEncyclopediaCategory* category, UResource* resource);
+    UEncyclopediaEntry* CreateAndAddNaturalResourcePage(const UEncyclopediaCategory* category, UNaturalResource* naturalResource);
+    UEncyclopediaEntry* CreateAndAddBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building);
+    UEncyclopediaEntry* CreateAndAddTextPage(const UEncyclopediaCategory* category, const FText& name, const FText& text);
+    UEncyclopediaEntry* AddPage(const UEncyclopediaCategory* category, const FText& title, UEncyclopediaPage* page);
 
 protected:
     UPROPERTY()
@@ -43,7 +46,7 @@ protected:
     UScrollBox* Categories;
 
 public:
-    void Fill(UEncyclopedia* encyclopedia);
+    void Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FText>>& additionalPages);
 
     UFUNCTION(BlueprintCallable)
     void Open();
@@ -72,6 +75,8 @@ public:
     TSubclassOf<UEncyclopediaPageNaturalResource> EncyclopediaPageNaturalResourceClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UEncyclopediaPageBuilding> EncyclopediaPageBuildingClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UEncyclopediaPageText> EncyclopediaPageTextClass;
 };
 
 UCLASS(Abstract)
@@ -91,7 +96,7 @@ public:
 
     UEncyclopediaCategory* Init(const FText& label);
 
-    UEncyclopediaEntry* AddEntry(const FString& title, UEncyclopediaPage* page) const;
+    UEncyclopediaEntry* AddEntry(const FText& title, UEncyclopediaPage* page) const;
     UEncyclopediaCategory* AddSubCategory(const FString& name) const;
 
     void CollapseAll(UEncyclopediaCategory* ignore = nullptr, bool includeSelf = true) const;

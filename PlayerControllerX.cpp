@@ -17,9 +17,10 @@ void APlayerControllerX::BeginPlay() {
     BlueprintHolder->MainUI->AddToViewport();
 
     // TODO there probably is a better place to put this, but for now it can live here
-    GetGameInstance<UGameInstanceX>()->TheEncyclopedia = ConfigLoader::Load(BlueprintHolder->MainUI->HotbarDock);
+    auto loadedData = ConfigLoader::Load(BlueprintHolder->MainUI->HotbarDock);
+    GetGameInstance<UGameInstanceX>()->TheEncyclopedia = loadedData.Key;
     UEncyclopedia* encyclopedia = The::Encyclopedia(this);
-    BlueprintHolder->EncyclopediaUI->Fill(encyclopedia);
+    BlueprintHolder->EncyclopediaUI->Fill(encyclopedia, loadedData.Value);
     UConstructionManager* constructionManager = The::ConstructionManager(this);
     constructionManager->SetConstructionResources(encyclopedia->FindConstructionResources());
 

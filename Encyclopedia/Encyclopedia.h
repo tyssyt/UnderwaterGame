@@ -64,6 +64,8 @@ public:
     UConstructionPlan* Splitter;
     UPROPERTY()
     UConstructionPlan* Merger;
+    UPROPERTY()
+    UConstructionPlan* WorkerHouse;
 
     TArray<UResource*>& GetAllResources();
     TArray<UNaturalResource*>& GetAllNaturalResources();

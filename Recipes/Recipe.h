@@ -25,7 +25,8 @@ class XD_API URecipe : public UObject {
 
 public:
     URecipe* Init(const TArray<UConstructionPlan*>& buildings, const TArray<Ingredient>& ingredients, const TArray<Result>& results);
-
+    URecipe* InitUnchecked(const TArray<UConstructionPlan*>& buildings, const TArray<Ingredient>& ingredients, const TArray<Result>& results);
+    
     UPROPERTY(VisibleAnywhere)
     TArray<UConstructionPlan*> Buildings;
 

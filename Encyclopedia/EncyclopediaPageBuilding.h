@@ -24,7 +24,7 @@ protected:
     URichTextBlock* Description;
 
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UConstructionPlanUI* ConstructionPlan;
+    UVerticalBox* ConstructionPlans;
 
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UWrapBox* Needs;
@@ -42,6 +42,8 @@ protected:
     UBorder* RecipesBox;
 
     UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UConstructionPlanUI> ConstructionPlanUIClass;
+    UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UNaturalResourceUI> NaturalResourceUIClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UResourceAmountUI> ResourceAmountUIClass;
@@ -52,4 +54,5 @@ protected:
 
 public:
     UEncyclopediaPageBuilding* Init(UConstructionPlan* building, UEncyclopedia* encyclopedia);
+    UEncyclopediaPageBuilding* InitConveyor(UEncyclopedia* encyclopedia);
 };

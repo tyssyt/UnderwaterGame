@@ -8,6 +8,7 @@
 #include "Components/RichTextBlock.h"
 #include "Components/VerticalBox.h"
 #include "XD/Buildings/ConstructionPlanUI.h"
+#include "XD/Recipes/RecipeUI.h"
 #include "EncyclopediaPageResource.generated.h"
 
 class UEncyclopedia;
@@ -43,6 +44,8 @@ protected:
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<URecipeWithBuildingUI> RecipeWithBuildingUIClass;
     UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<URecipeUI> RecipeUIClass;
+    UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UConstructionPlanUI> ConstructionPlanUIClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UResourceAmountUI> ResourceAmountUIClass;
@@ -53,4 +56,5 @@ protected:
 
 public:
     UEncyclopediaPageResource* Init(UResource* resource, UEncyclopedia* encyclopedia);
+    UEncyclopediaPageResource* InitPeople(UEncyclopedia* encyclopedia);
 };

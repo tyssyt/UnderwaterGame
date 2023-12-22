@@ -21,7 +21,11 @@ void UEncyclopediaPageBuilding::NativeTick(const FGeometry& MyGeometry, float In
 
 UEncyclopediaPageBuilding* UEncyclopediaPageBuilding::Init(UConstructionPlan* building, UEncyclopedia* encyclopedia) {
     Description->SetText(building->Description);
-    ConstructionPlan->Init(building, false);
+
+    ConstructionPlans->ClearChildren();
+    ConstructionPlans->AddChildToVerticalBox(
+        CreateWidget<UConstructionPlanUI>(GetOwningPlayer(), ConstructionPlanUIClass)->Init(building, false)
+    );
 
     {
         Needs->ClearChildren();
@@ -58,5 +62,18 @@ UEncyclopediaPageBuilding* UEncyclopediaPageBuilding::Init(UConstructionPlan* bu
             RecipesBox->SetVisibility(ESlateVisibility::Collapsed);
     }
 
+    return this;
+}
+
+UEncyclopediaPageBuilding* UEncyclopediaPageBuilding::InitConveyor(UEncyclopedia* encyclopedia) {
+    Init(encyclopedia->Conveyor, encyclopedia);
+
+    ConstructionPlans->ClearChildren();
+    ConstructionPlans->AddChildToVerticalBox(
+        CreateWidget<UConstructionPlanUI>(GetOwningPlayer(), ConstructionPlanUIClass)->Init(encyclopedia->ConveyorNode, false)
+        );
+    ConstructionPlans->AddChildToVerticalBox(
+        CreateWidget<UConstructionPlanUI>(GetOwningPlayer(), ConstructionPlanUIClass)->Init(encyclopedia->ConveyorLink, false)
+    );
     return this;
 }

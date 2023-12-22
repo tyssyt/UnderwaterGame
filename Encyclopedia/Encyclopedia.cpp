@@ -72,6 +72,7 @@ UEncyclopedia* UEncyclopedia::Init(
     ConveyorLink = buildings[TEXT("Conveyor Link")];
     Splitter = buildings[TEXT("Splitter")];
     Merger = buildings[TEXT("Merger")];
+    WorkerHouse = buildings[TEXT("Worker House")];
     
     return this;
 }

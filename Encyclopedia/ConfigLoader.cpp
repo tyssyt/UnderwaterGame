@@ -29,6 +29,7 @@ struct Config {
     TArray<URecipe*> Recipes;
     TMap<FString, UHotbar*> Hotbars;
     UHotbar* MainHotbar;
+    TArray<TPair<FText, FText>> EncyclopediaPages;
 
     Config(
         UObject* ObjOwner,
@@ -427,6 +428,15 @@ void LoadHotbars(const FYamlNode& node, Config& config) {
     }
 }
 
+void LoadEncyclopediaPage(const FYamlNode& node, Config& config) {    
+    try {
+        const auto name = node["Title"].As<FText>();
+        UE_LOG(LogConfigLoader, Display, TEXT("Loading Encyclopedia Page %s (Line %d)"), *name.ToString(), node.GetMark().line +1);
+        config.EncyclopediaPages.Emplace(name, node["Text"].As<FText>());
+    } catch (YAML::Exception e) {
+        UE_LOG(LogConfigLoader, Error, TEXT("Error loading Encyclopedia Page: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
+    }
+}
 
 void LoadFile(FString& path, Config& config) {
     FPaths::NormalizeFilename(path);
@@ -458,6 +468,9 @@ void LoadFile(FString& path, Config& config) {
     if (const auto hotbars = root["Hotbars"])
         LoadHotbars(hotbars, config);
 
+    for (const auto& encyclopediaPage : root["EncyclopediaPages"])
+        LoadEncyclopediaPage(encyclopediaPage, config);
+
     const auto folder = FPaths::GetPath(path);
     for (const auto& file : root["Files"]) {
         try {
@@ -469,7 +482,7 @@ void LoadFile(FString& path, Config& config) {
     }
 }
 
-UEncyclopedia* ConfigLoader::Load(const UHotbarDock* dock) {
+TPair<UEncyclopedia*, TArray<TPair<FText, FText>>> ConfigLoader::Load(const UHotbarDock* dock) {
     const auto encyclopedia = NewObject<UEncyclopedia>();
     Config config(encyclopedia, dock->GetOwningPlayer<APlayerControllerX>(), dock->HotbarUIClass, dock->HotbarSlotSubmenuUIClass, dock->HotbarSlotActionUIClass);
     auto path = FPaths::ProjectDir() + "Content/Config/root.yml"; // TODO there are some other interesting options in FPaths, test how this behaves on a release build
@@ -478,5 +491,8 @@ UEncyclopedia* ConfigLoader::Load(const UHotbarDock* dock) {
     if (config.MainHotbar)
         dock->SetMainHotbar(config.MainHotbar);
 
-    return encyclopedia->Init(config.Resources, config.NaturalResources, config.Buildings, config.Recipes);
+    return MakeTuple(
+        encyclopedia->Init(config.Resources, config.NaturalResources, config.Buildings, config.Recipes),
+        MoveTemp(config.EncyclopediaPages)
+    );
 }

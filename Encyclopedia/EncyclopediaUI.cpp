@@ -3,6 +3,7 @@
 #include "EncyclopediaUI.h"
 
 #include "Collections.h"
+#include "EncyclopediaPageText.h"
 #include "UI.h"
 #include "XD/Buildings/ConstructionPlan.h"
 #include "XD/Resources/Resource.h"
@@ -15,58 +16,54 @@ UEncyclopediaCategory* UEncyclopediaUI::AddCategory(const FString& name) const {
     return category;
 }
 
-UEncyclopediaEntry* UEncyclopediaUI::CreateResourcePage(const UEncyclopediaCategory* category, UResource* resource) {
-    const auto title = resource->Name.ToString();
+UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddResourcePage(const UEncyclopediaCategory* category, UResource* resource) {
     const auto page = CreateWidget<UEncyclopediaPageResource>(
         GetOwningPlayer(),
         EncyclopediaPageResourceClass)->Init(resource, Encyclopedia);
-    const auto entry = category->AddEntry(title, page);
-    Entries.Add(title, entry);
-    return entry;
+    return AddPage(category, resource->Name, page);
 }
-UEncyclopediaEntry* UEncyclopediaUI::CreateNaturalResourcePage(const UEncyclopediaCategory* category,UNaturalResource* naturalResource) {
-    const auto title = naturalResource->Name.ToString();
+UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddNaturalResourcePage(const UEncyclopediaCategory* category,UNaturalResource* naturalResource) {
     const auto page = CreateWidget<UEncyclopediaPageNaturalResource>(
         GetOwningPlayer(),
         EncyclopediaPageNaturalResourceClass)->Init(naturalResource, Encyclopedia);
-    const auto entry = category->AddEntry(title, page);
-    Entries.Add(title, entry);
-    return entry;
+    return AddPage(category, naturalResource->Name, page);
 }
-UEncyclopediaEntry* UEncyclopediaUI::CreateBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building) {
-    const auto title = building->Name.ToString();
+UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building) {
     const auto page = CreateWidget<UEncyclopediaPageBuilding>(
         GetOwningPlayer(),
         EncyclopediaPageBuildingClass)->Init(building, Encyclopedia);
+    return AddPage(category, building->Name, page);
+}
+
+UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddTextPage(const UEncyclopediaCategory* category, const FText& title, const FText& text) {
+    const auto page = CreateWidget<UEncyclopediaPageText>(
+    GetOwningPlayer(),
+    EncyclopediaPageTextClass)->Init(text);
+    return AddPage(category, title, page);
+}
+
+UEncyclopediaEntry* UEncyclopediaUI::AddPage(const UEncyclopediaCategory* category, const FText& title, UEncyclopediaPage* page) {    
     const auto entry = category->AddEntry(title, page);
-    Entries.Add(title, entry);
+    Entries.Add(title.ToString(), entry);
     return entry;
 }
 
-void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia) {
+void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FText>>& additionalPages) {
     check(encyclopedia);
     Encyclopedia = encyclopedia;
     Categories->ClearChildren();
 
+    /* TODO add settings
     {
         const auto settings = AddCategory(TEXT("Settings"));
-        settings->AddEntry(TEXT("Settings"), nullptr); // TODO add Page
-        // TODO wenn das wirklich nur 1 item ist dann könnte ich das auch top level ohne category machen
+        settings->AddEntry(TEXT("Settings"), nullptr);
     }
+    */
 
     {
         const auto concepts = AddCategory(TEXT("Concepts"));
-        concepts->AddEntry(TEXT("The Encyclopedia"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Natural Resources"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Construction"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Conveyors"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Splitters & Mergers"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Production & Recipes"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Electricity"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Habitats"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("People & Workforce"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Exploration"), nullptr); // TODO add Page
-        concepts->AddEntry(TEXT("Research"), nullptr); // TODO add Page
+        for (const auto& page : additionalPages)
+            CreateAndAddTextPage(concepts, page.Key, page.Value);
     }
 
     {
@@ -102,31 +99,35 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia) {
 
         const auto rawCategory = resources->AddSubCategory(TEXT("Raw Materials"));
         for (const auto resource : rawMaterials)
-            resource->EncyclopediaEntry = CreateResourcePage(rawCategory, resource);
+            resource->EncyclopediaEntry = CreateAndAddResourcePage(rawCategory, resource);
         
         const auto intermediateCategory = resources->AddSubCategory(TEXT("Intermediate Products"));
         for (const auto resource : intermediateProducts)
-            resource->EncyclopediaEntry = CreateResourcePage(intermediateCategory, resource);
+            resource->EncyclopediaEntry = CreateAndAddResourcePage(intermediateCategory, resource);
         
         const auto constructionCategory = resources->AddSubCategory(TEXT("Construction Materials"));
         for (const auto resource : constructionResources)
-            resource->EncyclopediaEntry = CreateResourcePage(constructionCategory, resource);
+            resource->EncyclopediaEntry = CreateAndAddResourcePage(constructionCategory, resource);
 
         const auto needsCategory = resources->AddSubCategory(TEXT("Needs"));
         for (const auto resource : needs)
-            resource->EncyclopediaEntry = CreateResourcePage(needsCategory, resource);
+            resource->EncyclopediaEntry = CreateAndAddResourcePage(needsCategory, resource);
 
-        const auto peoplePage = needsCategory->AddEntry(TEXT("People & Workforce"), nullptr); // TODO add special page
-        encyclopedia->People->EncyclopediaEntry = peoplePage;
-        encyclopedia->Workforce->EncyclopediaEntry = peoplePage;
+        // special handling for people page
+        const auto peoplePage = CreateWidget<UEncyclopediaPageResource>(
+            GetOwningPlayer(),
+            EncyclopediaPageResourceClass)->InitPeople(Encyclopedia);
 
-        // TODO show in food category that people need it, and have both pages link to each other
+        const auto peopleEntry = AddPage(needsCategory, FText::FromString(TEXT("People & Workforce")), peoplePage);            
+        encyclopedia->People->EncyclopediaEntry = peopleEntry;
+        encyclopedia->Workforce->EncyclopediaEntry = peopleEntry;
+
     }
 
     {
         const auto naturalResources = AddCategory(TEXT("Natural Resources"));
         for (const auto naturalResource : encyclopedia->GetAllNaturalResources())
-            naturalResource->EncyclopediaEntry = CreateNaturalResourcePage(naturalResources, naturalResource);
+            naturalResource->EncyclopediaEntry = CreateAndAddNaturalResourcePage(naturalResources, naturalResource);
     }
 
     {
@@ -146,12 +147,17 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia) {
             auto category = buildings->AddSubCategory(categoryName);
 
             for (const auto building : MultiMaps::Find(categories, categoryName)) {
-                if (building == encyclopedia->Conveyor) {
-                    building->EncyclopediaEntry = category->AddEntry(building->Name.ToString(), nullptr); // TODO add special conveyor Page
-                    encyclopedia->ConveyorNode->EncyclopediaEntry = building->EncyclopediaEntry;
-                    encyclopedia->ConveyorLink->EncyclopediaEntry = building->EncyclopediaEntry;
+                if (building == encyclopedia->Conveyor) { // special handling for conveyor page
+                    const auto conveyorPage = CreateWidget<UEncyclopediaPageBuilding>(
+                        GetOwningPlayer(),
+                        EncyclopediaPageBuildingClass)->InitConveyor(Encyclopedia);
+
+                    const auto conveyorEntry = AddPage(category, building->Name, conveyorPage);            
+                    encyclopedia->Conveyor->EncyclopediaEntry = conveyorEntry;
+                    encyclopedia->ConveyorNode->EncyclopediaEntry = conveyorEntry;
+                    encyclopedia->ConveyorLink->EncyclopediaEntry = conveyorEntry;
                 } else
-                    building->EncyclopediaEntry = CreateBuildingPage(category, building);
+                    building->EncyclopediaEntry = CreateAndAddBuildingPage(category, building);
             }
         }
     }
@@ -232,12 +238,11 @@ UEncyclopediaCategory* UEncyclopediaCategory::Init(const FText& label) {
     return this;
 }
 
-UEncyclopediaEntry* UEncyclopediaCategory::AddEntry(const FString& title, UEncyclopediaPage* page) const {
+UEncyclopediaEntry* UEncyclopediaCategory::AddEntry(const FText& title, UEncyclopediaPage* page) const {
     const auto encyclopedia = UX::GetParentWidget<UEncyclopediaUI>(this);
     const auto entry = CreateWidget<UEncyclopediaEntry>(
         GetOwningPlayer(),
-        encyclopedia->EncyclopediaEntryClass)->Init(FText::FromString(title), page);
-    // TODO I convert FText->FString->FText again, which is likely not what I need... once translations start this will all be a mess...
+        encyclopedia->EncyclopediaEntryClass)->Init(title, page);
     Entries->AddChild(entry);
     return entry;
 }
