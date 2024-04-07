@@ -62,7 +62,7 @@ void APlayerControllerX::ShowMouseCursor(bool showMouseCursor) {
 }
 
 void APlayerControllerX::TickUI() const {
-    if (SelectedUI)
+    if (IsValid(SelectedUI))
         SelectedUI->Tick();
 }
 

@@ -1,48 +1,45 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
-#include "ResourceConsumption.h"
+
+#include "Need.h"
+#include "HabitatPopulationManager.generated.h"
 
 class AHabitat;
 
-class XD_API HabitatPopulationManager {
+UCLASS()
+class XD_API UHabitatPopulationManager : public UObject {
+    GENERATED_BODY()
 
 public:
-    HabitatPopulationManager(AHabitat* habitat);
-    ~HabitatPopulationManager();
+    UHabitatPopulationManager* Init(AHabitat* habitat);
 
-    void NotifyBuildingsChanged();
+    void NotifyBuildingsChanged() { BuildingsChangedNotificationReceived = true; };
     void TickPopulation();
 
-    int GetMaxPop() const;
-    int GetSettledPop() const; // Fed + Starving
-    
-    int GetFedPop() const;
-    int GetStarvingPop() const;
-    int GetHomelessPop() const;
+    int GetMaxPop() const { return MaxPop; }
+    int GetCurrentPop() const { return CurrentPop; }
+    int GetWorkforce() const { return Workforce; }
+    TArray<UNeed*>& GetSatisfiedNeeds() { return SatisfiedNeedsLastTick; }
 
-    int GetWorkforce() const;
-
-    // a vec with necessary resource consumption. Add food in the constructor
-
-private:
-    int Tick;
-    bool BuildingsChangedNotificationRecieved;
+protected:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     AHabitat* Habitat;
 
-    int MaxPop;
-    int SettledPop;
-    int StarvingPop;
-    int HomelessPop;
+    int Tick;
+    bool BuildingsChangedNotificationReceived;
 
+    int MaxPop;
+    int CurrentPop;
     int Workforce;
 
-    ResourceConsumption Hunger;
+    int ConsecutiveGrowthTicks;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TArray<UNeed*> SatisfiedNeedsLastTick;
 
     void UpdateMaxPop();
-    bool GrowOrShrinkPop();
-    int ComputeWorkforce() const;
+    int SatisfyNeeds();
+    bool AdjustPop(int satisfiedPop);
     void RelocatePop() const;
-
-
+    void ComputeWorkforce();
 };

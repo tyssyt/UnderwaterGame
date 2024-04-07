@@ -3,6 +3,8 @@
 #include "WorkerHouse.h"
 #include "Habitat.h"
 #include "The.h"
+#include "Components/VerticalBoxSlot.h"
+#include "XD/BlueprintHolder.h"
 #include "XD/Encyclopedia/Encyclopedia.h"
 
 AWorkerHouse::AWorkerHouse() {
@@ -36,11 +38,28 @@ const TArray<Coordinate>* AWorkerHouse::GetGridOffsets() {
     return nullptr;
 }
 
+void AWorkerHouse::InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
+    components.Add(NewObject<UWorkerHouseUI>(this)->Init(this));    
+    Super::InitSelectedUI(components);
+}
 
-void UWorkerHouseUI::Tick() {
-    if (!House)
-        return;
+UWorkerHouseUI* UWorkerHouseUI::Init(AWorkerHouse* house) {
+    House = house;
+    return this;
+}
 
+void UWorkerHouseUI::CreateUI(UBuildingSelectedUI* selectedUI) {
+    Needs = CreateWidget<UNeedsSummaryUI>(selectedUI, The::BPHolder(House)->NeedsSummaryUIClass);
+    const auto needsSlot = selectedUI->Content->AddChildToVerticalBox(Needs);
+    needsSlot->SetHorizontalAlignment(HAlign_Center);
+
+    People = CreateWidget<UInventorySlotUI>(selectedUI, The::BPHolder(House)->InventorySlotUIClass);
     People->Set(House->Residents, AWorkerHouse::RESIDENT_LIMIT, The::Encyclopedia(House)->People);
-    Workforce->SetText(FText::AsNumber(House->Residents, &FNumberFormattingOptions::DefaultNoGrouping())); // TODO update once we have a different formula for Workforce
+    const auto peopleSlot = selectedUI->Content->AddChildToVerticalBox(People);
+    peopleSlot->SetHorizontalAlignment(HAlign_Center);
+}
+
+void UWorkerHouseUI::Tick(UBuildingSelectedUI* selectedUI) {
+    Needs->SetNeeds(House->Habitat->PopulationManager);
+    People->Set(House->Residents, AWorkerHouse::RESIDENT_LIMIT, The::Encyclopedia(House)->People);    
 }

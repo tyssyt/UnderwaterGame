@@ -37,6 +37,7 @@ public:
 
     TMap<FString, PropertyInfo> Properties;
 
+    // TODO consider renaming, because need is now used for the population growth needs
     TArray<MaterialRef> Needs;
     
     UComponentInfo* Init(const FText& name, const TSubclassOf<UActorComponent> componentClass);

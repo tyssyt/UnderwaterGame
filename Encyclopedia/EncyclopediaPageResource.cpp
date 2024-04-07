@@ -92,30 +92,21 @@ UEncyclopediaPageResource* UEncyclopediaPageResource::Init(UResource* resource, 
         MaterialFor->ClearChildren();
         for (const auto building : encyclopedia->GetBuildingsByMaterial(resource))
             MaterialFor->AddChildToVerticalBox(
-                CreateWidget<UConstructionPlanUI>(GetOwningPlayer(), ConstructionPlanUIClass)->Init(building, true));
+                CreateWidget<UConstructionPlanUI>(GetOwningPlayer(), ConstructionPlanUIClass)->Init(building, true)
+            );
         if (MaterialFor->GetChildrenCount() == 0)
             MaterialBox->SetVisibility(ESlateVisibility::Collapsed);
     }
 
-    return this;
-}
-
-UEncyclopediaPageResource* UEncyclopediaPageResource::InitPeople(UEncyclopedia* encyclopedia) {
-    Description->SetText(encyclopedia->People->Description);
-    
     {
-        CreatedBy->ClearChildren();
-
-        URecipe* peopleRecipe = NewObject<URecipe>()->InitUnchecked({encyclopedia->WorkerHouse}, {{1, encyclopedia->Food}}, {{100, encyclopedia->People}});
-        CreatedBy->AddChildToVerticalBox(CreateWidget<URecipeWithBuildingUI>(GetOwningPlayer(), RecipeWithBuildingUIClass)->Init(peopleRecipe));        
-
-        URecipe* workforceRecipe = NewObject<URecipe>()->InitUnchecked({}, {{1, encyclopedia->People}}, {{1, encyclopedia->Workforce}});
-        CreatedBy->AddChildToVerticalBox(CreateWidget<URecipeUI>(GetOwningPlayer(), RecipeUIClass)->Init(workforceRecipe));
+        SatisfiesNeed->ClearChildren();
+        for (const auto satisfier : encyclopedia->GetNeedsByGood(resource))
+            SatisfiesNeed->AddChildToVerticalBox(
+                CreateWidget<UNeedSatisfierUI>(GetOwningPlayer(), NeedSatisfierUIClass)->Init(satisfier)
+            );
+        if (SatisfiesNeed->GetChildrenCount() == 0)
+            SatisfierBox->SetVisibility(ESlateVisibility::Collapsed);
     }
-    
-    IngredientBox->SetVisibility(ESlateVisibility::Collapsed);
-    NeedBox->SetVisibility(ESlateVisibility::Collapsed);
-    MaterialBox->SetVisibility(ESlateVisibility::Collapsed);
 
     return this;
 }

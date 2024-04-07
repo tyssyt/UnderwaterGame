@@ -5,9 +5,6 @@
 #include "ProductionComponent.h"
 #include "XD/Buildings/ConstructionPlan.h"
 
-Ingredient::Ingredient(int amount, UResource* resource) : amount(amount), resource(resource) {}
-Ingredient::~Ingredient() {}
-
 bool HasProductionComponent(UConstructionPlan* building) {
     for (const auto component : building->ComponentLoaders)
         if (component->ComponentInfo->ComponentClass == UProductionComponent::StaticClass())

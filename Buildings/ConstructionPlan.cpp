@@ -76,17 +76,17 @@ bool UConstructionPlan::operator<(const UConstructionPlan& other) const {
 
 bool UConstructionPlan::CompareByComplexity(const UConstructionPlan& one, const UConstructionPlan& two) {
     // no ConstructedOn is smaller
-    const auto c1 = (!!one.ConstructedOn) - (!!two.ConstructedOn);    
+    const int c1 = (!!one.ConstructedOn) - (!!two.ConstructedOn);    
     if (c1 != 0)
         return c1 < 0;
 
     // then number of materials
-    const auto c2 = one.Materials.Num() - two.Materials.Num();
+    const int c2 = one.Materials.Num() - two.Materials.Num();
     if (c2 != 0)
         return c2 < 0;
 
     // then name
-    const auto c3 = one.Name.CompareTo(two.Name);
+    const int c3 = one.Name.CompareTo(two.Name);
     if (c3 != 0)
         return c2 < 0;
 

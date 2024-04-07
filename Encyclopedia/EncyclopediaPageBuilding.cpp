@@ -62,6 +62,16 @@ UEncyclopediaPageBuilding* UEncyclopediaPageBuilding::Init(UConstructionPlan* bu
             RecipesBox->SetVisibility(ESlateVisibility::Collapsed);
     }
 
+    {
+        SatisfiesNeed->ClearChildren();
+        for (const auto satisfier : encyclopedia->GetNeedsByService(building))
+            SatisfiesNeed->AddChildToVerticalBox(
+                CreateWidget<UNeedSatisfierUI>(GetOwningPlayer(), NeedSatisfierUIClass)->Init(satisfier)
+            );
+        if (SatisfiesNeed->GetChildrenCount() == 0)
+            SatisfierBox->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
     return this;
 }
 

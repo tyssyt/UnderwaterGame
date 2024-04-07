@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "XD/ComponentX.h"
 #include "XD/Construction/ConstructionOptions.h"
-#include "Components/BillboardComponent.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Resources/Resource.h"
 #include "XD/Resources/ResourceBalanceUI.h"
@@ -41,18 +40,24 @@ public:
 
     virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const override;
     virtual void OnConstructionComplete(UConstructionOptions* options) override;
-    virtual void AddToSelectedUI(UBuildingSelectedUI* selectedUI) override;
-    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI) override;
+
+    virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
+
+    friend class UElectricComponentUI;
 };
 
 UCLASS()
-class XD_API UElectricComponentSelectedData : public USelectedUIData {
+class XD_API UElectricComponentUI : public UBuildingSelectedUIComponent {
     GENERATED_BODY()
 
-public:
+protected:
+    UPROPERTY()
+    UElectricComponent* ElectricComponent;
     UPROPERTY()
     UResourceBalanceUI* UI;
 
-    UElectricComponentSelectedData* Init(UResourceBalanceUI* ui);
-    
+public:
+    UElectricComponentUI* Init(UElectricComponent* electricComponent);
+    virtual void CreateUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void Tick(UBuildingSelectedUI* selectedUI) override;
 };

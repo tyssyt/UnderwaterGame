@@ -1,5 +1,6 @@
 #pragma once
 
 namespace Cheats {
-    static constexpr bool ENABLE_INSTA_BUILD = true;
+    static constexpr bool INSTA_BUILD = true;
+    static constexpr bool ALWAYS_POWERED = true;
 }

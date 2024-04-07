@@ -22,17 +22,9 @@ void ABuilding::OnConstructionComplete(UConstructionOptions* options) {
         component->OnConstructionComplete(options);
 }
 
-void ABuilding::InitSelectedUI(UBuildingSelectedUI* selectedUI) {
-    TInlineComponentArray<UComponentX*> components;
-    GetComponents<>(components);
-    for (const auto component : components)
-        component->AddToSelectedUI(selectedUI);
-}
-
-void ABuilding::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
-    TInlineComponentArray<UComponentX*> components;
-    GetComponents<>(components);
-    for (const auto component : components)
-        component->UpdateSelectedUI(selectedUI);
+void ABuilding::InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
+    for (const auto component : GetInstanceComponents()) 
+        if (const auto componentX = Cast<UComponentX>(component))
+            componentX->AddToSelectedUI(components);
 }
 

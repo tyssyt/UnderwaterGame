@@ -10,8 +10,6 @@ void UBlueprintHolder::Init(APlayerController* controller) {
     MainUI = CreateWidget<UMainUI>(controller, MainUIClass);
     EncyclopediaUI = CreateWidget<UEncyclopediaUI>(controller, EncyclopediaUIClass);
     ConveyorUI = CreateWidget<UConveyorUI>(controller, ConveyorUIClass);
-    HabitatUI = CreateWidget<UHabitatUI>(controller, HabitatUIClass);
-    WorkerHouseUI = CreateWidget<UWorkerHouseUI>(controller, WorkerHouseUIClass);
     PowerOverlayUI = CreateWidget<UPowerOverlayUI>(controller, PowerOverlayUIClass);
 }
 
@@ -20,18 +18,10 @@ USelectedUI* UBlueprintHolder::GetUI(AXActor* actor) const {
         if (building->constructionState != EConstructionState::Done)
             return nullptr; // TODO construction site UI
 
-    // TODO these 3 are still special cases from the old way of doing it, they should be removed eventually
+    // TODO this is still special cases from the old way of doing it, it should be removed eventually
     if (actor->IsA(AConveyor::StaticClass())) {
         ConveyorUI->Conveyor = Cast<AConveyor>(actor);
         return ConveyorUI;
-    }
-    if (actor->IsA(AHabitat::StaticClass())) {
-        HabitatUI->Habitat = Cast<AHabitat>(actor);
-        return HabitatUI;
-    }
-    if (actor->IsA(AWorkerHouse::StaticClass())) {
-        WorkerHouseUI->House = Cast<AWorkerHouse>(actor);
-        return WorkerHouseUI;
     }
 
     const auto controller = The::PlayerController(actor);

@@ -5,6 +5,7 @@
 #include "BuilderModeExtension.h"
 #include "The.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Buildings/Habitat.h"
 
 UIndoorBuilderMode::UIndoorBuilderMode() {
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));

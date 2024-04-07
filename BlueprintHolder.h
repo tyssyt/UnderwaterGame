@@ -3,11 +3,7 @@
 #pragma once
 
 #include "MainUI.h"
-#include "XD/Buildings/Depot.h"
 #include "XD/Buildings/Conveyor.h"
-#include "Buildings/Habitat.h"
-#include "Buildings/WorkerHouse.h"
-#include "XD/Buildings/PickupPad.h"
 
 #include "CoreMinimal.h"
 #include "ImageUI.h"
@@ -19,6 +15,7 @@
 #include "Encyclopedia/EncyclopediaUI.h"
 #include "Inventory/InventoryUI.h"
 #include "NaturalResources/NaturalResourceSelectedUI.h"
+#include "PopulationManager/NeedsSummaryUI.h"
 #include "Recipes/RecipeSelectorUI.h"
 #include "BlueprintHolder.generated.h"
 
@@ -50,16 +47,6 @@ public:
     UConveyorUI* ConveyorUI;
 
     UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<UHabitatUI> HabitatUIClass;
-    UPROPERTY(BlueprintReadOnly)
-    UHabitatUI* HabitatUI;
-
-    UPROPERTY(EditDefaultsOnly)
-    TSubclassOf<UWorkerHouseUI> WorkerHouseUIClass;
-    UPROPERTY(BlueprintReadOnly)
-    UWorkerHouseUI* WorkerHouseUI;
-
-    UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UPowerOverlayUI> PowerOverlayUIClass;
     UPROPERTY(BlueprintReadOnly)
     UPowerOverlayUI* PowerOverlayUI;
@@ -84,6 +71,10 @@ public:
     TSubclassOf<UResourceBalanceUI> ResourceBalanceUIClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UInventoryUI> InventoryUIClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UInventorySlotUI> InventorySlotUIClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UNeedsSummaryUI> NeedsSummaryUIClass;
 
     void Init(APlayerController* controller);
     USelectedUI* GetUI(AXActor* actor) const;

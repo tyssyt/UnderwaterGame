@@ -9,7 +9,6 @@
 #include "Components/Border.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextBlock.h"
-#include "Components/Image.h"
 #include "ResourceBalanceUI.generated.h"
 
 UCLASS(Abstract)

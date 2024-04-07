@@ -9,7 +9,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
-#include "Components/Image.h"
 #include "XD/Resources/ResourceUI.h"
 #include "InventorySlotUI.generated.h"
 

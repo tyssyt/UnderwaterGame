@@ -45,7 +45,7 @@ APickupPad::APickupPad() {
     Inventory->GetInputs().Emplace(2500);
     Inventory->GetInputs().Emplace(2500);
     Inventory->GetInputs().Emplace(2500);
-    Inventory->AddToUI = true;
+    AddInstanceComponent(Inventory);
 }
 
 void APickupPad::OnConstructionComplete(UConstructionOptions* options) {

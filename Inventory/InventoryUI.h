@@ -33,5 +33,4 @@ protected:
 public:
     UInventoryUI* Init(UInventoryComponent* inventory);
     void Tick() const;
-
 };

@@ -4,6 +4,7 @@
 
 #include "The.h"
 #include "UI.h"
+#include "Blueprint/WidgetTree.h"
 #include "Components/VerticalBoxSlot.h"
 #include "XD/BlueprintHolder.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
@@ -67,48 +68,20 @@ void UProductionComponent::SetRecipe(URecipe* recipe) {
     }
 }
 
-void UProductionComponent::AddToSelectedUI(UBuildingSelectedUI* selectedUI) {
-    const auto state = GetUIState();
-    const auto ui = CreateUI(state, selectedUI->WidgetTree);
-    const auto slot = selectedUI->Content->AddChildToVerticalBox(ui);
-    slot->SetHorizontalAlignment(HAlign_Center);
-    selectedUI->Storage->Data.Add(StaticClass(), NewObject<UProductionComponentSelectedData>()->Init(state, ui));
+void UProductionComponent::AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
+    components.Add(NewObject<UProductionComponentUI>(this)->Init(this));
 }
 
-void UProductionComponent::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
-    const auto data = selectedUI->Storage->Get<UProductionComponentSelectedData>(StaticClass());
-    check(data);
-
-    const auto state = GetUIState();
-    if (state != data->State) {
-        const auto newChild = CreateUI(state, selectedUI->WidgetTree);
-
-        // for some reason ReplaceChild or InsertChild at do not work, so this is a workaround
-        //selectedUI->Content->ReplaceChild(data->UI, newChild);
-        // TODO this will put things in the wrong order when there is another child in content
-        const auto slot = selectedUI->Content->AddChildToVerticalBox(newChild);
-        slot->SetHorizontalAlignment(HAlign_Center);
-        selectedUI->Content->RemoveChild(data->UI);
-
-        data->State = state;
-        data->UI = newChild;
-        return;
-    }
-
-    if (state == UIState::Normal) {
-        Cast<UInventoryUI>(data->UI)->Tick();
-    }
-}
-
-UProductionComponent::UIState UProductionComponent::GetUIState() const {
-    if (!Recipe)
+UProductionComponentUI::UIState UProductionComponentUI::GetUIState() const {
+    const auto recipe = ProductionComponent->Recipe;
+    if (!recipe)
         return UIState::NotSelected;
-    if (Recipe->Ingredients.IsEmpty())
+    if (recipe->Ingredients.IsEmpty())
         return UIState::NoInputs;
     return UIState::Normal;
 }
 
-UWidget* UProductionComponent::CreateUI(UIState state, UWidgetTree* tree) const {
+UWidget* UProductionComponentUI::CreateWidgetFu(UIState state, UWidgetTree* tree) const {
     const auto bpHolder = The::BPHolder(this);
     switch (state) {
     case UIState::NotSelected: {
@@ -118,13 +91,13 @@ UWidget* UProductionComponent::CreateUI(UIState state, UWidgetTree* tree) const 
             FVector2d(80., 80.),
             false
         );
-        button->OnClicked.AddDynamic(this, &UProductionComponent::OpenRecipeSelector);
+        button->OnClicked.AddDynamic(this, &UProductionComponentUI::OpenRecipeSelector);
         return button;
     }
     case UIState::NoInputs: {
         // TODO maybe, if there are more then 3 or so use the smaller size for UI
         const auto box = tree->ConstructWidget<UWrapBox>();
-        for (const auto& result : Recipe->Results)
+        for (const auto& result : ProductionComponent->Recipe->Results)
             box->AddChildToWrapBox(CreateWidget<UResourceAmountUI>(tree, bpHolder->ResourceAmountUIClass)->Init(
                 result.amount,
                 result.resource
@@ -132,7 +105,7 @@ UWidget* UProductionComponent::CreateUI(UIState state, UWidgetTree* tree) const 
         return box;
     }
     case UIState::Normal: {
-        return CreateWidget<UInventoryUI>(tree, bpHolder->InventoryUIClass)->Init(Inventory);
+        return CreateWidget<UInventoryUI>(tree, bpHolder->InventoryUIClass)->Init(ProductionComponent->Inventory);
     }
     default:
         checkNoEntry();
@@ -140,19 +113,46 @@ UWidget* UProductionComponent::CreateUI(UIState state, UWidgetTree* tree) const 
     }
 }
 
-void UProductionComponent::OpenRecipeSelector() {
+void UProductionComponentUI::OpenRecipeSelector() {
     const auto recipeSelector = CreateWidget<URecipeSelectorUI>(
         The::PlayerController(this),
         The::BPHolder(this)->RecipeSelectorUIClass
     )->Init(
-        The::Encyclopedia(this)->GetRecipes(GetOwner()->GetClass()),
-        [this](URecipe* recipe) { SetRecipe(recipe); }
+        The::Encyclopedia(this)->GetRecipes(ProductionComponent->GetOwner()->GetClass()),
+        [this](URecipe* recipe) { ProductionComponent->SetRecipe(recipe); }
     );
     recipeSelector->AddToViewport();
 }
 
-UProductionComponentSelectedData* UProductionComponentSelectedData::Init(UProductionComponent::UIState state, UWidget* ui) {
-    State = state;
-    UI = ui;
+UProductionComponentUI* UProductionComponentUI::Init(UProductionComponent* productionComponent) {
+    ProductionComponent = productionComponent;
     return this;
+}
+
+void UProductionComponentUI::CreateUI(UBuildingSelectedUI* selectedUI) {
+    State = GetUIState();
+    UI = CreateWidgetFu(State, selectedUI->WidgetTree);
+    const auto slot = selectedUI->Content->AddChildToVerticalBox(UI);
+    slot->SetHorizontalAlignment(HAlign_Center);
+}
+
+void UProductionComponentUI::Tick(UBuildingSelectedUI* selectedUI) {
+    const auto state = GetUIState();
+    if (state != State) {
+        selectedUI->Content->RemoveChild(UI);
+        
+        UI = CreateWidgetFu(state, selectedUI->WidgetTree);
+        // for some reason ReplaceChild or InsertChild at do not work, so this is a workaround
+        //selectedUI->Content->ReplaceChild(data->UI, newChild);
+        // TODO this will put things in the wrong order when there is another child in content
+        const auto slot = selectedUI->Content->AddChildToVerticalBox(UI);
+        slot->SetHorizontalAlignment(HAlign_Center);
+
+        State = state;
+        return;
+    }
+
+    if (State == UIState::Normal) {
+        Cast<UInventoryUI>(UI)->Tick();
+    }
 }

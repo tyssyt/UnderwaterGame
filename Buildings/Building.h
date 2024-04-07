@@ -9,6 +9,7 @@
 #include "Building.generated.h"
 
 class UBuildingSelectedUI;
+class UBuildingSelectedUIComponent;
 class UBuilderModeExtension;
 
 UENUM(BlueprintType)
@@ -31,6 +32,5 @@ public:
         return nullptr;
     }
 
-    virtual void InitSelectedUI(UBuildingSelectedUI* selectedUI);
-    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI);
+    virtual void InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components);
 };

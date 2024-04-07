@@ -3,6 +3,8 @@
 #include "Habitat.h"
 
 #include "The.h"
+#include "Components/VerticalBoxSlot.h"
+#include "XD/BlueprintHolder.h"
 #include "XD/Encyclopedia/Encyclopedia.h"
 #include "XD/Inventory/ConveyorGate.h"
 
@@ -10,7 +12,7 @@ const float AHabitat::CELL_WIDTH = 10.f; // why c++ be like this?
 
 static AIndoorBuilding* BLOCKED = reinterpret_cast<AIndoorBuilding*>(1);
 
-AHabitat::AHabitat() : PopulationManager(new HabitatPopulationManager(this)),
+AHabitat::AHabitat() : PopulationManager(CreateDefaultSubobject<UHabitatPopulationManager>("PopManager")->Init(this)),
 // @formatter:off
     BuildGrid{
         BLOCKED, BLOCKED, BLOCKED, BLOCKED, nullptr, nullptr, nullptr, BLOCKED, BLOCKED, nullptr, nullptr, nullptr, BLOCKED, BLOCKED, BLOCKED, BLOCKED,
@@ -45,21 +47,22 @@ AHabitat::AHabitat() : PopulationManager(new HabitatPopulationManager(this)),
 
     const auto conveyorGate = CreateDefaultSubobject<UConveyorGate>(TEXT("ConveyorGate"));
     conveyorGate->SetInput(true);
-    conveyorGate->SetRelativeLocation(FVector(13., 0., 8.));
+    conveyorGate->SetRelativeLocation(FVector(15., 0., 8.));
     conveyorGate->SetRenderCustomDepth(true);
     conveyorGate->SetupAttachment(Mesh);
 
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 }
 
-AHabitat::~AHabitat() {
-    delete PopulationManager;
-}
-
 void AHabitat::BeginPlay() {
     Super::BeginPlay();
-    // TODO at some point we probably want the needs of the pop manager to be configure in yaml as well
-    Inventory->GetInputs().Emplace(1000, The::Encyclopedia(this)->Food);
+}
+
+void AHabitat::OnConstructionComplete(UConstructionOptions* options) {
+    Super::OnConstructionComplete(options);
+
+    for (const auto good : The::Encyclopedia(this)->FindGoods())
+        Inventory->GetInputs().Emplace(1000, good);
 }
 
 void AHabitat::Tick(float DeltaTime) {
@@ -132,13 +135,38 @@ void AHabitat::RemoveBuilding(AIndoorBuilding* building) {
     PopulationManager->NotifyBuildingsChanged();
 }
 
+bool AHabitat::HasBuilding(const UConstructionPlan* building) const {
+    // TODO optimization: this can either be cached, or we can store buildings by type etc. pp
+    for (const auto b : Buildings)
+        if (b->GetClass() == building->BuildingClass)
+            return true;
+    return false;
+}
 
+void AHabitat::InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
+    components.Add(NewObject<UHabitatUI>(this)->Init(this));    
+    Super::InitSelectedUI(components);
+}
 
-void UHabitatUI::Tick() {
-    if (!Habitat)
-        return;
+UHabitatUI* UHabitatUI::Init(AHabitat* habitat) {
+    Habitat = habitat;
+    return this;
+}
 
-    const HabitatPopulationManager* populationManager = Habitat->PopulationManager;
-    People->Set(populationManager->GetSettledPop(), populationManager->GetMaxPop(), The::Encyclopedia(Habitat)->People);
-    Workforce->SetText(FText::AsNumber(populationManager->GetWorkforce(), &FNumberFormattingOptions::DefaultNoGrouping()));
+void UHabitatUI::CreateUI(UBuildingSelectedUI* selectedUI) {
+    Needs = CreateWidget<UNeedsSummaryUI>(selectedUI, The::BPHolder(Habitat)->NeedsSummaryUIClass);
+    const auto needsSlot = selectedUI->Content->AddChildToVerticalBox(Needs);
+    needsSlot->SetHorizontalAlignment(HAlign_Center);
+
+    const auto populationManager = Habitat->PopulationManager;
+    People = CreateWidget<UInventorySlotUI>(selectedUI, The::BPHolder(Habitat)->InventorySlotUIClass);
+    People->Set(populationManager->GetCurrentPop(), populationManager->GetMaxPop(), The::Encyclopedia(Habitat)->People);
+    const auto peopleSlot = selectedUI->Content->AddChildToVerticalBox(People);
+    peopleSlot->SetHorizontalAlignment(HAlign_Center);
+}
+
+void UHabitatUI::Tick(UBuildingSelectedUI* selectedUI) {
+    const auto populationManager = Habitat->PopulationManager;
+    Needs->SetNeeds(populationManager);
+    People->Set(populationManager->GetCurrentPop(), populationManager->GetMaxPop(), The::Encyclopedia(Habitat)->People);    
 }

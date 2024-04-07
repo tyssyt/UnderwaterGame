@@ -10,8 +10,7 @@
 class UConstructionPlan;
 
 struct XD_API Ingredient {
-    Ingredient(int amount, UResource* resource);
-    ~Ingredient();
+    Ingredient(int amount, UResource* resource) : amount(amount), resource(resource) {}
 
     const int amount;
     UResource* const resource;

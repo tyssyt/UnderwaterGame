@@ -7,17 +7,9 @@ class AHabitat;
 
 class XD_API ResourceConsumption {
 public:
-    ResourceConsumption(int habitatInventoryIndex, int peoplePerResource);
-    ~ResourceConsumption();
-
-    // returns number of people who could not be given the resource, or 0 if all could be satisfied
-    int ConsumeFrom(AHabitat* habitat, int population);
-    
-private:    
-    const int HabitatInventoryIndex;
     const int PeoplePerResource;
+    UResource* const Resource;
 
-    int Remainder; // I am too tired to evaluate this, but Remainder is a real word right? I am not going crazy?!?
-    
-    FInventorySlot* GetInventorySlot(AHabitat* habitat) const;
+    ResourceConsumption(int peoplePerResource, UResource* const resource);
+    int IsSatisfied(const AHabitat* habitat, int population) const;
 };

@@ -6,8 +6,10 @@
 #include "PowerOverlay.h"
 #include "The.h"
 #include "UI.h"
+#include "Components/BillboardComponent.h"
 #include "XD/BlueprintHolder.h"
 #include "XD/CameraPawn.h"
+#include "XD/Cheats.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Buildings/Substation.h"
 #include "XD/Construction/BuilderModeExtension.h"
@@ -46,6 +48,8 @@ void UElectricComponent::SetState(const PowerState newState) { // TODO understan
     case PowerState::Disconnected:
     case PowerState::Deactivated:
     case PowerState::Unpowered: {
+        if (Cheats::ALWAYS_POWERED)
+            break;
         GetOwner()->SetActorTickEnabled(false); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
         if (!DisabledSymbol) {
             DisabledSymbol = NewObject<UBillboardComponent>(GetOwner(), TEXT("PowerDisabledSymbol"));
@@ -96,32 +100,32 @@ void UElectricComponent::OnConstructionComplete(UConstructionOptions* options) {
         SetState(PowerState::Disconnected);
 }
 
-void UElectricComponent::AddToSelectedUI(UBuildingSelectedUI* selectedUI) {
-    if (Consumption > 0) {
-        const auto ui = CreateWidget<UResourceBalanceUI>(
+void UElectricComponent::AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
+    components.Add(NewObject<UElectricComponentUI>(this)->Init(this));
+}
+
+UElectricComponentUI* UElectricComponentUI::Init(UElectricComponent* electricComponent) {
+    ElectricComponent = electricComponent;
+    return this;
+}
+
+void UElectricComponentUI::CreateUI(UBuildingSelectedUI* selectedUI) {
+    if (ElectricComponent->Consumption > 0) {
+        UI = CreateWidget<UResourceBalanceUI>(
             The::PlayerController(this),
             The::BPHolder(this)->ResourceBalanceUIClass);
-        ui->SetNeed(Consumption, GetElectricity());
-        ui->SetHave(State == PowerState::Powered ? Consumption : 0);
-        selectedUI->Top->AddChildToWrapBox(UX::Sized(selectedUI->WidgetTree, ui, 60.f, 60.f));
-        selectedUI->Storage->Data.Add(StaticClass(), NewObject<UElectricComponentSelectedData>()->Init(ui));
+        UI->SetNeed(ElectricComponent->Consumption, ElectricComponent->GetElectricity());
+        UI->SetHave(ElectricComponent->State == PowerState::Powered ? ElectricComponent->Consumption : 0);
+        selectedUI->Top->AddChildToWrapBox(UX::Sized(selectedUI->WidgetTree, UI, 60.f, 60.f));
     } else {
         selectedUI->Top->AddChildToWrapBox(CreateWidget<UResourceAmountUI>(
             The::PlayerController(this),
             The::BPHolder(this)->ResourceAmountUIClass
-        )->Init(-Consumption, GetElectricity()));
+        )->Init(-ElectricComponent->Consumption, ElectricComponent->GetElectricity()));
     }
 }
 
-void UElectricComponent::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
-    if (Consumption > 0) {
-        const auto data = selectedUI->Storage->Get<UElectricComponentSelectedData>(StaticClass());
-        check (data);
-        data->UI->SetHave(State == PowerState::Powered ? Consumption : 0);
-    }
-}
-
-UElectricComponentSelectedData* UElectricComponentSelectedData::Init(UResourceBalanceUI* ui) {
-    UI = ui;
-    return this;
+void UElectricComponentUI::Tick(UBuildingSelectedUI* selectedUI) {
+    if (ElectricComponent->Consumption > 0)
+        UI->SetHave(ElectricComponent->State == PowerState::Powered ? ElectricComponent->Consumption : 0);
 }

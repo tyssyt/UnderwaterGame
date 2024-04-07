@@ -10,25 +10,7 @@
 #include "XD/SelectedUI.h"
 #include "BuildingSelectedUI.generated.h"
 
-UCLASS(Abstract)
-class XD_API USelectedUIData : public UObject {
-    GENERATED_BODY()
-};
-
-UCLASS()
-class XD_API USelectedUIStorage : public UObject {
-    GENERATED_BODY()
-
-public:
-    UPROPERTY()
-    TMap<UClass*, USelectedUIData*> Data;
-
-    USelectedUIData* Get(const UClass* Class) const;
-    template <class T>
-    T* Get(const UClass* Class) const {
-        return Cast<T>(Get(Class));
-    }
-};
+class UBuildingSelectedUIComponent;
 
 UCLASS(Abstract)
 class XD_API UBuildingSelectedUI : public USelectedUI {
@@ -52,9 +34,17 @@ public:
     ABuilding* Selected;
 
     UPROPERTY()
-    USelectedUIStorage* Storage;
+    TArray<UBuildingSelectedUIComponent*> Components;
     
     UBuildingSelectedUI* Init(ABuilding* actor);
-
     virtual void Tick() override;
+};
+
+UCLASS(Abstract)
+class UBuildingSelectedUIComponent : public UObject {
+    GENERATED_BODY()
+
+public:    
+    virtual void CreateUI(UBuildingSelectedUI* selectedUI) {}
+    virtual void Tick(UBuildingSelectedUI* selectedUI) {}
 };

@@ -26,5 +26,5 @@ ADepot::ADepot() {
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
     Inventory->GetInputs().Emplace(1000);
     Inventory->SetBuffer();
-    Inventory->AddToUI = true;
+    AddInstanceComponent(Inventory);
 }

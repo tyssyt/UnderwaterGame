@@ -6,6 +6,7 @@
 #include "Encyclopedia.h"
 #include "EncyclopediaPageBuilding.h"
 #include "EncyclopediaPageNaturalResource.h"
+#include "EncyclopediaPageNeed.h"
 #include "EncyclopediaPageResource.h"
 #include "EncyclopediaPageText.h"
 #include "Blueprint/UserWidget.h"
@@ -28,6 +29,7 @@ class XD_API UEncyclopediaUI : public UUserWidget {
     UEncyclopediaEntry* CreateAndAddResourcePage(const UEncyclopediaCategory* category, UResource* resource);
     UEncyclopediaEntry* CreateAndAddNaturalResourcePage(const UEncyclopediaCategory* category, UNaturalResource* naturalResource);
     UEncyclopediaEntry* CreateAndAddBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building);
+    UEncyclopediaEntry* CreateAndAddNeedPage(const UEncyclopediaCategory* category, UNeed* need);
     UEncyclopediaEntry* CreateAndAddTextPage(const UEncyclopediaCategory* category, const FText& name, const FText& text);
     UEncyclopediaEntry* AddPage(const UEncyclopediaCategory* category, const FText& title, UEncyclopediaPage* page);
 
@@ -75,6 +77,8 @@ public:
     TSubclassOf<UEncyclopediaPageNaturalResource> EncyclopediaPageNaturalResourceClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UEncyclopediaPageBuilding> EncyclopediaPageBuildingClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UEncyclopediaPageNeed> EncyclopediaPageNeedClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UEncyclopediaPageText> EncyclopediaPageTextClass;
 };

@@ -23,7 +23,7 @@ void UConstructionManager::AddIdleBuilder(ABuilderShip* builder) {
 }
 
 void UConstructionManager::AddConstruction(UConstructionSite* constructionSite) {
-    if (Cheats::ENABLE_INSTA_BUILD) {
+    if (Cheats::INSTA_BUILD) {
         constructionSite->BeginConstruction();
     } else {
         constructionSite->SetGhostMaterial(GhostMaterial);

@@ -37,15 +37,14 @@ public:
     virtual void OnConstructionComplete(UConstructionOptions* options) override;
     virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const override;
 
-    virtual void InitSelectedUI(UBuildingSelectedUI* selectedUI) override;
-    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI) override;
-
     TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> FindNearby() const;
+
+    virtual void InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
 };
 
 
 UCLASS(Abstract)
-class XD_API USubstationUI : public USelectedUI {
+class XD_API USubstationUI : public UUserWidget {
     GENERATED_BODY()
 
 public:
@@ -58,12 +57,16 @@ public:
 };
 
 UCLASS()
-class XD_API USubstationSelectedData : public USelectedUIData {
+class XD_API USubstationUIComponent : public UBuildingSelectedUIComponent {
     GENERATED_BODY()
 
 public:
     UPROPERTY()
     USubstationUI* UI;
+    UPROPERTY()
+    ASubstation* Substation;
 
-    USubstationSelectedData* Init(USubstationUI* ui);
+    USubstationUIComponent* Init(ASubstation* substation);
+    virtual void CreateUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void Tick(UBuildingSelectedUI* selectedUI) override;
 };

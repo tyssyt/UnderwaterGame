@@ -97,33 +97,6 @@ TSubclassOf<UBuilderModeExtension> ASubstation::GetBuilderModeExtension() const 
     return USubstationBuilderModeExtension::StaticClass();
 }
 
-void ASubstation::InitSelectedUI(UBuildingSelectedUI* selectedUI) {
-    const auto ui = CreateWidget<USubstationUI>(selectedUI->WidgetTree, The::BPHolder(this)->SubstationUIClass);
-    const auto slot = selectedUI->Content->AddChildToVerticalBox(ui);
-    slot->SetVerticalAlignment(VAlign_Center);
-    slot->SetHorizontalAlignment(HAlign_Fill);
-    selectedUI->Storage->Data.Add(StaticClass(), NewObject<USubstationSelectedData>()->Init(ui));
-    Super::InitSelectedUI(selectedUI);
-}
-
-void ASubstation::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
-    const auto data = selectedUI->Storage->Get<USubstationSelectedData>(StaticClass());
-    check(data);
-    
-    if (Network) {
-        const int production = Network->GetTotalConstantProduction();
-        const int consumption = Network->GetTotalConstantConsumption();
-
-        data->UI->PowerUI->Set(production, consumption);
-        data->UI->FillLevel->SetPercent(static_cast<float>(consumption) / production);
-    } else {
-        data->UI->PowerUI->Set(0, 0);
-        data->UI->FillLevel->SetPercent(0.);
-    }
-    
-    Super::UpdateSelectedUI(selectedUI);
-}
-
 TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby() const {
     const static FName NAME_QUERY_PARAMS = FName(TEXT(""));
     const FCollisionQueryParams queryParams(NAME_QUERY_PARAMS, false, this);
@@ -163,7 +136,31 @@ TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby
     return MakeTuple(MoveTemp(nearbySubstations), MoveTemp(nearbyElecs));
 }
 
-USubstationSelectedData* USubstationSelectedData::Init(USubstationUI* ui) {
-    UI = ui;
+void ASubstation::InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {    
+    components.Add(NewObject<USubstationUIComponent>(this)->Init(this));
+    Super::InitSelectedUI(components);
+}
+
+USubstationUIComponent* USubstationUIComponent::Init(ASubstation* substation) {
+    Substation = substation;
     return this;
+}
+
+void USubstationUIComponent::CreateUI(UBuildingSelectedUI* selectedUI) {
+    UI = CreateWidget<USubstationUI>(selectedUI->WidgetTree, The::BPHolder(this)->SubstationUIClass);
+    const auto slot = selectedUI->Content->AddChildToVerticalBox(UI);
+    slot->SetVerticalAlignment(VAlign_Center);
+    slot->SetHorizontalAlignment(HAlign_Fill);
+}
+
+void USubstationUIComponent::Tick(UBuildingSelectedUI* selectedUI) {
+    if (const auto network = Substation->Network) {
+        const int production = network->GetTotalConstantProduction();
+        const int consumption = network->GetTotalConstantConsumption();
+        UI->PowerUI->Set(production, consumption);
+        UI->FillLevel->SetPercent(static_cast<float>(consumption) / production);
+    } else {
+        UI->PowerUI->Set(0, 0);
+        UI->FillLevel->SetPercent(0.);
+    }
 }

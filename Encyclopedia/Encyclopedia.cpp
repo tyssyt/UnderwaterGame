@@ -5,13 +5,16 @@
 #include "Collections.h"
 #include "XD/Buildings/ConstructionPlan.h"
 #include "XD/Buildings/Farm.h"
+#include "XD/PopulationManager/NeedSatisfier.h"
 #include "XD/Recipes/Recipe.h"
 
 UEncyclopedia* UEncyclopedia::Init(
     TMap<FString, UResource*>& resources,
     TMap<FString, UNaturalResource*>& naturalResources,
     TMap<FString, UConstructionPlan*>& buildings,
-    const TArray<URecipe*>& recipes
+    const TArray<URecipe*>& recipes,
+    TMap<FString, UNeed*>& needs,
+    const TArray<UNeedSatisfier*>& needSatisfiers
 ) {
     for (const auto& resource : resources)
         Resources.Add(resource.Value);
@@ -20,11 +23,16 @@ UEncyclopedia* UEncyclopedia::Init(
     for (const auto& building : buildings)
         Buildings.Add(building.Value);
     Recipes.Append(recipes);
+
+    for (const auto& need : needs)
+        Needs.Add(need.Value);
+    NeedSatisfiers.Append(needSatisfiers);
     
     Resources.Sort();
 	NaturalResources.Sort();
     Buildings.Sort();
     Recipes.Sort();
+    Needs.Sort();
 
     for (const auto& naturalResource : NaturalResources) {
         ClassToNaturalResources.Add(naturalResource->BuildingClass, naturalResource);
@@ -46,6 +54,13 @@ UEncyclopedia* UEncyclopedia::Init(
         for (const auto& result : recipe->Results)
             MultiMaps::AddTo(RecipesByResult, result.resource, recipe);
     }
+    for (const auto& satisfier : NeedSatisfiers) {
+        MultiMaps::AddTo(SatisfierByNeed, satisfier->Need, satisfier);
+        for (const auto& good : satisfier->Goods)
+            MultiMaps::AddTo(SatisfierByGood, good.Resource, satisfier);
+        for (const auto service : satisfier->Services)
+            MultiMaps::AddTo(SatisfierByService, service, satisfier);
+    }
 
     for (auto& entry : BuildingByMaterial)
         entry.Value.Sort(&UConstructionPlan::CompareByComplexity);
@@ -62,7 +77,6 @@ UEncyclopedia* UEncyclopedia::Init(
     StartResources.Emplace(resources[TEXT("Glass")], 1500);
     StartResources.Emplace(resources[TEXT("Life Support Equipment")], 850);
     
-    Food = resources[TEXT("Food")];
     People = resources[TEXT("People")];
     Workforce = resources[TEXT("Workforce")];
 
@@ -75,22 +89,6 @@ UEncyclopedia* UEncyclopedia::Init(
     WorkerHouse = buildings[TEXT("Worker House")];
     
     return this;
-}
-
-TArray<UResource*>& UEncyclopedia::GetAllResources() {
-    return Resources;
-}
-
-TArray<UNaturalResource*>& UEncyclopedia::GetAllNaturalResources() {
-    return NaturalResources;
-}
-
-TArray<UConstructionPlan*>& UEncyclopedia::GetAllBuildings() {
-    return Buildings;
-}
-
-TArray<URecipe*>& UEncyclopedia::GetAllRecipes() {
-    return Recipes;
 }
 
 UNaturalResource* UEncyclopedia::GetNaturalResource(const UClass* building) {
@@ -125,8 +123,14 @@ TArray<UConstructionPlan*>& UEncyclopedia::GetBuildings(UNaturalResource* natura
     return MultiMaps::Find(BuildingsByNaturalResource, naturalResource);
 }
 
-TArray<TPair<UResource*, int32>>& UEncyclopedia::GetStartResources() {
-    return StartResources;
+TArray<UNeedSatisfier*>& UEncyclopedia::GetNeedSatisfiers(UNeed* need) {
+    return MultiMaps::Find(SatisfierByNeed, need);
+}
+TArray<UNeedSatisfier*>& UEncyclopedia::GetNeedsByGood(UResource* good) {
+    return MultiMaps::Find(SatisfierByGood, good);
+}
+TArray<UNeedSatisfier*>& UEncyclopedia::GetNeedsByService(UConstructionPlan* service) {
+    return MultiMaps::Find(SatisfierByService, service);
 }
 
 TSet<UResource*> UEncyclopedia::FindConstructionResources() {
@@ -152,6 +156,14 @@ TSet<UResource*> UEncyclopedia::FindNeeds() {
         for (const auto& need : building->GetNeeds())
             needs.Add(need.resource);
     return MoveTemp(needs);
+}
+
+TSet<UResource*> UEncyclopedia::FindGoods() {
+    TSet<UResource*> goods;
+    for (const auto satisfier : NeedSatisfiers)
+        for (const auto& good : satisfier->Goods)
+            goods.Add(good.Resource);
+    return MoveTemp(goods);
 }
 
 CropData* UEncyclopedia::GetCrop(URecipe* recipe) {

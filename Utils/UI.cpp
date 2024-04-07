@@ -13,8 +13,17 @@ USizeBox* UX::Sized(UWidgetTree* tree, UWidget* inner, float width, float height
     const auto sizeBox = tree->ConstructWidget<USizeBox>();
     sizeBox->SetWidthOverride(width);
     sizeBox->SetHeightOverride(height);
-    sizeBox->AddChild(inner);    
+    const auto slot = sizeBox->AddChild(inner);
     return sizeBox;
+}
+
+UBorder* UX::WithBorder(UWidgetTree* tree, UWidget* inner, FLinearColor color) {
+    const auto border = tree->ConstructWidget<UBorder>();
+    // TODO consider storing this loaded obj so we can reuse it
+    border->SetBrushFromTexture(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Images/Border")));
+    border->SetBrushColor(color);
+    border->AddChild(inner);
+    return border;
 }
 
 FSlateFontInfo UX::WithSize(const FSlateFontInfo& base, const int size) {

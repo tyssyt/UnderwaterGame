@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Recipe.h"
-#include "Blueprint/WidgetTree.h"
 #include "XD/ComponentX.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Inventory/InventoryComponent.h"
@@ -15,19 +14,11 @@ UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class XD_API UProductionComponent : public UComponentX {
     GENERATED_BODY()
 
-public:
-    enum class UIState { NotSelected, NoInputs, Normal };
-
 protected:    
     UPROPERTY()
     URecipe* Recipe;
     UPROPERTY()
     UInventoryComponent* Inventory;
-
-    UIState GetUIState() const;
-    UWidget* CreateUI(UIState state, UWidgetTree* tree) const;
-    UFUNCTION()
-    void OpenRecipeSelector();
 
 public:
     UProductionComponent();
@@ -36,18 +27,31 @@ public:
 
     void SetRecipe(URecipe* recipe);
 
-    virtual void AddToSelectedUI(UBuildingSelectedUI* selectedUI) override;
-    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
+
+    friend class UProductionComponentUI;
 };
 
 UCLASS()
-class XD_API UProductionComponentSelectedData : public USelectedUIData {
+class XD_API UProductionComponentUI : public UBuildingSelectedUIComponent {
     GENERATED_BODY()
 
-public:
-    UProductionComponent::UIState State;
+protected:
+    enum class UIState { NotSelected, NoInputs, Normal };
+    UIState State;
+
+    UPROPERTY()
+    UProductionComponent* ProductionComponent;
     UPROPERTY()
     UWidget* UI;
 
-    UProductionComponentSelectedData* Init(UProductionComponent::UIState state, UWidget* ui);
+    UIState GetUIState() const;
+    UWidget* CreateWidgetFu(UIState state, UWidgetTree* tree) const;
+    UFUNCTION()
+    void OpenRecipeSelector();
+
+public:
+    UProductionComponentUI* Init(UProductionComponent* productionComponent);
+    virtual void CreateUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void Tick(UBuildingSelectedUI* selectedUI) override;
 };

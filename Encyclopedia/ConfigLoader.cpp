@@ -10,6 +10,8 @@
 #include "XD/Construction/IndoorBuilderMode.h"
 #include "XD/Hotbar/HotbarSlotAction.h"
 #include "XD/Hotbar/HotbarSlotSubmenu.h"
+#include "XD/PopulationManager/Need.h"
+#include "XD/PopulationManager/NeedSatisfier.h"
 
 // TODO use one error mechanism like a result class or exceptions and use it everywhere in here instead of mix & match
 DEFINE_LOG_CATEGORY(LogConfigLoader);
@@ -30,6 +32,8 @@ struct Config {
     TMap<FString, UHotbar*> Hotbars;
     UHotbar* MainHotbar;
     TArray<TPair<FText, FText>> EncyclopediaPages;
+    TMap<FString, UNeed*> Needs;
+    TArray<UNeedSatisfier*> NeedSatisfiers;
 
     Config(
         UObject* ObjOwner,
@@ -334,7 +338,44 @@ void LoadRecipe(const FYamlNode& node, Config& config) {
         UE_LOG(LogConfigLoader, Error, TEXT("Error loading Recipe: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
     }
 }
-        
+
+void LoadNeed(const FYamlNode& node, Config& config) {
+    try {
+        const auto name = node["Name"].As<FText>();
+        UE_LOG(LogConfigLoader, Display, TEXT("Loading Need: %s (Line %d)"), *name.ToString(), node.GetMark().line +1);
+
+        const auto need = NewObject<UNeed>(config.ObjOwner,  FName(TEXT("Need_") + name.ToString()))->Init(
+            name,
+            *node["Image"].As<FString>(TEXT("/Game/Assets/Resources/Placeholder")),
+            node["Description"].As<FText>(FText::FromString(TEXT(""))),
+            node["Notification"].As<int>(),
+            node["Start"].As<int>(),
+            node["Full"].As<int>()
+        );
+        if (need)
+            config.Needs.Add(name.ToString(), need);
+    } catch (YAML::Exception e) {
+        UE_LOG(LogConfigLoader, Error, TEXT("Error loading Need: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
+    }
+}
+
+void LoadNeedSatisfier(const FYamlNode& node, Config& config) {
+    try {
+        UE_LOG(LogConfigLoader, Display, TEXT("Loading Need Satisfier (Line %d)"), node.GetMark().line +1);
+        const auto satisfier = NewObject<UNeedSatisfier>(config.ObjOwner);
+        satisfier->Need = LoadReference(node["Need"], config.Needs);
+
+        for (const auto& good : node["Goods"])
+            satisfier->Goods.Emplace(good["PeoplePerResource"].As<int>(), LoadReference(good["Resource"], config.Resources));
+        for (const auto& service : node["Services"])
+            satisfier->Services.Add(LoadReference(service["Building"], config.Buildings));
+
+        config.NeedSatisfiers.Add(satisfier);
+    } catch (YAML::Exception e) {
+        UE_LOG(LogConfigLoader, Error, TEXT("Error loading NeedSatisfier: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
+    }
+}
+
 template <class T>
 UHotbarSlotAction* CreateBuilderModeSlot(UConstructionPlan* constructionPlan, Config& config) {
     if (constructionPlan->ConstructedOn) {
@@ -449,21 +490,27 @@ void LoadFile(FString& path, Config& config) {
     }
 
     UE_LOG(LogConfigLoader, Display, TEXT("Loading Config File: %s"), *path);
-    
+
     for (const auto& resource : root["Resources"]) 
         LoadResource(resource, config);
-    
+
     for (const auto& component : root["Components"]) 
         LoadComponent(component, config);
-    
+
     for (const auto& biome : root["Biomes"]) 
         LoadBiome(biome, config);
-    
+
     for (const auto& building : root["Buildings"]) 
         LoadBuilding(building, config);
-    
+
     for (const auto& recipe : root["Recipes"]) 
         LoadRecipe(recipe, config);
+
+    for (const auto& need : root["Needs"]) 
+        LoadNeed(need, config);
+
+    for (const auto& needSatisfier : root["NeedSatisfiers"]) 
+        LoadNeedSatisfier(needSatisfier, config);
 
     if (const auto hotbars = root["Hotbars"])
         LoadHotbars(hotbars, config);
@@ -492,7 +539,7 @@ TPair<UEncyclopedia*, TArray<TPair<FText, FText>>> ConfigLoader::Load(const UHot
         dock->SetMainHotbar(config.MainHotbar);
 
     return MakeTuple(
-        encyclopedia->Init(config.Resources, config.NaturalResources, config.Buildings, config.Recipes),
+        encyclopedia->Init(config.Resources, config.NaturalResources, config.Buildings, config.Recipes, config.Needs, config.NeedSatisfiers),
         MoveTemp(config.EncyclopediaPages)
     );
 }

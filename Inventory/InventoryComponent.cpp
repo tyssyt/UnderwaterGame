@@ -18,6 +18,20 @@ void UInventoryComponent::SetBuffer() {
     Outputs.Emplace(0); // only for storing the outgoing connection
 }
 
+FInventorySlot* UInventoryComponent::GetInput(const UResource* resource) {
+    for (auto& input : GetInputs())
+        if (input.Resource == resource)
+            return &input;
+    return nullptr;
+}
+
+FInventorySlot* UInventoryComponent::GetOutput(const UResource* resource) {
+    for (auto& output : GetOutputs())
+        if (output.Resource == resource)
+            return &output;
+    return nullptr;
+}
+
 TArray<FInventorySlot*> UInventoryComponent::GetUnconnected(bool isInput) {
     TArray<FInventorySlot*> unconnected;
     if (bIsBuffer && !isInput) {
@@ -54,24 +68,21 @@ void UInventoryComponent::SetRecipe(URecipe* recipe) {
         Outputs.Emplace(result.amount*2, result.resource);
 }
 
-void UInventoryComponent::AddToSelectedUI(UBuildingSelectedUI* selectedUI) {
-    if (!AddToUI)
-        return;
-    const auto ui = CreateWidget<UInventoryUI>(selectedUI, The::BPHolder(this)->InventoryUIClass)->Init(this);
-    const auto slot = selectedUI->Content->AddChildToVerticalBox(ui);
-    slot->SetHorizontalAlignment(HAlign_Center);
-    selectedUI->Storage->Data.Add(StaticClass(), NewObject<UInventoryComponentSelectedData>()->Init(ui));
+void UInventoryComponent::AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
+    components.Add(NewObject<UInventoryComponentUI>(this)->Init(this));
 }
 
-void UInventoryComponent::UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {
-    if (!AddToUI)
-        return;
-    const auto data = selectedUI->Storage->Get<UInventoryComponentSelectedData>(StaticClass());
-    check(data);
-    data->UI->Tick();
-}
-
-UInventoryComponentSelectedData* UInventoryComponentSelectedData::Init(UInventoryUI* ui) {
-    UI = ui;
+UInventoryComponentUI* UInventoryComponentUI::Init(UInventoryComponent* inventoryComponent) {
+    InventoryComponent = inventoryComponent;
     return this;
+}
+
+void UInventoryComponentUI::CreateUI(UBuildingSelectedUI* selectedUI) {
+    UI = CreateWidget<UInventoryUI>(selectedUI, The::BPHolder(this)->InventoryUIClass)->Init(InventoryComponent);
+    const auto slot = selectedUI->Content->AddChildToVerticalBox(UI);
+    slot->SetHorizontalAlignment(HAlign_Center);
+}
+
+void UInventoryComponentUI::Tick(UBuildingSelectedUI* selectedUI) {
+    UI->Tick();
 }

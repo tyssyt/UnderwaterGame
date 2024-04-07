@@ -8,6 +8,7 @@
 #include "Components/RichTextBlock.h"
 #include "Components/VerticalBox.h"
 #include "XD/Buildings/ConstructionPlanUI.h"
+#include "XD/PopulationManager/NeedSatisfierUI.h"
 #include "XD/Recipes/RecipeUI.h"
 #include "EncyclopediaPageBuilding.generated.h"
 
@@ -41,6 +42,11 @@ protected:
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UBorder* RecipesBox;
 
+    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+    UVerticalBox* SatisfiesNeed;
+    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+    UBorder* SatisfierBox;
+
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UConstructionPlanUI> ConstructionPlanUIClass;
     UPROPERTY(EditDefaultsOnly)
@@ -49,6 +55,8 @@ protected:
     TSubclassOf<UResourceAmountUI> ResourceAmountUIClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<URecipeWithBuildingUI> RecipeWithBuildingUIClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UNeedSatisfierUI> NeedSatisfierUIClass;
 
     virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 

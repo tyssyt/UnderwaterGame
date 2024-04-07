@@ -11,6 +11,8 @@ struct CropData;
 class URecipe;
 class UResource;
 class UConstructionPlan;
+class UNeed;
+class UNeedSatisfier;
 
 UCLASS()
 class XD_API UEncyclopedia : public UObject {
@@ -26,6 +28,10 @@ protected:
     TArray<UConstructionPlan*> Buildings;
     UPROPERTY()
     TArray<URecipe*> Recipes;
+    UPROPERTY()
+    TArray<UNeed*> Needs;
+    UPROPERTY()
+    TArray<UNeedSatisfier*> NeedSatisfiers;
 
     UPROPERTY()
     TMap<UClass*, UConstructionPlan*> ClassToBuildings;
@@ -38,16 +44,24 @@ protected:
     TMap<UResource*, TArray<UConstructionPlan*>> BuildingByMaterial;
     TMap<UResource*, TArray<UConstructionPlan*>> BuildingByNeed;
     TMap<UNaturalResource*, TArray<UConstructionPlan*>> BuildingsByNaturalResource;
+    TMap<UNeed*, TArray<UNeedSatisfier*>> SatisfierByNeed;
+    TMap<UResource*, TArray<UNeedSatisfier*>> SatisfierByGood;
+    TMap<UConstructionPlan*, TArray<UNeedSatisfier*>> SatisfierByService;
 
     TArray<TPair<UResource*, int32>> StartResources; // TODO have this configurable and don't use PickupPads for them
 
 public:
 
-    UEncyclopedia* Init(TMap<FString, UResource*>& resources, TMap<FString, UNaturalResource*>& naturalResources, TMap<FString, UConstructionPlan*>& buildings, const TArray<URecipe*>& recipes);
+    UEncyclopedia* Init(
+        TMap<FString, UResource*>& resources,
+        TMap<FString, UNaturalResource*>& naturalResources,
+        TMap<FString, UConstructionPlan*>& buildings,
+        const TArray<URecipe*>& recipes,
+        TMap<FString, UNeed*>& needs,
+        const TArray<UNeedSatisfier*>& needSatisfiers
+    );
 
     // Special Resources
-    UPROPERTY()
-    UResource* Food;
     UPROPERTY()
     UResource* People;
     UPROPERTY()
@@ -67,10 +81,11 @@ public:
     UPROPERTY()
     UConstructionPlan* WorkerHouse;
 
-    TArray<UResource*>& GetAllResources();
-    TArray<UNaturalResource*>& GetAllNaturalResources();
-    TArray<UConstructionPlan*>& GetAllBuildings();
-    TArray<URecipe*>& GetAllRecipes();
+    TArray<UResource*>& GetAllResources() { return Resources; }
+    TArray<UNaturalResource*>& GetAllNaturalResources() { return NaturalResources; }
+    TArray<UConstructionPlan*>& GetAllBuildings() { return Buildings; }
+    TArray<URecipe*>& GetAllRecipes() { return Recipes; }
+    TArray<UNeed*>& GetAllNeeds() { return Needs; }
 
     UNaturalResource* GetNaturalResource(const UClass* building);
     UConstructionPlan* GetBuilding(const UClass* building);
@@ -81,12 +96,16 @@ public:
     TArray<UConstructionPlan*>& GetBuildingsByMaterial(UResource* resource);
     TArray<UConstructionPlan*>& GetBuildingsByNeed(UResource* resource);
     TArray<UConstructionPlan*>& GetBuildings(UNaturalResource* naturalResource);
+    TArray<UNeedSatisfier*>& GetNeedSatisfiers(UNeed* need);
+    TArray<UNeedSatisfier*>& GetNeedsByGood(UResource* good);
+    TArray<UNeedSatisfier*>& GetNeedsByService(UConstructionPlan* service);
 
-    TArray<TPair<UResource*, int32>>& GetStartResources();
+    TArray<TPair<UResource*, int32>>& GetStartResources() { return StartResources; }
 
     TSet<UResource*> FindConstructionResources();
     TSet<UResource*> FindRawMaterials();
     TSet<UResource*> FindNeeds();
+    TSet<UResource*> FindGoods();
 
     // TODO some more general mechanism, i.e. Metadata
     CropData* GetCrop(URecipe* recipe);

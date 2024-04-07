@@ -3,6 +3,7 @@
 #include "EncyclopediaUI.h"
 
 #include "Collections.h"
+#include "EncyclopediaPageNeed.h"
 #include "EncyclopediaPageText.h"
 #include "UI.h"
 #include "XD/Buildings/ConstructionPlan.h"
@@ -34,7 +35,12 @@ UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddBuildingPage(const UEncyclopedi
         EncyclopediaPageBuildingClass)->Init(building, Encyclopedia);
     return AddPage(category, building->Name, page);
 }
-
+UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddNeedPage(const UEncyclopediaCategory* category, UNeed* need) {
+    const auto page = CreateWidget<UEncyclopediaPageNeed>(
+        GetOwningPlayer(),
+        EncyclopediaPageNeedClass)->Init(need, Encyclopedia);
+    return AddPage(category, need->Name, page);
+}
 UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddTextPage(const UEncyclopediaCategory* category, const FText& title, const FText& text) {
     const auto page = CreateWidget<UEncyclopediaPageText>(
     GetOwningPlayer(),
@@ -71,16 +77,17 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
 
         const auto rawMaterialsSet = encyclopedia->FindRawMaterials();
         const auto constructionResourcesSet = encyclopedia->FindConstructionResources();
+        const auto goodsSet = encyclopedia->FindGoods();
         const auto needsSet = encyclopedia->FindNeeds();
 
         TArray<UResource*> intermediateProducts;
         intermediateProducts.Append(encyclopedia->GetAllResources());
         intermediateProducts.RemoveAllSwap([&rawMaterialsSet](const UResource* it){return rawMaterialsSet.Contains(it);});
         intermediateProducts.RemoveAllSwap([&constructionResourcesSet](const UResource* it){return constructionResourcesSet.Contains(it);});
+        intermediateProducts.RemoveAllSwap([&goodsSet](const UResource* it){return goodsSet.Contains(it);});
         intermediateProducts.RemoveAllSwap([&needsSet](const UResource* it){return needsSet.Contains(it);});
         intermediateProducts.RemoveSwap(encyclopedia->People);
         intermediateProducts.RemoveSwap(encyclopedia->Workforce);
-        intermediateProducts.RemoveSwap(encyclopedia->Food);
         
         TArray<UResource*> rawMaterials;    
         for (const auto resource : rawMaterialsSet)
@@ -88,12 +95,16 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
         TArray<UResource*> constructionResources;
         for (const auto resource : constructionResourcesSet)
             constructionResources.Add(resource);
+        TArray<UResource*> goods;
+        for (const auto resource : goodsSet)
+            goods.Add(resource);
         TArray<UResource*> needs;
         for (const auto resource : needsSet)
             needs.Add(resource);
 
         rawMaterials.Sort();
         constructionResources.Sort();
+        goods.Sort();
         needs.Sort();
         intermediateProducts.Sort();
 
@@ -109,25 +120,31 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
         for (const auto resource : constructionResources)
             resource->EncyclopediaEntry = CreateAndAddResourcePage(constructionCategory, resource);
 
+        const auto goodsCategory = resources->AddSubCategory(TEXT("Goods"));
+        for (const auto resource : goods)
+            resource->EncyclopediaEntry = CreateAndAddResourcePage(goodsCategory, resource);
+
         const auto needsCategory = resources->AddSubCategory(TEXT("Needs"));
         for (const auto resource : needs)
             resource->EncyclopediaEntry = CreateAndAddResourcePage(needsCategory, resource);
-
-        // special handling for people page
-        const auto peoplePage = CreateWidget<UEncyclopediaPageResource>(
-            GetOwningPlayer(),
-            EncyclopediaPageResourceClass)->InitPeople(Encyclopedia);
-
-        const auto peopleEntry = AddPage(needsCategory, FText::FromString(TEXT("People & Workforce")), peoplePage);            
-        encyclopedia->People->EncyclopediaEntry = peopleEntry;
-        encyclopedia->Workforce->EncyclopediaEntry = peopleEntry;
-
     }
 
     {
-        const auto naturalResources = AddCategory(TEXT("Natural Resources"));
+        const auto biomes = AddCategory(TEXT("Biomes"));
+        
+        const auto naturalResources = biomes->AddSubCategory(TEXT("Natural Resources"));
         for (const auto naturalResource : encyclopedia->GetAllNaturalResources())
             naturalResource->EncyclopediaEntry = CreateAndAddNaturalResourcePage(naturalResources, naturalResource);
+    }
+
+    {
+        const auto people = AddCategory(TEXT("People"));
+
+        const auto needs = people->AddSubCategory(TEXT("Needs"));
+        for (const auto need : encyclopedia->GetAllNeeds())
+            need->EncyclopediaEntry = CreateAndAddNeedPage(needs, need);
+
+        const auto policies = people->AddSubCategory(TEXT("Policies"));
     }
 
     {

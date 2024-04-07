@@ -4,7 +4,6 @@
 
 #include "Building.h"
 #include "IndoorBuilding.h"
-#include "XD/SelectedUI.h"
 #include "XD/Inventory/InventorySlotUI.h"
 #include "XD/Inventory/InventoryComponent.h"
 #include "XD/PopulationManager/HabitatPopulationManager.h"
@@ -12,6 +11,7 @@
 #include <utility>
 
 #include "CoreMinimal.h"
+#include "XD/PopulationManager/NeedsSummaryUI.h"
 #include "Habitat.generated.h"
 
 UCLASS()
@@ -20,7 +20,6 @@ class XD_API AHabitat : public ABuilding {
 
 public:
     AHabitat();
-    virtual ~AHabitat() override;
 
     UPROPERTY(EditAnywhere)
     UStaticMeshComponent* Mesh;
@@ -30,6 +29,11 @@ public:
 
     UPROPERTY(EditAnywhere)
     TArray<AIndoorBuilding*> Buildings;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UHabitatPopulationManager* PopulationManager;
+    
+    virtual void OnConstructionComplete(UConstructionOptions* options) override;
 
     virtual void Tick(float DeltaTime) override;
 
@@ -42,6 +46,10 @@ public:
     void PlaceBuilding(AIndoorBuilding* building);
     void RemoveBuilding(AIndoorBuilding* building);
 
+    bool HasBuilding(const UConstructionPlan* building) const;
+
+    virtual void InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
+
 
 protected:
     static const int GRID_SIZE = 16;
@@ -50,27 +58,25 @@ protected:
     void SetBuildingAt(AIndoorBuilding* building, int x, int y);
 
     virtual void BeginPlay() override;
-
-    HabitatPopulationManager* PopulationManager;
     AIndoorBuilding* BuildGrid[GRID_SIZE * GRID_SIZE];
-
-    friend class UHabitatUI;
 };
 
 
-UCLASS(Abstract)
-class XD_API UHabitatUI : public USelectedUI {
+UCLASS()
+class XD_API UHabitatUI : public UBuildingSelectedUIComponent {
     GENERATED_BODY()
 
 protected:
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+    UPROPERTY()
+    UNeedsSummaryUI* Needs;
+    UPROPERTY()
     UInventorySlotUI* People;
     
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UTextBlock* Workforce;
-
-public:
+    UPROPERTY()
     AHabitat* Habitat;
 
-    virtual void Tick() override;
+public:
+    UHabitatUI* Init(AHabitat* habitat);
+    virtual void CreateUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void Tick(UBuildingSelectedUI* selectedUI) override;    
 };

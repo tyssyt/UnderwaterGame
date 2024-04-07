@@ -36,23 +36,29 @@ public:
     TArray<FInventorySlot>& GetInputs() { return Inputs; }
     TArray<FInventorySlot>& GetOutputs() { return bIsBuffer ? Inputs : Outputs; }
 
+    FInventorySlot* GetInput(const UResource* resource);
+    FInventorySlot* GetOutput(const UResource* resource);
+
     TArray<FInventorySlot*> GetUnconnected(bool isInput);
     void SetConveyor(bool isInput, FInventorySlot* slot, AConveyor* conveyor);
 
     void SetRecipe(URecipe* recipe);
 
-    bool AddToUI = false;
-    virtual void AddToSelectedUI(UBuildingSelectedUI* selectedUI) override;
-    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
 };
 
 UCLASS()
-class XD_API UInventoryComponentSelectedData : public USelectedUIData {
+class XD_API UInventoryComponentUI : public UBuildingSelectedUIComponent {
     GENERATED_BODY()
 
-public:
+protected:
     UPROPERTY()
     UInventoryUI* UI;
+    UPROPERTY()
+    UInventoryComponent* InventoryComponent;
 
-    UInventoryComponentSelectedData* Init(UInventoryUI* ui);
+public:
+    UInventoryComponentUI* Init(UInventoryComponent* inventoryComponent);
+    virtual void CreateUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void Tick(UBuildingSelectedUI* selectedUI) override;
 };

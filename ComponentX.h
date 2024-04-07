@@ -8,6 +8,7 @@
 #include "ComponentX.generated.h"
 
 class UBuildingSelectedUI;
+class UBuildingSelectedUIComponent;
 class UComponentInfo;
 class UBuilderModeExtension;
 
@@ -27,6 +28,6 @@ public:
     }
     
     virtual void OnConstructionComplete(UConstructionOptions* options) {}
-    virtual void AddToSelectedUI(UBuildingSelectedUI* selectedUI) {}
-    virtual void UpdateSelectedUI(UBuildingSelectedUI* selectedUI) {}
+
+    virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {}
 };

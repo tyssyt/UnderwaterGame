@@ -17,12 +17,10 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Name;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    FText Description;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UTexture2D* Image;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FText Description;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UEncyclopediaEntry* EncyclopediaEntry;

@@ -3,11 +3,12 @@
 #pragma once
 
 #include "IndoorBuilding.h"
-#include "XD/SelectedUI.h"
 #include "XD/Inventory/InventorySlotUI.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "CoreMinimal.h"
+#include "BuildingSelectedUI.h"
+#include "XD/PopulationManager/NeedsSummaryUI.h"
 #include "WorkerHouse.generated.h"
 
 UCLASS()
@@ -30,22 +31,25 @@ public:
     static constexpr int RESIDENT_LIMIT = 20;
 
     virtual const TArray<Coordinate>* GetGridOffsets() override;
+
+    virtual void InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
 };
 
-
-UCLASS(Abstract)
-class XD_API UWorkerHouseUI : public USelectedUI {
+UCLASS()
+class XD_API UWorkerHouseUI : public UBuildingSelectedUIComponent {
     GENERATED_BODY()
 
 protected:
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+    UPROPERTY()
+    UNeedsSummaryUI* Needs;
+    UPROPERTY()
     UInventorySlotUI* People;
     
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UTextBlock* Workforce;
-
-public:
+    UPROPERTY()
     AWorkerHouse* House;
 
-    virtual void Tick() override;
+public:
+    UWorkerHouseUI* Init(AWorkerHouse* house);
+    virtual void CreateUI(UBuildingSelectedUI* selectedUI) override;
+    virtual void Tick(UBuildingSelectedUI* selectedUI) override;
 };
