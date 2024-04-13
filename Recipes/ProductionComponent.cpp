@@ -18,7 +18,7 @@ UProductionComponent::UProductionComponent() {
     Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 }
 
-void UProductionComponent::OnConstructionComplete(UConstructionOptions* options) {
+void UProductionComponent::OnConstructionComplete(UBuilderModeExtension* extension) {
     const auto& recipes = The::Encyclopedia(this)->GetRecipes(GetOwner()->GetClass());
     check(recipes.Num() > 0);
     if (recipes.Num() == 1)

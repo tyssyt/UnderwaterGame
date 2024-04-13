@@ -59,7 +59,7 @@ void UNaturalResourceSelectedUI::OnClickConstruct() {
     )->Init(constructionPlan);
 
     The::ConstructionManager(Selected)->AddConstruction(
-        NewObject<UConstructionSite>()->Init(building, constructionPlan, NewObject<UConstructionOptions>())
+        NewObject<UConstructionSite>()->Init(building, constructionPlan, NewObject<UBuilderModeExtensions>())
     );
     The::PlayerController(Selected)->Deselect(); // TODO once we have an UI for construction sites, we can select that instead
     Selected->Destroy();

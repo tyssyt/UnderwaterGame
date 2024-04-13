@@ -4,6 +4,7 @@
 
 #include "ConstructionPlan.h"
 #include "XD/ComponentX.h"
+#include "XD/Construction/BuilderModeExtension.h"
 
 ABuilding::ABuilding() : constructionState(EConstructionState::BuilderMode) {}
 
@@ -13,13 +14,26 @@ ABuilding* ABuilding::Init(UConstructionPlan* constructionPlan) {
     return this;
 }
 
-void ABuilding::OnConstructionComplete(UConstructionOptions* options) {
+void ABuilding::OnConstructionComplete(UBuilderModeExtensions* extensions) {
     constructionState = EConstructionState::Done;
 
     TInlineComponentArray<UComponentX*> components;
     GetComponents<>(components);
     for (const auto component : components)
-        component->OnConstructionComplete(options);
+        if (const auto extension = extensions->ComponentExtensions.Find(component))
+            component->OnConstructionComplete(*extension);
+        else
+            component->OnConstructionComplete(nullptr);
+}
+
+UBuilderModeExtensions* ABuilding::CreateBuilderModeExtension() {
+    const auto extensions = NewObject<UBuilderModeExtensions>(this);
+    TInlineComponentArray<UComponentX*> components;
+    GetComponents<>(components);
+    for (const auto component : components)
+        if (const auto extension = component->CreateBuilderModeExtension())
+            extensions->ComponentExtensions.Add(component, extension);
+    return extensions;
 }
 
 void ABuilding::InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
@@ -27,4 +41,3 @@ void ABuilding::InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components
         if (const auto componentX = Cast<UComponentX>(component))
             componentX->AddToSelectedUI(components);
 }
-

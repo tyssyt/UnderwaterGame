@@ -33,7 +33,7 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UHabitatPopulationManager* PopulationManager;
     
-    virtual void OnConstructionComplete(UConstructionOptions* options) override;
+    virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
 
     virtual void Tick(float DeltaTime) override;
 

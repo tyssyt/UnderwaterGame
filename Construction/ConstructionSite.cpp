@@ -5,15 +5,15 @@
 #include "ConstructionManager.h"
 #include "The.h"
 
-UConstructionSite* UConstructionSite::Init(AXActor* building, const UConstructionPlan* constructionPlan, UConstructionOptions* options) {
-    return Init(building, constructionPlan->Time, constructionPlan->Materials, options);
+UConstructionSite* UConstructionSite::Init(AXActor* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions) {
+    return Init(building, constructionPlan->Time, constructionPlan->Materials, extensions);
 }
 
-UConstructionSite* UConstructionSite::Init(AXActor* building, int time, const TArray<Material>& materials, UConstructionOptions* options) {
+UConstructionSite* UConstructionSite::Init(AXActor* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions) {
     Building = building;
     Time = time;
     Materials = materials;
-    ConstructionOptions = options;
+    Extensions = extensions;
 
     Building->SetActorTickEnabled(false);
     if (ABuilding* bbuilding = Cast<ABuilding>(building))
@@ -31,7 +31,7 @@ void UConstructionSite::BeginConstruction() {
     Building->SetActorTickEnabled(true);
 
     if (ABuilding* building = Cast<ABuilding>(Building))
-        building->OnConstructionComplete(ConstructionOptions);
+        building->OnConstructionComplete(Extensions);
 
     The::ConstructionManager(Building)->FinishConstruction(this);
 }

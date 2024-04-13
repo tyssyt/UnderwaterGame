@@ -25,18 +25,11 @@ UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan
     );
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), ConstructionUI);
 
-    if (Preview->GetBuilderModeExtension())
-        Extensions.Add(NewObject<UBuilderModeExtension>(this, Preview->GetBuilderModeExtension()));
-
-    TInlineComponentArray<UComponentX*> components;
-    Preview->GetComponents<UComponentX>(components);
-    for (const auto component : components)
-        if (component->GetBuilderModeExtension())
-            Extensions.Add(NewObject<UBuilderModeExtension>(this, component->GetBuilderModeExtension()));
-
-    for (UBuilderModeExtension* extension : Extensions)
+    Extensions = Preview->CreateBuilderModeExtension();
+    if (const auto extension = Extensions->BuildingExtension)
         extension->Init(Preview, ConstructionUI);
-    
+    for (const auto& extension : Extensions->ComponentExtensions)
+        extension.Value->Init(Preview, ConstructionUI);
 
     // bind keys
     const auto inputComponent = playerController->InputComponent;
@@ -51,8 +44,11 @@ bool UIndoorBuilderMode::Tick(const ACameraPawn& camera) {
     Position(camera);
 
     ConstructionUI->ConstructionMaterials->UpdateHave(The::ConstructionManager(this));
-    for (UBuilderModeExtension* extension : Extensions)
+
+    if (const auto extension = Extensions->BuildingExtension)
         extension->Update();
+    for (const auto& extension : Extensions->ComponentExtensions)
+        extension.Value->Update();
 
     return false;
 }
@@ -70,6 +66,7 @@ void UIndoorBuilderMode::Position(const ACameraPawn& camera) {
 
     Preview->SetActorHiddenInGame(false);
     Preview->SetActorLocation(hitResult.ImpactPoint);
+    Preview->Habitat = nullptr;
 
     // check if mouse is over habitat
     const auto habitat = Cast<AHabitat>(hitResult.GetActor());
@@ -100,24 +97,23 @@ void UIndoorBuilderMode::ConfirmPosition() {
     if (!Buildable)
         return;
 
-    const auto options = NewObject<UConstructionOptions>();
-    Stop(options);
-
+    Stop(false);
     Preview->Habitat->PlaceBuilding(Preview);
-    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, options);
+    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, Extensions);
     The::ConstructionManager(this)->AddConstruction(constructionSite);
     Preview = nullptr;
 }
 
-void UIndoorBuilderMode::Stop(UConstructionOptions* options) {
+void UIndoorBuilderMode::Stop(bool cancelled) {
     if (!Preview)
         return;
-    
-    for (const auto extension : Extensions)
-        extension->End(options);
-    Extensions.Empty();
 
-    if (!options) {
+    if (const auto extension = Extensions->BuildingExtension)
+        extension->End(cancelled);
+    for (const auto& extension : Extensions->ComponentExtensions)
+        extension.Value->End(cancelled);
+
+    if (cancelled) {
         Preview->Destroy();
         Preview = nullptr;
     }

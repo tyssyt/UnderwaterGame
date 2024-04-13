@@ -9,14 +9,19 @@
 #include "CoreMinimal.h"
 #include "Components/ProgressBar.h"
 #include "Containers/Array.h"
-#include "XD/SelectedUI.h"
+#include "XD/Construction/BuilderModeExtension.h"
 #include "XD/Electricity/ElectricityNetwork.h"
 #include "XD/Electricity/PowerUI.h"
+#include "XD/Electricity/WireComponent.h"
 #include "Substation.generated.h"
 
 UCLASS()
 class XD_API ASubstation : public ABuilding {
     GENERATED_BODY()
+
+protected:    
+    void Add(UElectricComponent* building);
+    void Remove(UElectricComponent* building);
 
 public:
     ASubstation();
@@ -29,13 +34,15 @@ public:
     UPROPERTY(EditAnywhere)
     TArray<UElectricComponent*> ConnectedBuildings;
 
+    UPROPERTY(EditAnywhere)
+    TArray<UElectricComponent*> ConnectedHabitats;
+
     void Connect(UElectricComponent* building);
     void Disconnect(UElectricComponent* building);
+
     void DisconnectFromNetwork();
-    void ConnectNoRecompute(UElectricComponent* building);
-    void ReconnectNoRecompute(UElectricComponent* building);
-    virtual void OnConstructionComplete(UConstructionOptions* options) override;
-    virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const override;
+    virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
+    virtual UBuilderModeExtensions* CreateBuilderModeExtension() override;
 
     TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> FindNearby() const;
 
@@ -69,4 +76,26 @@ public:
     USubstationUIComponent* Init(ASubstation* substation);
     virtual void CreateUI(UBuildingSelectedUI* selectedUI) override;
     virtual void Tick(UBuildingSelectedUI* selectedUI) override;
+};
+
+UCLASS()
+class XD_API USubstationBuilderModeExtension : public UBuilderModeExtension {
+    GENERATED_BODY()
+    
+    TPair<FVector, FRotator> Last;
+
+    UPROPERTY()
+    ASubstation* Preview;
+    UPROPERTY()
+    UConstructionUI* ConstructionUI;
+    UPROPERTY()
+    TArray<UWireComponent*> Wires;
+
+public:
+    UPROPERTY()
+    bool AutoConnectWires;
+
+    virtual void Init(ABuilding* preview, UConstructionUI* constructionUI) override;
+    virtual void Update() override;
+    virtual void End(bool cancelled) override;
 };

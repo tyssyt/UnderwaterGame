@@ -31,17 +31,11 @@ UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* construction
     );
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), ConstructionUI);
 
-    if (Preview->GetBuilderModeExtension())
-        Extensions.Add(NewObject<UBuilderModeExtension>(this, Preview->GetBuilderModeExtension()));
-
-    TInlineComponentArray<UComponentX*> components;
-    Preview->GetComponents<UComponentX>(components);
-    for (const auto component : components)
-        if (component->GetBuilderModeExtension())
-            Extensions.Add(NewObject<UBuilderModeExtension>(this, component->GetBuilderModeExtension()));
-
-    for (UBuilderModeExtension* extension : Extensions)
+    Extensions = Preview->CreateBuilderModeExtension();
+    if (const auto extension = Extensions->BuildingExtension)
         extension->Init(Preview, ConstructionUI);
+    for (const auto& extension : Extensions->ComponentExtensions)
+        extension.Value->Init(Preview, ConstructionUI);
 
     // bind keys
     const auto inputComponent = playerController->InputComponent;
@@ -66,8 +60,11 @@ bool UBuildingBuilderMode::Tick(const ACameraPawn& camera) {
 
     CheckOverlap();
     ConstructionUI->ConstructionMaterials->UpdateHave(The::ConstructionManager(this));
-    for (UBuilderModeExtension* extension : Extensions)
+
+    if (const auto extension = Extensions->BuildingExtension)
         extension->Update();
+    for (const auto& extension : Extensions->ComponentExtensions)
+        extension.Value->Update();
     return false;
 }
 
@@ -257,27 +254,27 @@ void UBuildingBuilderMode::OnClickConfirm() {
     if (HasOverlap)
         return;
 
-    const auto options = NewObject<UConstructionOptions>();
-    Stop(options);
+    Stop(false);
 
     // create and add construction site
-    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, options);
+    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, Extensions);
     The::ConstructionManager(this)->AddConstruction(constructionSite);
 }
 
 void UBuildingBuilderMode::OnClickCancel() {
-    Stop();
+    Stop(true);
 }
 
-void UBuildingBuilderMode::Stop(UConstructionOptions* options) {
+void UBuildingBuilderMode::Stop(bool cancelled) {
     if (Phase == Done)
         return; // everything is done
-    
-    for (const auto extension : Extensions)
-        extension->End(options);
-    Extensions.Empty();
 
-    if (options) {
+    if (const auto extension = Extensions->BuildingExtension)
+        extension->End(cancelled);
+    for (const auto& extension : Extensions->ComponentExtensions)
+        extension.Value->End(cancelled);
+
+    if (!cancelled) {
         // remove components
         ConfirmSymbol->DestroyComponent();
         ConfirmSymbol = nullptr;

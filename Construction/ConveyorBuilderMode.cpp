@@ -173,7 +173,7 @@ UConstructionSite* UConveyorBuilderMode::SourceTarget::CreateConstructionSite(co
         Building,
         encyclopedia->Splitter->Time,
         materials,
-        NewObject<UConstructionOptions>()
+        NewObject<UBuilderModeExtensions>()
     );
 }
 
@@ -453,7 +453,7 @@ bool UConveyorBuilderMode::HighlightConveyorNodeUnderCursor(AConveyor* conveyor,
     return true;
 }
 
-    
+
 bool UConveyorBuilderMode::HighlightConveyorLinkUnderCursor(AConveyor* conveyor, UConveyorLink* link, const FVector& hitLoc, bool isSource) {
     const auto splitter = CurrentHighlight.IsConveyorLink(link) ? CurrentHighlight.GetBuilding() : SpawnSplitter(isSource, conveyor->SourceInv->Resource);
     splitter->SetActorLocation(ProjectOntoLink(hitLoc, link));
@@ -506,7 +506,7 @@ bool UConveyorBuilderMode::CheckOverlapLinks() {
         // special case for 1 segment conveyor
         return CheckOverlap(Links[0], {}, {&Source, &Target});
     }
-    
+
     bool hasOverlapLinks = false;
     if (Links.Num() > 0) {
         // The first Link is allowed to overlap the Source and the first Node
@@ -563,7 +563,7 @@ bool UConveyorBuilderMode::CheckOverlapNodes() {
         // NextNode may overlap NextLink
         hasOverlapNodes |= CheckOverlap(NextNode, {NextLink}, {});
     }
-    
+
     return hasOverlapNodes;
 }
 
@@ -576,7 +576,7 @@ bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, const TArray
     TArray<UStaticMeshComponent*> allowedNodes;
     for (const auto a : allowed)
         a->GetOverlapIgnore(allowedActors, allowedNodes);
-        
+
     bool hasOverlap = false;        
     for (const auto overlap : overlaps) {
         if (allowedMeshes.Contains(overlap) || allowedNodes.Contains(overlap) || allowedActors.Contains(overlap->GetAttachmentRootActor()))
@@ -585,7 +585,7 @@ bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, const TArray
         UE_LOG(LogTemp, Error, TEXT("%s on %s overlaps with %s on %s"), *mesh->GetName(), *mesh->GetOwner()->GetName(), *overlap->GetName(), *overlap->GetOwner()->GetName());
         break;
     }
-    
+
     if (hasOverlap)
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
             mesh->SetMaterial(i, RedMaterial);
@@ -614,7 +614,7 @@ void UConveyorBuilderMode::AddArrowsToNode(UConveyorNode* node, UTexture2D* canc
     arrowSideways->SetRelativeRotation(FRotator(0, 90, 0));
     Preview->AddInstanceComponent(arrowSideways);                
     arrowSideways->OnArrowMoved.BindUObject(this, &UConveyorBuilderMode::UpdateLinks, node);
-            
+
     UArrowMoverUp* arrowUp = NewObject<UArrowMoverUp>(Preview);
     arrowUp->RegisterComponent();
     arrowUp->AttachToComponent(node, FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
@@ -687,13 +687,13 @@ void UConveyorBuilderMode::Confirm() {
         }
         Resource = *resources.begin();
 
-        
+
         Target = CurrentHighlight;
         CurrentHighlight.Reset();
-        
+
         Links.Push(NextLink);
         NextLink = nullptr;
-        
+
         for (int i=0; i < NextNode->GetMaterials().Num(); ++i)
             NextNode->SetMaterial(i, nullptr);
         for (UStaticMeshComponent* link : Links)          
@@ -706,7 +706,7 @@ void UConveyorBuilderMode::Confirm() {
 
         // create confirm / cancel over target
         const auto playerController = The::PlayerController(this);
-        
+
         UImageUI* confirmImageUI = CreateWidget<UImageUI>(playerController, playerController->BlueprintHolder->ImageUIClass);
         confirmImageUI->Image->SetBrushFromTexture(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Confirm")));
         confirmImageUI->Button->OnClicked.AddDynamic(this, &UConveyorBuilderMode::OnClickConfirm);
@@ -753,7 +753,7 @@ void UConveyorBuilderMode::Confirm() {
             Nodes.Push(insertNode);
 
         CreateNextLinkAndNode();
-        
+
         NextLink->SetCollisionProfileName(CollisionProfiles::UI, true);
         Links.Insert(NextLink, idx);
         NextLink = nullptr;
@@ -800,7 +800,7 @@ void UConveyorBuilderMode::OnClickConfirm() {
     // Merger
     if (const auto constructionSite = Target.CreateConstructionSite(encyclopedia))
         constructionManager->AddConstruction(constructionSite);     
-            
+
     // Conveyor
     TArray<FVector> nodes;
     nodes.Add(Source.GetLocation());
@@ -821,15 +821,15 @@ void UConveyorBuilderMode::OnClickConfirm() {
         conveyor,
         1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
         AConveyor::ComputeCosts(nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, encyclopedia),
-        NewObject<UConstructionOptions>()
+        NewObject<UBuilderModeExtensions>()
     ); 
     constructionManager->AddConstruction(constructionSite);
-    
-    Stop(NewObject<UConstructionOptions>());
+
+    Stop(false);
 }
 
 void UConveyorBuilderMode::OnClickCancel() {
-    Stop();
+    Stop(true);
 }
 
 bool UConveyorBuilderMode::CheckValidBuilding(const ABuilding* building, const bool isSource) const {
@@ -847,12 +847,12 @@ UClass* UConveyorBuilderMode::IDK() {
     return AConveyor::StaticClass();
 }
 
-void UConveyorBuilderMode::Stop(UConstructionOptions* options) {
+void UConveyorBuilderMode::Stop(bool cancelled) {
     if (Done)
         return;
     Done = true;
 
-    if (!options) {
+    if (!cancelled) {
         Source.RemoveHighlight();
         Target.RemoveHighlight();
     }

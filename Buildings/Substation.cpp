@@ -2,10 +2,33 @@
 
 #include "Substation.h"
 
+#include "IndoorBuilding.h"
 #include "The.h"
 #include "Components/VerticalBoxSlot.h"
 #include "XD/BlueprintHolder.h"
-#include "XD/Construction/BuilderModeExtension.h"
+
+void ASubstation::Add(UElectricComponent* building) {
+    switch (building->GetType()) {
+    case UElectricComponent::Type::OutdoorBuilding:
+        ConnectedBuildings.Add(building);
+        break;
+    case UElectricComponent::Type::Habitat:
+        ConnectedHabitats.Add(building);
+        break;
+    case UElectricComponent::Type::IndoorBuilding:;
+    }    
+}
+void ASubstation::Remove(UElectricComponent* building) {
+    switch (building->GetType()) {
+    case UElectricComponent::Type::OutdoorBuilding:
+        ConnectedBuildings.Remove(building);
+        break;
+    case UElectricComponent::Type::Habitat:
+        ConnectedHabitats.Remove(building);
+        break;
+    case UElectricComponent::Type::IndoorBuilding:;
+    }
+}
 
 ASubstation::ASubstation() {
     const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/Substation"));
@@ -16,15 +39,31 @@ ASubstation::ASubstation() {
 }
 
 void ASubstation::Connect(UElectricComponent* building) {
-    ConnectNoRecompute(building);
+    check(building->GetType() != UElectricComponent::Type::IndoorBuilding);
+    
+    if (const auto oldSubstation = building->GetSubstation()) {
+        if (oldSubstation->Network == this->Network) {
+            oldSubstation->Remove(building);
+            this->Add(building);
+            return;
+        }
+        oldSubstation->Disconnect(building);
+    }
+
+    check(building->GetState() == PowerState::Disconnected || building->GetState() == PowerState::Initial);
+    check(building->GetSubstation() == nullptr);
+
+    Add(building);
+    building->SetConnected(this);
     Network->RecomputeStats();
 }
-
 void ASubstation::Disconnect(UElectricComponent* building) {
-    check(building->Substation == this);
-    building->Substation = nullptr;
-    building->SetState(PowerState::Disconnected);
-    ConnectedBuildings.Remove(building);
+    check(building->GetType() != UElectricComponent::Type::IndoorBuilding);
+    check(building->GetState() == PowerState::Powered || building->GetState() == PowerState::Unpowered);
+    check(building->GetSubstation() == this);
+
+    Remove(building);
+    building->SetDisconnected();
     Network->RecomputeStats();
 }
 
@@ -37,30 +76,16 @@ void ASubstation::DisconnectFromNetwork() {
     Network->RecomputeStats();
 }
 
-void ASubstation::ConnectNoRecompute(UElectricComponent* building) {
-    check(!building->Substation);
-    building->Substation = this;
-    if (building->Consumption > 0)
-        building->SetState(PowerState::Unpowered); // set as unpowered, the next recompute of the network will power the building if enough power is in the network
-    else
-        building->SetState(PowerState::Powered); // producers are always powered
-    ConnectedBuildings.Add(building);
+
+bool isAutoConnect(UBuilderModeExtension* extension) {
+    if (const auto elec = Cast<USubstationBuilderModeExtension>(extension))
+        return elec->AutoConnectWires;
+    return false;
 }
+void ASubstation::OnConstructionComplete(UBuilderModeExtensions* extensions) {
+    Super::OnConstructionComplete(extensions);
 
-void ASubstation::ReconnectNoRecompute(UElectricComponent* building) {
-    check(building->Substation);
-    check(Network == building->Substation->Network);
-    building->Substation->ConnectedBuildings.Remove(building);
-    building->Substation = this;
-    ConnectedBuildings.Add(building);
-}
-
-void ASubstation::OnConstructionComplete(UConstructionOptions* options) {
-    Super::OnConstructionComplete(options);
-
-    const auto electricityOptions = options->Get<UElectricityConstructionOption>(USubstationBuilderModeExtension::StaticClass());
-    check(electricityOptions);
-    if (electricityOptions && !electricityOptions->AutoConnectWires) {
+    if (!Cast<USubstationBuilderModeExtension>(extensions->BuildingExtension)->AutoConnectWires) {
         Network = new ElectricityNetwork(this);
         Network->RecomputeStats();
         return;
@@ -77,24 +102,31 @@ void ASubstation::OnConstructionComplete(UConstructionOptions* options) {
     } else
         Network = new ElectricityNetwork(this);
 
-    for (UElectricComponent* nearbyElec : nearby.Value) {
-        if (nearbyElec->Substation) {
+    for (const auto nearbyElec : nearby.Value) {
+        if (const auto otherSubstation = nearbyElec->GetSubstation()) {
             // check if we are on the same network and closer then the substation currently used
-            FVector elecLoc = nearbyElec->GetOwner()->GetActorLocation();
-            if (nearbyElec->Substation->Network == Network
-                && FVector::Distance(GetActorLocation(), elecLoc) < FVector::Distance(nearbyElec->Substation->GetActorLocation(), elecLoc)
+            const FVector elecLoc = nearbyElec->GetOwner()->GetActorLocation();
+            if (this->Network == otherSubstation->Network
+                && FVector::Distance(GetActorLocation(), elecLoc) < FVector::Distance(otherSubstation->GetActorLocation(), elecLoc)
             ) {
-                ReconnectNoRecompute(nearbyElec);
+                otherSubstation->Remove(nearbyElec);
+                this->Add(nearbyElec);
             }
-        } else // Always connect unconnected components
-            ConnectNoRecompute(nearbyElec);
+        } else {
+            // Always connect unconnected components
+            check(nearbyElec->GetState() == PowerState::Disconnected);
+            Add(nearbyElec);
+            nearbyElec->SetConnected(this);
+        }
     }
 
     Network->RecomputeStats();
 }
 
-TSubclassOf<UBuilderModeExtension> ASubstation::GetBuilderModeExtension() const {
-    return USubstationBuilderModeExtension::StaticClass();
+UBuilderModeExtensions* ASubstation::CreateBuilderModeExtension() {
+    const auto extensions = Super::CreateBuilderModeExtension();
+    extensions->BuildingExtension = NewObject<USubstationBuilderModeExtension>(this);
+    return extensions;
 }
 
 TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby() const {
@@ -116,7 +148,7 @@ TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby
     TArray<ASubstation*> nearbySubstations;
     TArray<UElectricComponent*> nearbyElecs;
     for (const FOverlapResult& overlap : overlaps) {
-        ASubstation* nearbySubstation = Cast<ASubstation>(overlap.GetActor());
+        const auto nearbySubstation = Cast<ASubstation>(overlap.GetActor());
         if (nearbySubstation && nearbySubstation->constructionState == EConstructionState::Done && FVector::Distance(
             GetActorLocation(),
             nearbySubstation->GetActorLocation()
@@ -124,7 +156,9 @@ TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby
             nearbySubstations.Add(nearbySubstation);
         }
 
-        UElectricComponent* nearbyElec = overlap.GetActor()->FindComponentByClass<UElectricComponent>();
+        if (overlap.GetActor()->IsA<AIndoorBuilding>())
+            continue;
+        const auto nearbyElec = overlap.GetActor()->FindComponentByClass<UElectricComponent>();
         if (nearbyElec && nearbyElec->GetState() != PowerState::Initial && FVector::Distance(
             GetActorLocation(),
             nearbyElec->GetOwner()->GetActorLocation()
@@ -163,4 +197,52 @@ void USubstationUIComponent::Tick(UBuildingSelectedUI* selectedUI) {
         UI->PowerUI->Set(0, 0);
         UI->FillLevel->SetPercent(0.);
     }
+}
+
+void USubstationBuilderModeExtension::Update() {
+    if (ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Unchecked) {
+        Last = MakeTuple(FVector(), FRotator());
+        
+        for (UWireComponent* wire : Wires)
+            wire->DestroyComponent();
+        Wires.Empty();
+        return;
+    }
+    
+    if (MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation()) == Last)
+        return;
+    Last = MakeTuple(Preview->GetActorLocation(), Preview->GetActorRotation());
+
+    for (UWireComponent* wire : Wires)
+        wire->DestroyComponent();
+    Wires.Empty();
+
+    const auto nearby = Preview->FindNearby();
+    
+    TArray<ElectricityNetwork*> connectedNetworks;
+    for (ASubstation* nearbySubstation : nearby.Key) {
+        Wires.Add(UWireComponent::Create(Preview, Preview, nearbySubstation));
+        if (!connectedNetworks.Contains(nearbySubstation->Network))
+            connectedNetworks.Add(nearbySubstation->Network);
+    }
+    
+    for (const UElectricComponent* nearbyElec : nearby.Value) {
+        const FVector elecLocation = nearbyElec->GetOwner()->GetActorLocation();
+        if (const auto substation = nearbyElec->GetSubstation()) {
+            // check if we would be on the same network and closer then the substation currently used
+            if (FVector::Distance(Last.Key, elecLocation) < FVector::Distance(substation->GetActorLocation(), elecLocation)
+                    && connectedNetworks.Contains(substation->Network)) {
+                Wires.Add(UWireComponent::Create(Preview, Preview, nearbyElec->GetOwner<ABuilding>()));
+                    }
+        } else {     
+            Wires.Add(UWireComponent::Create(Preview, Preview, nearbyElec->GetOwner<ABuilding>()));       
+        }
+    }
+}
+
+void USubstationBuilderModeExtension::End(bool cancelled) {
+    AutoConnectWires = ConstructionUI->TogglePower->GetCheckedState() == ECheckBoxState::Checked;
+
+    for (const auto wire : Wires)
+        wire->DestroyComponent();
 }

@@ -20,8 +20,7 @@ UCLASS()
 class XD_API UPowerOverlay : public UObject, public FTickableGameObject {
     GENERATED_BODY()
 
-private:
-
+protected:
     bool Active;
 
     uint32 LastFrameNumberWeTicked = INDEX_NONE;
@@ -54,6 +53,9 @@ private:
     void TickConnect();
     void TickDisconnect();
     void ConfirmModeHighlight();
+    void ConfirmTogglePower() const;
+    void ConfirmConnect();
+    void ConfirmDisconnect() const;
     void ResetModeHighlight(bool deactivate);
     void ResetTogglePower();
     void ResetConnect(bool deactivate);
@@ -97,4 +99,5 @@ private:
     void AddFloatingWidget(FVector location, UUserWidget* widget, const APlayerControllerX* playerController) const;
     static void ScaleFloatingWidget(UWidgetComponent* widgetComponent, FVector cameraLocation);
     void Highlight(const UElectricComponent* building) const;
+    static void RemoveHighlight(const UElectricComponent* building);
 };

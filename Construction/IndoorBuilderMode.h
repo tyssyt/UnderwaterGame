@@ -12,16 +12,16 @@ class XD_API UIndoorBuilderMode : public UBuilderMode {
     GENERATED_BODY()
 
     bool Buildable = false;
-    
+
     UPROPERTY()
     UMaterialInstance* HighlightMaterial;
     UPROPERTY()
     UConstructionPlan* ConstructionPlan;
     UPROPERTY()
     AIndoorBuilding* Preview;   
-    
+
     UPROPERTY()
-    TArray<UBuilderModeExtension*> Extensions; 
+    UBuilderModeExtensions* Extensions; 
 
 public:
     UIndoorBuilderMode();
@@ -29,14 +29,13 @@ public:
 
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;
-    virtual void Stop(UConstructionOptions* options = nullptr) override;
+    virtual void Stop(bool cancelled) override;
 
 private:
     void Position(const ACameraPawn& camera);
-    
+
     void ConfirmPosition();
     void SetInvisible();
     void SetNotBuildable();
     void SetBuildable();
-
 };

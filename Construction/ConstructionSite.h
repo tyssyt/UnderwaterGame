@@ -14,11 +14,11 @@ class XD_API UConstructionSite : public UObject {
 protected:
     TArray<Material> DeliveredMaterial;
     UPROPERTY()
-    UConstructionOptions* ConstructionOptions;
+    UBuilderModeExtensions* Extensions;
 
 public:
-    UConstructionSite* Init(AXActor* building, const UConstructionPlan* constructionPlan, UConstructionOptions* options); 
-    UConstructionSite* Init(AXActor* building, int time, const TArray<Material>& materials, UConstructionOptions* options);
+    UConstructionSite* Init(AXActor* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions); 
+    UConstructionSite* Init(AXActor* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions);
     
     void SetGhostMaterial(UMaterial* ghostMaterial) const;
     void BeginConstruction();

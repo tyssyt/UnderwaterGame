@@ -8,6 +8,7 @@
 #include "XD/CameraPawn.h"
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Buildings/Habitat.h"
 
 UPowerOverlay::UPowerOverlay() : Active(false) {
     const static ConstructorHelpers::FObjectFinder<UMaterialInstance> MatPoweredFinder(TEXT("/Game/Assets/Materials/GhostMaterials/PowerOverlay_Powered"));
@@ -78,6 +79,15 @@ void UPowerOverlay::TickTogglePower() {
     if (elec && elec->Consumption <= 0)
         elec = nullptr;
 
+    // can't toggle power to habitats
+    if (elec && elec->GetType() == UElectricComponent::Type::Habitat)
+        elec = nullptr;
+
+    // can't toggle buildings in disconnected habitats
+    if (elec && elec->GetType() == UElectricComponent::Type::IndoorBuilding
+        && elec->GetOwner<AIndoorBuilding>()->Habitat->GetComponentByClass<UElectricComponent>()->GetState() == PowerState::Disconnected)
+        elec = nullptr;
+
     ABuilding* underCursor = elec ? elec->GetOwner<ABuilding>() : nullptr;
     if (underCursor == ModeHighlight.Current) {
         return;
@@ -110,6 +120,12 @@ void UPowerOverlay::TickConnect() {
     ABuilding* underCursor = The::PlayerController(this)->GetUnderCursor<ABuilding>();
     if (underCursor && underCursor->constructionState != EConstructionState::Done)
         underCursor = nullptr;
+
+    if (const auto elec = CheckElec(underCursor)) {
+        // can't connect indoor
+        if (elec->GetType() == UElectricComponent::Type::IndoorBuilding)
+            underCursor = nullptr;
+    }
 
     if (!ModeHighlight.Source) {
         if (!CheckElec(underCursor) && !Cast<ASubstation>(underCursor))
@@ -191,70 +207,74 @@ void UPowerOverlay::ConfirmModeHighlight() { // TODO this could be less messy I 
     switch (ModeHighlight.Mode) {
     case EPowerOverlayMode::None:
         return;
-    case EPowerOverlayMode::TogglePower: {
-        if (!ModeHighlight.Current)
-            return;
-        UElectricComponent* elec = ModeHighlight.Current->GetComponentByClass<UElectricComponent>();
-        switch (elec->GetState()) {
-        case PowerState::Powered:
-        case PowerState::Unpowered:
-            elec->SetState(PowerState::Deactivated);
-            break;
-        case PowerState::Deactivated:
-            elec->SetState(PowerState::Unpowered);
-            break;
-        case PowerState::Initial:
-        case PowerState::Disconnected: default: checkNoEntry();
-        }
-        elec->Substation->Network->RecomputeStats();
+    case EPowerOverlayMode::TogglePower:
+        ConfirmTogglePower();
         return;
-    }
-    case EPowerOverlayMode::Connect: {
-        if (!ModeHighlight.Current)
-            return;
-        if (!ModeHighlight.Source) {
-            ModeHighlight.Source = ModeHighlight.Current;
-            ModeHighlight.Current = nullptr;
-            return;
-        }
-
-        if (UElectricComponent* elec = CheckElec(ModeHighlight.Current)) {
-            check(ModeHighlight.Source->IsA(ASubstation::StaticClass()));
-            if (elec->Substation) {
-                elec->Substation->Disconnect(elec);
-            }
-            Cast<ASubstation>(ModeHighlight.Source)->Connect(elec);
-            return;
-        }
-        if (ASubstation* substation = Cast<ASubstation>(ModeHighlight.Current)) {
-            if (UElectricComponent* elec2 = CheckElec(ModeHighlight.Source)) {
-                if (elec2->Substation) {
-                    elec2->Substation->Disconnect(elec2);
-                }
-                substation->Connect(elec2);
-                return;
-            }
-            if (const ASubstation* substation2 = Cast<ASubstation>(ModeHighlight.Source)) {
-                substation->Network->MergeNetwork(substation2->Network);
-                return;
-            }
-        }
-        checkNoEntry();
+    case EPowerOverlayMode::Connect:
+        ConfirmConnect();
         return;
-    }
-    case EPowerOverlayMode::Disconnect: {
-        if (ModeHighlight.Current) {
-            Cast<ASubstation>(ModeHighlight.Current)->DisconnectFromNetwork();
-        } else if (ModeHighlight.Wire) {
-            UElectricComponent* elec = ModeHighlight.Wire->GetStart()->GetComponentByClass<UElectricComponent>();
-            if (!elec)
-                elec = ModeHighlight.Wire->GetEnd()->GetComponentByClass<UElectricComponent>();
-            elec->Substation->Disconnect(elec);
-        }
+    case EPowerOverlayMode::Disconnect:
+        ConfirmDisconnect();
         return;
-    }
     default:
         checkNoEntry();
+    }
+}
+void UPowerOverlay::ConfirmTogglePower() const {
+    if (!ModeHighlight.Current)
+        return;
+
+    const auto elec = ModeHighlight.Current->GetComponentByClass<UElectricComponent>();
+    switch (elec->GetState()) {
+    case PowerState::Powered: case PowerState::Unpowered:
+        elec->SetDeactivated();
+        elec->GetSubstation()->Network->RecomputeStats();
+        break;
+    case PowerState::Deactivated:
+        elec->SetUnpowered();
+        elec->GetSubstation()->Network->RecomputeStats();
+        break;
+    default:
+        checkNoEntry();
+    }
+}
+void UPowerOverlay::ConfirmConnect() {
+    if (!ModeHighlight.Current)
+        return;
+
+    if (!ModeHighlight.Source) {
+        ModeHighlight.Source = ModeHighlight.Current;
+        ModeHighlight.Current = nullptr;
+        return;
+    }
+
+    if (const auto elec = CheckElec(ModeHighlight.Current)) {
+        check(ModeHighlight.Source->IsA(ASubstation::StaticClass()));
+        Cast<ASubstation>(ModeHighlight.Source)->Connect(elec);
+        return;
+    }
+    if (const auto substation = Cast<ASubstation>(ModeHighlight.Current)) {
+        if (const auto elec = CheckElec(ModeHighlight.Source)) {
+            substation->Connect(elec);
+            return;
+        }
+        if (const auto substation2 = Cast<ASubstation>(ModeHighlight.Source)) {
+            substation->Network->MergeNetwork(substation2->Network);
+            return;
+        }
+    }
+    checkNoEntry();
+}
+void UPowerOverlay::ConfirmDisconnect() const {
+    if (ModeHighlight.Current) {
+        Cast<ASubstation>(ModeHighlight.Current)->DisconnectFromNetwork();
+    } else if (ModeHighlight.Wire) {
+        if (const auto elec1 = ModeHighlight.Wire->GetStart()->GetComponentByClass<UElectricComponent>())
+            elec1->GetSubstation()->Disconnect(elec1);
+        else if (const auto elec2 = ModeHighlight.Wire->GetEnd()->GetComponentByClass<UElectricComponent>())
+            elec2->GetSubstation()->Disconnect(elec2);
+        else
+            checkNoEntry();
     }
 }
 
@@ -372,17 +392,17 @@ bool UPowerOverlay::CanBeConnected(const ASubstation* one, const ASubstation* tw
 }
 
 bool UPowerOverlay::CanBeConnected(const ASubstation* substation, const UElectricComponent* elec, UWireComponent*& oldWire) const {
-    if (elec->Substation == substation)
+    if (elec->GetSubstation() == substation)
         return false;
     if (FVector::Distance(substation->GetActorLocation(), elec->GetOwner()->GetActorLocation()) > ElectricityNetwork::MAX_WIRE_DISTANCE)
         return false;
 
-    if (elec->Substation) {
+    if (elec->GetSubstation()) {
         TInlineComponentArray<UWireComponent*> wires;
         ComponentHolder->GetComponents<UWireComponent>(wires, true);
         for (UWireComponent* w : wires) {
-            if ((w->GetStart() == elec->Substation && w->GetEnd() == elec->GetOwner()) ||
-                (w->GetStart() == elec->GetOwner() && w->GetEnd() == elec->Substation)) {
+            if ((w->GetStart() == elec->GetSubstation() && w->GetEnd() == elec->GetOwner()) ||
+                (w->GetStart() == elec->GetOwner() && w->GetEnd() == elec->GetSubstation())) {
                 oldWire = w;
                 return true;
             }
@@ -453,7 +473,7 @@ void UPowerOverlay::DoActivate() {
 
     // handle network
     for (const ElectricityNetwork* network : electricityManager->ElectricityNetworks) {          
-        for (ASubstation* substation : network->substations) {
+        for (const auto substation : network->substations) {
             AddWires(substation);
             AddFloatingTexts(substation);
             HighlightBuildings(substation);
@@ -461,7 +481,7 @@ void UPowerOverlay::DoActivate() {
     }
 
     // handle buildings not connected to a network
-    for (const UElectricComponent* building : electricityManager->Disconnected) {
+    for (const auto building : electricityManager->Disconnected) {
         check(building->GetState() == PowerState::Disconnected);
         AddFloatingText(building);
         Highlight(building);
@@ -480,43 +500,56 @@ void UPowerOverlay::DoDeactivate() {
     ComponentHolder = nullptr;
 
     // remove highlights
-    for (const ElectricityNetwork* network : electricityManager->ElectricityNetworks)
-        for (const ASubstation* substation : network->substations)
-            for (const UElectricComponent* building : substation->ConnectedBuildings)
-                building->GetOwner<AXActor>()->SetAllMaterials(nullptr);
-
-    for (const UElectricComponent* building : electricityManager->Disconnected)
-        building->GetOwner<AXActor>()->SetAllMaterials(nullptr);
+    for (const auto network : electricityManager->ElectricityNetworks) {
+        for (const auto substation : network->substations) {
+            for (const auto building : substation->ConnectedBuildings)
+                RemoveHighlight(building);
+            for (const auto habitat : substation->ConnectedHabitats)
+                RemoveHighlight(habitat);
+        }
+    }
+    for (const auto building : electricityManager->Disconnected)
+        RemoveHighlight(building);
 
     Active = false;
 }
 
-void UPowerOverlay::AddWires(ASubstation* substation) const {        
+void UPowerOverlay::AddWires(ASubstation* substation) const {
     // Connect to nearby Substations
-    for (ASubstation* otherSubstation : substation->Network->substations) {
+    for (const auto otherSubstation : substation->Network->substations) {
         if (substation == otherSubstation || FVector::Distance(substation->GetActorLocation(), otherSubstation->GetActorLocation()) > ElectricityNetwork::MAX_WIRE_DISTANCE)
             continue;
         // this will create 2 connections in the end, but that should be fine
         UWireComponent::Create(ComponentHolder, substation, otherSubstation);
-    }    
+    }
 
     // Connect to Buildings
-    for (const UElectricComponent* building : substation->ConnectedBuildings)
+    for (const auto building : substation->ConnectedBuildings)
         UWireComponent::Create(ComponentHolder, substation, building->GetOwner<ABuilding>());
+    for (const auto habitat : substation->ConnectedHabitats)
+        UWireComponent::Create(ComponentHolder, substation, habitat->GetOwner<ABuilding>());
 }
 void UPowerOverlay::AddFloatingTexts(const ASubstation* substation) const {
     AddFloatingPowerUI(substation);
-    for (const UElectricComponent* building : substation->ConnectedBuildings)
+    for (const auto building : substation->ConnectedBuildings)
         AddFloatingText(building);
+    for (const auto habitat : substation->ConnectedHabitats) {
+        AddFloatingText(habitat);
+        for (const auto building : habitat->GetOwner<AHabitat>()->Buildings)
+            if (const auto elec = building->GetComponentByClass<UElectricComponent>())
+                AddFloatingText(elec);
+    }
 }
 void UPowerOverlay::HighlightBuildings(const ASubstation* substation) const {    
-    for (const UElectricComponent* building : substation->ConnectedBuildings)
+    for (const auto building : substation->ConnectedBuildings)
         Highlight(building);
+    for (const auto habitat : substation->ConnectedHabitats)
+        Highlight(habitat);
 }
 
 void UPowerOverlay::AddFloatingPowerUI(const ASubstation* substation) const {
-    const auto  playerController = The::PlayerController(this);
-    UPowerUI* ui = CreateWidget<UPowerUI>(playerController, playerController->BlueprintHolder->PowerUIClass);    
+    const auto playerController = The::PlayerController(this);
+    const auto ui = CreateWidget<UPowerUI>(playerController, playerController->BlueprintHolder->PowerUIClass);    
     if (substation->Network)
         ui->Set(substation->Network->GetTotalConstantProduction(), substation->Network->GetTotalConstantConsumption());
     else
@@ -525,8 +558,8 @@ void UPowerOverlay::AddFloatingPowerUI(const ASubstation* substation) const {
 }
 
 void UPowerOverlay::AddFloatingText(const UElectricComponent* building) const {    
-   const auto  playerController = The::PlayerController(this);
-   UTextUI* ui = CreateWidget<UTextUI>(playerController, playerController->BlueprintHolder->TextUIClass);
+   const auto playerController = The::PlayerController(this);
+   const auto ui = CreateWidget<UTextUI>(playerController, playerController->BlueprintHolder->TextUIClass);
    ui->Text->SetText(FText::AsNumber(-building->Consumption, &FNumberFormattingOptions::DefaultNoGrouping()));
    if (building->Consumption > 0)
        ui->Text->SetColorAndOpacity(PowerUI->GetConsumptionColor());
@@ -587,4 +620,18 @@ void UPowerOverlay::Highlight(const UElectricComponent* building) const {
         checkNoEntry();
         break;
     }
+
+    if (building->GetType() == UElectricComponent::Type::Habitat)
+        for (const auto b : building->GetOwner<AHabitat>()->Buildings)
+            if (const auto elec = b->GetComponentByClass<UElectricComponent>())
+                Highlight(elec);
+}
+
+void UPowerOverlay::RemoveHighlight(const UElectricComponent* building) {
+    building->GetOwner<AXActor>()->SetAllMaterials(nullptr);
+
+    if (building->GetType() == UElectricComponent::Type::Habitat)
+        for (const auto b : building->GetOwner<AHabitat>()->Buildings)
+            if (const auto elec = b->GetComponentByClass<UElectricComponent>())
+                RemoveHighlight(elec);
 }

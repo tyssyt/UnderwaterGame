@@ -5,12 +5,11 @@
 #include "CoreMinimal.h"
 #include "ConstructionPlan.h"
 #include "XActor.h"
-#include "XD/Construction/ConstructionOptions.h"
 #include "Building.generated.h"
 
+class UBuilderModeExtensions;
 class UBuildingSelectedUI;
 class UBuildingSelectedUIComponent;
-class UBuilderModeExtension;
 
 UENUM(BlueprintType)
 enum class EConstructionState { BuilderMode, ConstructionSite, Done };
@@ -26,11 +25,9 @@ public:
     EConstructionState constructionState;
 
     virtual ABuilding* Init(UConstructionPlan* constructionPlan);
-    virtual void OnConstructionComplete(UConstructionOptions* options);
+    virtual void OnConstructionComplete(UBuilderModeExtensions* extensions);
 
-    virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const {
-        return nullptr;
-    }
+    virtual UBuilderModeExtensions* CreateBuilderModeExtension();
 
     virtual void InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components);
 };

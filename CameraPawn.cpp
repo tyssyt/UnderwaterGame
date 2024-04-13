@@ -186,7 +186,7 @@ void ACameraPawn::Deselect() {
 
     PowerOverlay->Deactivate();
     if (BuilderMode) {
-        BuilderMode->Stop(false);
+        BuilderMode->Stop(true);
         BuilderMode = nullptr;
     }
 }
@@ -244,7 +244,7 @@ bool ACameraPawn::PrepBuilderMode(UClass* newThing) const {
     if (BuilderMode) {
         if (BuilderMode->IDK() == newThing)
             return false; // right Builder Mode is already active
-        BuilderMode->Stop(false); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
+        BuilderMode->Stop(true); // TODO we know we can delete here because no one else reference it, but we need to wait for GC because unreal wants us to
     }
 
     PowerOverlay->Deactivate();

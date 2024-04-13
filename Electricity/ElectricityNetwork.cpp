@@ -6,6 +6,7 @@
 #include "PowerOverlay.h"
 #include "The.h"
 #include "XD/CameraPawn.h"
+#include "XD/Buildings/Habitat.h"
 #include "XD/Buildings/Substation.h"
 
 ElectricityNetwork::ElectricityNetwork(ASubstation* substation) {
@@ -58,7 +59,7 @@ void ElectricityNetwork::CheckForNetworkSplit() { // TODO there are much faster 
         return;
     }
     
-    TArray<ASubstation*> network = TArray<ASubstation*>(substations);
+    TArray<ASubstation*> network = TArray(substations);
 
     while (network.Num() > 0) {
         TArray<ASubstation*> shard = FindShard(network);
@@ -91,26 +92,45 @@ void ElectricityNetwork::MergeNetworkNoRecompute(const ElectricityNetwork* other
     UE_LOG(LogTemp, Warning, TEXT("Networks Connected."));
 }
 
+bool ElectricityNetwork::CollectStats(UElectricComponent* elec) {
+    if (elec->GetState() == PowerState::Deactivated)
+        return false;
+
+    const int consumption = elec->Consumption;
+    if (consumption > 0)
+        TotalConstantConsumption += consumption;
+    else
+        TotalConstantProduction += -consumption;
+
+    return elec->GetState() == PowerState::Unpowered;
+}
+
 TArray<UElectricComponent*> ElectricityNetwork::CollectStats() {
     TArray<UElectricComponent*> unpowered;
-    for (const ASubstation* substation : substations) {
-        for (UElectricComponent* elec : substation->ConnectedBuildings) {
-            if (elec->GetState() == PowerState::Deactivated)
-                continue;
-            
-            const int consumption = elec->Consumption;
-            if (consumption > 0) {
-                TotalConstantConsumption += consumption;
-            } else {
-                TotalConstantProduction += -consumption;
-            }
-
-            if (elec->GetState() == PowerState::Unpowered) {
+    for (const auto substation : substations) {
+        for (const auto elec : substation->ConnectedBuildings)
+            if (CollectStats(elec))
                 unpowered.Add(elec);
-            }
+
+        for (const auto habitat : substation->ConnectedHabitats) {
+            if (CollectStats(habitat))
+                unpowered.Add(habitat);
+
+            for (const auto building : habitat->GetOwner<AHabitat>()->Buildings)
+                if (const auto elec = building->GetComponentByClass<UElectricComponent>())
+                    if (CollectStats(elec))
+                        unpowered.Add(elec);    
         }
     }
     return MoveTemp(unpowered);
+}
+
+int UnpowerBuilding(UElectricComponent* elec) {
+    if (elec->Consumption > 0 && elec->GetState() == PowerState::Powered) {
+        elec->SetUnpowered();
+        return elec->Consumption;
+    }
+    return 0;
 }
 
 void ElectricityNetwork::UnpowerBuildings(TArray<UElectricComponent*>& unpowered) {
@@ -125,15 +145,30 @@ void ElectricityNetwork::UnpowerBuildings(TArray<UElectricComponent*>& unpowered
 
         // unpower buildings that were powered
         if (reducedConsumption > TotalConstantProduction) {
-            for (const ASubstation* substation : substations) {
-                for (UElectricComponent* elec : substation->ConnectedBuildings) {
-                    if (elec->Consumption > 0 && elec->GetState() == PowerState::Powered) {
-                        reducedConsumption -= elec->Consumption;
-                        elec->SetState(PowerState::Unpowered);
-                        if (reducedConsumption <= TotalConstantProduction) {
-                            return;
+            // TODO I hate how this code turned out, I have to find some way to do this that does not suck
+            for (const auto substation : substations) {
+                for (const auto elec : substation->ConnectedBuildings) {
+                    reducedConsumption -= UnpowerBuilding(elec);
+                    if (reducedConsumption <= TotalConstantProduction)
+                        return;
+                }
+            }
+            for (const auto substation : substations) {
+                for (const auto habitat : substation->ConnectedHabitats) {
+                    for (const auto building : habitat->GetOwner<AHabitat>()->Buildings) {
+                        if (const auto elec = building->GetComponentByClass<UElectricComponent>()) {
+                            reducedConsumption -= UnpowerBuilding(elec);
+                            if (reducedConsumption <= TotalConstantProduction)
+                                return;
                         }
                     }
+                }
+            }            
+            for (const auto substation : substations) {
+                for (const auto habitat : substation->ConnectedHabitats) {
+                    reducedConsumption -= UnpowerBuilding(habitat);
+                    if (reducedConsumption <= TotalConstantProduction)
+                        return;
                 }
             }
         }
@@ -141,6 +176,6 @@ void ElectricityNetwork::UnpowerBuildings(TArray<UElectricComponent*>& unpowered
 
     // turn on all unpowered remaining in the list
     for (const auto up : unpowered) {
-        up->SetState(PowerState::Powered);
+        up->SetPowered();
     }
 }

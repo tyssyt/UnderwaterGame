@@ -3,8 +3,8 @@
 #pragma once
 
 #include "Building.h"
-#include "XD/Inventory/InventoryComponent.h"
 #include "CoreMinimal.h"
+#include "XD/Inventory/InventoryComponent.h"
 #include "PickupPad.generated.h"
 
 UCLASS()
@@ -21,5 +21,5 @@ public:
 
     APickupPad();
 
-    virtual void OnConstructionComplete(UConstructionOptions* options) override;
+    virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
 };

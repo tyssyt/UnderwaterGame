@@ -2,102 +2,168 @@
 
 #include "ElectricComponent.h"
 
+#include "ElectricityBuilderModeExtension.h"
 #include "ElectricityManager.h"
 #include "PowerOverlay.h"
 #include "The.h"
 #include "UI.h"
-#include "Components/BillboardComponent.h"
 #include "XD/BlueprintHolder.h"
 #include "XD/CameraPawn.h"
-#include "XD/Cheats.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
+#include "XD/Buildings/Habitat.h"
+#include "XD/Buildings/IndoorBuilding.h"
 #include "XD/Buildings/Substation.h"
 #include "XD/Construction/BuilderModeExtension.h"
 
-UElectricComponent::UElectricComponent() : State(PowerState::Initial) {
+UElectricComponent::UElectricComponent() {
     PrimaryComponentTick.bCanEverTick = false;
 }
 
-PowerState UElectricComponent::GetState() const {
-    return State;
+UElectricComponent* UElectricComponent::Init(int consumption) {
+    State = PowerState::Initial;
+    Consumption = consumption;
+    return this;
 }
 
-void UElectricComponent::SetState(const PowerState newState) { // TODO understand component lifecycle better and rework this
-    check(newState != PowerState::Initial);
-    if (State == newState)
-        return;
+UElectricComponent::Type UElectricComponent::GetType() const {
+    const auto owner = GetOwner();
+    if (owner->IsA<AIndoorBuilding>())
+        return Type::IndoorBuilding;
+    if (owner->IsA<AHabitat>())
+        return Type::Habitat;
+    return Type::OutdoorBuilding;
+}
 
-    // TODO there is too much logic inside this setter, extract that
-
-    if (State == PowerState::Disconnected) {
-        The::ElectricityManager(this)->Disconnected.Remove(this);
-    } else if (newState == PowerState::Disconnected) {
-        The::ElectricityManager(this)->Disconnected.Add(this);
-
-        // Weird special case, when going from Initial to Disconnected we don't trigger an UI Update, so we need to catch and handle it here
-        if (State == PowerState::Initial) {
-            State = newState;
-            The::CameraPawn(this)->PowerOverlay->AddDisconnected(this);
-        }
+ASubstation* UElectricComponent::GetSubstation() const {
+    switch (GetType()) {
+    case Type::IndoorBuilding:
+        return this->GetOwner<AIndoorBuilding>()->Habitat->GetComponentByClass<UElectricComponent>()->Substation;
+    case Type::OutdoorBuilding: case Type::Habitat:
+        return Substation;
     }
-    
-    State = newState;
-
-    // update symbol if necessary
-    switch (State) {
-    case PowerState::Disconnected:
-    case PowerState::Deactivated:
-    case PowerState::Unpowered: {
-        if (Cheats::ALWAYS_POWERED)
-            break;
-        GetOwner()->SetActorTickEnabled(false); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
-        if (!DisabledSymbol) {
-            DisabledSymbol = NewObject<UBillboardComponent>(GetOwner(), TEXT("PowerDisabledSymbol"));
-            DisabledSymbol->RegisterComponent();
-            DisabledSymbol->AttachToComponent(GetOwner()->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-
-            DisabledSymbol->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Unpowered"))); // TODO probably want to load this in another way?
-            DisabledSymbol->SetRelativeLocation(FVector(.0f, .0f, 60.f));
-            DisabledSymbol->SetHiddenInGame(false);
-            DisabledSymbol->SetVisibility(true);
-            GetOwner()->AddInstanceComponent(DisabledSymbol);
-        }
-        break;
-    }
-    case PowerState::Powered: {
-        GetOwner()->SetActorTickEnabled(true); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
-        if (DisabledSymbol) {
-            GetOwner()->RemoveInstanceComponent(DisabledSymbol);
-            DisabledSymbol->DestroyComponent();
-            DisabledSymbol = nullptr;
-        }
-        break;
-    }
-    default: checkNoEntry();
-    }
+    checkNoEntry();
+    return nullptr;
 }
 
 UResource* UElectricComponent::GetElectricity() const {
     return ComponentInfo->Needs[0].Resource;
 }
 
-TSubclassOf<UBuilderModeExtension> UElectricComponent::GetBuilderModeExtension() const {
-    return UElectricityBuilderModeExtension::StaticClass();
+// TODO have a management thing on building that can show symbols and disable/enable ticking that does roughly as below
+// void UElectricComponent::SetState(const PowerState newState) {
+//     // update symbol if necessary
+//     switch (State) {
+//     case PowerState::Disconnected:
+//     case PowerState::Deactivated:
+//     case PowerState::Unpowered: {
+//         if (Cheats::ALWAYS_POWERED)
+//             break;
+//         GetOwner()->SetActorTickEnabled(false); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
+//         if (!DisabledSymbol) {
+//             DisabledSymbol = NewObject<UBillboardComponent>(GetOwner(), TEXT("PowerDisabledSymbol"));
+//             DisabledSymbol->RegisterComponent();
+//             DisabledSymbol->AttachToComponent(GetOwner()->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+//
+//             DisabledSymbol->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Unpowered"))); // TODO probably want to load this in another way?
+//             DisabledSymbol->SetRelativeLocation(FVector(.0f, .0f, 60.f));
+//             DisabledSymbol->SetHiddenInGame(false);
+//             DisabledSymbol->SetVisibility(true);
+//             GetOwner()->AddInstanceComponent(DisabledSymbol);
+//         }
+//         break;
+//     }
+//     case PowerState::Powered: {
+//         GetOwner()->SetActorTickEnabled(true); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
+//         if (DisabledSymbol) {
+//             GetOwner()->RemoveInstanceComponent(DisabledSymbol);
+//             DisabledSymbol->DestroyComponent();
+//             DisabledSymbol = nullptr;
+//         }
+//         break;
+//     }
+
+void UElectricComponent::SetDisconnected() {
+    check(GetType() != Type::IndoorBuilding);
+    if (State == PowerState::Disconnected)
+        return;
+    
+    const auto oldState = State;
+    State = PowerState::Disconnected;
+    Substation = nullptr;
+
+    The::ElectricityManager(this)->Disconnected.Add(this);
+    // Weird special case, when going from Initial to Disconnected we don't trigger an UI Update, so we need to catch and handle it here
+    if (oldState == PowerState::Initial)     
+        The::CameraPawn(this)->PowerOverlay->AddDisconnected(this);
+
+    // when disconnecting a Habitat, we need to set all consumers in the Habitat to Unpowered
+    if (GetType() == Type::Habitat)
+        for (const auto building : GetOwner<AHabitat>()->Buildings)
+            if (const auto elec = building->GetComponentByClass<UElectricComponent>())
+                elec->SetUnpowered();
+
+    // TODO update symbol
+}
+void UElectricComponent::SetConnected(ASubstation* substation) {
+    check(GetType() != Type::IndoorBuilding);
+    check(State == PowerState::Initial || State == PowerState::Disconnected);
+
+    if (Consumption > 0)
+        State = PowerState::Unpowered; // set as unpowered, the next update of the network will power the building if enough power is in the network
+    else
+        State = PowerState::Powered; // producers are always powered
+    Substation = substation;
+    The::ElectricityManager(this)->Disconnected.Remove(this);
+    // TODO update symbol
+}
+void UElectricComponent::SetDeactivated() {
+    check(GetType() != Type::Habitat);
+    check(State == PowerState::Powered || State == PowerState::Unpowered);
+    check(Consumption > 0);
+
+    State = PowerState::Deactivated;
+    // TODO update symbol
+}
+void UElectricComponent::SetUnpowered() {
+    if (State == PowerState::Unpowered)
+        return;
+    check(GetType() != Type::Habitat);
+    check(State == PowerState::Powered || State == PowerState::Deactivated || (State == PowerState::Initial && GetType() == Type::IndoorBuilding));
+    check(Consumption > 0);
+
+    State = PowerState::Unpowered;
+    // TODO update symbol
+}
+void UElectricComponent::SetPowered() {
+    check(State == PowerState::Unpowered);
+    check(GetType() != Type::IndoorBuilding || GetOwner<AIndoorBuilding>()->Habitat->GetComponentByClass<UElectricComponent>()->State == PowerState::Powered);
+
+    State = PowerState::Powered;
+    // TODO update symbol
 }
 
-void UElectricComponent::OnConstructionComplete(UConstructionOptions* options) {
-    bool connected = false;
+UBuilderModeExtension* UElectricComponent::CreateBuilderModeExtension() {
+    return NewObject<UElectricityBuilderModeExtension>(this);
+}
 
-    const auto electricityOptions = options->Get<UElectricityConstructionOption>(UElectricityBuilderModeExtension::StaticClass());
-    if (!electricityOptions || electricityOptions->AutoConnectWires) {
-        if (ASubstation* substation = The::ElectricityManager(this)->FindNearestSubstation(GetOwner()->GetActorLocation())) {
-            substation->Connect(this);
-            connected = true;
-        }
+void UElectricComponent::OnConstructionComplete(UBuilderModeExtension* extension) {
+    switch (GetType()) {
+    case Type::OutdoorBuilding: case Type::Habitat: {
+        if (!extension || Cast<UElectricityBuilderModeExtension>(extension)->AutoConnectWires)
+            if (const auto substation = The::ElectricityManager(this)->FindNearestSubstation(GetOwner()->GetActorLocation()))
+                substation->Connect(this);
+            else
+                SetDisconnected();
+        else
+            SetDisconnected();
+        break;
     }
-
-    if (!connected)
-        SetState(PowerState::Disconnected);
+    case Type::IndoorBuilding: {
+        SetUnpowered();
+        if (const auto substation = GetSubstation())
+            substation->Network->RecomputeStats();
+        break;
+    }}
 }
 
 void UElectricComponent::AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {

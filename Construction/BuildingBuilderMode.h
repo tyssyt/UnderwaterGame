@@ -9,6 +9,8 @@
 #include "XD/Buildings/ConstructionPlan.h"
 #include "BuildingBuilderMode.generated.h"
 
+class UBuilderModeExtensions;
+
 UCLASS()
 class XD_API UBuildingBuilderMode : public UBuilderMode {
     GENERATED_BODY()
@@ -38,9 +40,9 @@ class XD_API UBuildingBuilderMode : public UBuilderMode {
     UArrowMover* ArrowSideways;
     UPROPERTY()
     UArrowMover* ArrowRotate;
-    
+
     UPROPERTY()
-    TArray<UBuilderModeExtension*> Extensions;
+    UBuilderModeExtensions* Extensions;
 
     void TickPosition(const ACameraPawn& camera) const;
     void TickWait() const;
@@ -66,5 +68,5 @@ public:
     UBuildingBuilderMode* Init(UConstructionPlan* constructionPlan);
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;
-    virtual void Stop(UConstructionOptions* options = nullptr) override;
+    virtual void Stop(bool cancelled) override;
 };

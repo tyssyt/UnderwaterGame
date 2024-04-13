@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "XD/ComponentX.h"
-#include "XD/Construction/ConstructionOptions.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Resources/Resource.h"
 #include "XD/Resources/ResourceBalanceUI.h"
@@ -18,28 +17,40 @@ UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class XD_API UElectricComponent : public UComponentX {
     GENERATED_BODY()
 
+public:
+    enum class Type { IndoorBuilding, OutdoorBuilding, Habitat };
+
 protected:
     PowerState State;
 
-public:
-    UPROPERTY(EditAnywhere)
-    int Consumption;
-
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     ASubstation* Substation;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     UBillboardComponent* DisabledSymbol;
 
-    UElectricComponent();
+public:
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    int Consumption;
 
-    PowerState GetState() const;
-    void SetState(const PowerState newState);
+    UElectricComponent();
+    UElectricComponent* Init(int consumption);
+
+    Type GetType() const;
+    PowerState GetState() const { return State; }
+    ASubstation* GetSubstation() const;
 
     UResource* GetElectricity() const;
 
-    virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const override;
-    virtual void OnConstructionComplete(UConstructionOptions* options) override;
+    // weird names to not clash with parent functions
+    void SetDisconnected();
+    void SetConnected(ASubstation* substation);
+    void SetDeactivated();
+    void SetUnpowered();
+    void SetPowered();
+
+    virtual UBuilderModeExtension* CreateBuilderModeExtension() override;
+    virtual void OnConstructionComplete(UBuilderModeExtension* extension) override;
 
     virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
 

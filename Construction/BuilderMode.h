@@ -6,7 +6,6 @@
 #include "XD/CameraPawn.h"
 #include "BuilderMode.generated.h"
 
-class UConstructionOptions;
 class UBuilderModeExtension;
 
 UCLASS(Abstract)
@@ -22,5 +21,5 @@ protected:
 public:
     virtual bool Tick(const ACameraPawn& camera) {return true;}
     virtual UClass* IDK() {return nullptr;} //TODO better name or replace with a better solution
-    virtual void Stop(UConstructionOptions* options = nullptr) {}
+    virtual void Stop(bool cancelled) {}
 };

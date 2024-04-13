@@ -48,7 +48,7 @@ APickupPad::APickupPad() {
     AddInstanceComponent(Inventory);
 }
 
-void APickupPad::OnConstructionComplete(UConstructionOptions* options) {
-    Super::OnConstructionComplete(options);
+void APickupPad::OnConstructionComplete(UBuilderModeExtensions* extensions) {
+    Super::OnConstructionComplete(extensions);
     The::ConstructionManager(this)->AddPickupPad(this);
 }

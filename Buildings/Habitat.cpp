@@ -58,8 +58,8 @@ void AHabitat::BeginPlay() {
     Super::BeginPlay();
 }
 
-void AHabitat::OnConstructionComplete(UConstructionOptions* options) {
-    Super::OnConstructionComplete(options);
+void AHabitat::OnConstructionComplete(UBuilderModeExtensions* extensions) {
+    Super::OnConstructionComplete(extensions);
 
     for (const auto good : The::Encyclopedia(this)->FindGoods())
         Inventory->GetInputs().Emplace(1000, good);

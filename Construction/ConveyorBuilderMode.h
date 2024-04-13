@@ -105,7 +105,7 @@ public:
 
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;
-    virtual void Stop(UConstructionOptions* options = nullptr) override;
+    virtual void Stop(bool cancelled) override;
 
     void RemoveNode(UConveyorNode* node);
 

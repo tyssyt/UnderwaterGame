@@ -22,7 +22,7 @@ protected:
 
 public:
     UProductionComponent();
-    virtual void OnConstructionComplete(UConstructionOptions* options) override;
+    virtual void OnConstructionComplete(UBuilderModeExtension* extension) override;
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
     void SetRecipe(URecipe* recipe);

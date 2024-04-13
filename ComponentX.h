@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Construction/ConstructionOptions.h"
 #include "ComponentX.generated.h"
 
 class UBuildingSelectedUI;
@@ -23,11 +22,11 @@ protected:
 public:
     UComponentX* Init(UComponentInfo* componentInfo);
     
-    virtual TSubclassOf<UBuilderModeExtension> GetBuilderModeExtension() const {
+    virtual UBuilderModeExtension* CreateBuilderModeExtension() {
         return nullptr;
     }
     
-    virtual void OnConstructionComplete(UConstructionOptions* options) {}
+    virtual void OnConstructionComplete(UBuilderModeExtension* extension) {}
 
     virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {}
 };

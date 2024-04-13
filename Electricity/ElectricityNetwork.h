@@ -34,6 +34,7 @@ protected:
     int TotalConstantProduction;
     int TotalConstantConsumption;
     
+    bool CollectStats(UElectricComponent* elec);
     TArray<UElectricComponent*> CollectStats();
     auto UnpowerBuildings(TArray<UElectricComponent*>& unpowered) -> void;
 
