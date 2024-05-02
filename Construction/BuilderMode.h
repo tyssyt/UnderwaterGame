@@ -4,9 +4,18 @@
 #include "ConstructionUI.h"
 #include "UObject/Object.h"
 #include "XD/CameraPawn.h"
+#include "XD/Buildings/Highlighted.h"
 #include "BuilderMode.generated.h"
 
 class UBuilderModeExtension;
+
+UCLASS()
+class UInBuilderMode : public UCondition {
+    GENERATED_BODY()
+
+public:
+    UInBuilderMode();
+};
 
 UCLASS(Abstract)
 class XD_API UBuilderMode : public UObject {
@@ -15,6 +24,13 @@ class XD_API UBuilderMode : public UObject {
 protected:
     UPROPERTY()
     UConstructionUI* ConstructionUI;
+
+    UPROPERTY()
+    UHighlighted* HighlightValid;
+    UPROPERTY()
+    UHighlighted* HighlightInvalid;
+    UPROPERTY()
+    UHighlighted* HighlightedOption;
 
     void PreInit();
 

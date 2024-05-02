@@ -6,15 +6,9 @@
 
 ConstructionResource::ConstructionResource(const UResource* resource) : Resource(resource) {}
 
-UConstructionManager::UConstructionManager() {
-    const static ConstructorHelpers::FObjectFinder<UMaterial> GhostMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostMaterial"));
-    GhostMaterial = GhostMaterialFinder.Object;
-}
-
-
 void UConstructionManager::SetConstructionResources(const TSet<UResource*>& constructionResources) {
-    for (const UResource* resource : constructionResources)
-        ConstructionResources.Add(resource);
+    for (const auto resource : constructionResources)
+        ConstructionResources.Emplace(resource);
 }
 
 // TODO if Tick can happen multi-threaded, these calls need to be synchronized
@@ -23,12 +17,10 @@ void UConstructionManager::AddIdleBuilder(ABuilderShip* builder) {
 }
 
 void UConstructionManager::AddConstruction(UConstructionSite* constructionSite) {
-    if (Cheats::INSTA_BUILD) {
+    if (Cheats::INSTA_BUILD)
         constructionSite->BeginConstruction();
-    } else {
-        constructionSite->SetGhostMaterial(GhostMaterial);
+    else
         NewConstructionSites.Add(constructionSite);
-    }
 }
 
 void UConstructionManager::AddPickupPad(APickupPad* pickupPad) {

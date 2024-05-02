@@ -5,6 +5,14 @@
 #include "The.h"
 #include "XD/BlueprintHolder.h"
 
+UInBuilderMode::UInBuilderMode() {
+    Type = EType::NonInteractable;
+}
+
 void UBuilderMode::PreInit() {
     ConstructionUI = CreateWidget<UConstructionUI>(The::PlayerController(this), The::BPHolder(this)->ConstructionUIClass);
+
+    HighlightValid = NewObject<UHighlighted>()->SetColor(UHighlighted::Green);
+    HighlightInvalid = NewObject<UHighlighted>()->SetColor(UHighlighted::Red);
+    HighlightedOption = NewObject<UHighlighted>()->SetColor(UHighlighted::Yellow);
 }

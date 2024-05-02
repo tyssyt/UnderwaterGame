@@ -7,16 +7,12 @@
 #include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Habitat.h"
 
-UIndoorBuilderMode::UIndoorBuilderMode() {
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
-    HighlightMaterial = HighlightMaterialFinder.Object;
-}
-
 UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan) {
     PreInit();
     ConstructionPlan = constructionPlan;
     Preview = GetWorld()->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
-    Preview->SetActorTickEnabled(false);
+    Condition = NewObject<UInBuilderMode>(this);
+    Preview->AddCondition(Condition);
     
     const auto playerController = The::PlayerController(this);
     ConstructionUI->Init(
@@ -98,6 +94,7 @@ void UIndoorBuilderMode::ConfirmPosition() {
         return;
 
     Stop(false);
+    Preview->RemoveCondition(Condition);
     Preview->Habitat->PlaceBuilding(Preview);
     const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, Extensions);
     The::ConstructionManager(this)->AddConstruction(constructionSite);
@@ -138,11 +135,11 @@ void UIndoorBuilderMode::SetInvisible() {
 void UIndoorBuilderMode::SetNotBuildable() {
     Buildable = false;
     Preview->SetActorHiddenInGame(false);
-    Preview->SetAllMaterials(HighlightMaterial);
+    Preview->AddCondition(HighlightInvalid);
 }
 
 void UIndoorBuilderMode::SetBuildable() {
     Buildable = true;
     Preview->SetActorHiddenInGame(false);
-    Preview->SetAllMaterials(nullptr);
+    Preview->RemoveCondition(HighlightInvalid);
 }

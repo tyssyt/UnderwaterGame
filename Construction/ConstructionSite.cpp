@@ -5,6 +5,13 @@
 #include "ConstructionManager.h"
 #include "The.h"
 
+UUnderConstruction::UUnderConstruction() {
+    const static ConstructorHelpers::FObjectFinder<UMaterial> GhostMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostMaterial"));
+    Material = GhostMaterialFinder.Object;
+    Type = EType::NonInteractable;
+    // TODO construction UI
+}
+
 UConstructionSite* UConstructionSite::Init(AXActor* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions) {
     return Init(building, constructionPlan->Time, constructionPlan->Materials, extensions);
 }
@@ -15,23 +22,21 @@ UConstructionSite* UConstructionSite::Init(AXActor* building, int time, const TA
     Materials = materials;
     Extensions = extensions;
 
-    Building->SetActorTickEnabled(false);
-    if (ABuilding* bbuilding = Cast<ABuilding>(building))
-        bbuilding->constructionState = EConstructionState::ConstructionSite;
+    if (ABuilding* bbuilding = Cast<ABuilding>(building)) {
+        Condition = NewObject<UUnderConstruction>(this);
+        bbuilding->AddCondition(Condition);
+    } else // TODO make everything that is buildable extend ABuilding
+        Building->SetActorTickEnabled(false);
     return this;
-}
-
-void UConstructionSite::SetGhostMaterial(UMaterial* ghostMaterial) const {
-    Building->SetAllMaterials(ghostMaterial);
 }
 
 void UConstructionSite::BeginConstruction() {
     // for now, construction is instant so we complete it here
-    Building->SetAllMaterials(nullptr);
-    Building->SetActorTickEnabled(true);
-
-    if (ABuilding* building = Cast<ABuilding>(Building))
+    if (const auto building = Cast<ABuilding>(Building)) {
+        building->RemoveCondition(Condition);
         building->OnConstructionComplete(Extensions);
+    } else // TODO make everything that is buildable extend ABuilding
+        Building->SetActorTickEnabled(true);
 
     The::ConstructionManager(Building)->FinishConstruction(this);
 }

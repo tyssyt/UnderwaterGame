@@ -65,13 +65,6 @@ class XD_API UConveyorBuilderMode : public UBuilderMode {
     bool Done = false;
     bool HasOverlap = false;
 
-    UPROPERTY()
-    UMaterialInstance* RedMaterial;
-    UPROPERTY()
-    UMaterialInstance* GreenMaterial;
-    UPROPERTY()
-    UMaterialInstance* YellowMaterial;
-
     SourceTarget Source = SourceTarget(this);
     SourceTarget Target = SourceTarget(this);
     SourceTarget CurrentHighlight = SourceTarget(this);
@@ -81,6 +74,8 @@ class XD_API UConveyorBuilderMode : public UBuilderMode {
 
     UPROPERTY()
     AActor* Preview;
+    UPROPERTY()
+    UInBuilderMode* Condition;
 
     UPROPERTY()
     UConveyorNode* NextNode;
@@ -100,7 +95,6 @@ class XD_API UConveyorBuilderMode : public UBuilderMode {
 
 
 public:
-    UConveyorBuilderMode();
     UConveyorBuilderMode* Init(UConstructionPlan* constructionPlan);
 
     virtual bool Tick(const ACameraPawn& camera) override;

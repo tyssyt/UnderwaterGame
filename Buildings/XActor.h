@@ -10,8 +10,7 @@ UCLASS()
 class XD_API AXActor : public AActor {
     GENERATED_BODY()
 
-public:
-    
+protected:
     UFUNCTION(BlueprintCallable)
     void SetAllMaterials(UMaterialInterface* material) const;
 };

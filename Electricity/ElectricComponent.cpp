@@ -9,11 +9,28 @@
 #include "UI.h"
 #include "XD/BlueprintHolder.h"
 #include "XD/CameraPawn.h"
+#include "XD/Cheats.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Buildings/Habitat.h"
 #include "XD/Buildings/IndoorBuilding.h"
 #include "XD/Buildings/Substation.h"
 #include "XD/Construction/BuilderModeExtension.h"
+
+UDisconnected::UDisconnected() {   
+    const static ConstructorHelpers::FObjectFinder<UTexture2D> SymbolFinder(TEXT("/Game/Assets/Images/Disconnected"));
+    Symbol = SymbolFinder.Object;
+    Type = Cheats::ALWAYS_POWERED ? EType::Visual : EType::TickDisabled;
+}
+UDeactivated::UDeactivated() {
+    const static ConstructorHelpers::FObjectFinder<UTexture2D> SymbolFinder(TEXT("/Game/Assets/Images/Deactivated"));
+    Symbol = SymbolFinder.Object;
+    Type = Cheats::ALWAYS_POWERED ? EType::Visual : EType::TickDisabled;
+}
+UUnpowered::UUnpowered() {
+    const static ConstructorHelpers::FObjectFinder<UTexture2D> SymbolFinder(TEXT("/Game/Assets/Images/Unpowered"));
+    Symbol = SymbolFinder.Object;
+    Type = Cheats::ALWAYS_POWERED ? EType::Visual : EType::TickDisabled;
+}
 
 UElectricComponent::UElectricComponent() {
     PrimaryComponentTick.bCanEverTick = false;
@@ -23,6 +40,16 @@ UElectricComponent* UElectricComponent::Init(int consumption) {
     State = PowerState::Initial;
     Consumption = consumption;
     return this;
+}
+
+
+void UElectricComponent::SetCondition(UCondition* condition) {
+    const auto building = GetOwner<ABuilding>();
+    if (Condition)
+        building->RemoveCondition(Condition);
+    Condition = condition;
+    if (condition)
+        building->AddCondition(condition);
 }
 
 UElectricComponent::Type UElectricComponent::GetType() const {
@@ -49,39 +76,6 @@ UResource* UElectricComponent::GetElectricity() const {
     return ComponentInfo->Needs[0].Resource;
 }
 
-// TODO have a management thing on building that can show symbols and disable/enable ticking that does roughly as below
-// void UElectricComponent::SetState(const PowerState newState) {
-//     // update symbol if necessary
-//     switch (State) {
-//     case PowerState::Disconnected:
-//     case PowerState::Deactivated:
-//     case PowerState::Unpowered: {
-//         if (Cheats::ALWAYS_POWERED)
-//             break;
-//         GetOwner()->SetActorTickEnabled(false); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
-//         if (!DisabledSymbol) {
-//             DisabledSymbol = NewObject<UBillboardComponent>(GetOwner(), TEXT("PowerDisabledSymbol"));
-//             DisabledSymbol->RegisterComponent();
-//             DisabledSymbol->AttachToComponent(GetOwner()->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-//
-//             DisabledSymbol->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Unpowered"))); // TODO probably want to load this in another way?
-//             DisabledSymbol->SetRelativeLocation(FVector(.0f, .0f, 60.f));
-//             DisabledSymbol->SetHiddenInGame(false);
-//             DisabledSymbol->SetVisibility(true);
-//             GetOwner()->AddInstanceComponent(DisabledSymbol);
-//         }
-//         break;
-//     }
-//     case PowerState::Powered: {
-//         GetOwner()->SetActorTickEnabled(true); // propably want to do this another way because it can lead to weird behaviour if multiple systems are changing it
-//         if (DisabledSymbol) {
-//             GetOwner()->RemoveInstanceComponent(DisabledSymbol);
-//             DisabledSymbol->DestroyComponent();
-//             DisabledSymbol = nullptr;
-//         }
-//         break;
-//     }
-
 void UElectricComponent::SetDisconnected() {
     check(GetType() != Type::IndoorBuilding);
     if (State == PowerState::Disconnected)
@@ -89,6 +83,7 @@ void UElectricComponent::SetDisconnected() {
     
     const auto oldState = State;
     State = PowerState::Disconnected;
+    SetCondition(NewObject<UDisconnected>(GetOwner()));
     Substation = nullptr;
 
     The::ElectricityManager(this)->Disconnected.Add(this);
@@ -101,20 +96,20 @@ void UElectricComponent::SetDisconnected() {
         for (const auto building : GetOwner<AHabitat>()->Buildings)
             if (const auto elec = building->GetComponentByClass<UElectricComponent>())
                 elec->SetUnpowered();
-
-    // TODO update symbol
 }
 void UElectricComponent::SetConnected(ASubstation* substation) {
     check(GetType() != Type::IndoorBuilding);
     check(State == PowerState::Initial || State == PowerState::Disconnected);
 
-    if (Consumption > 0)
+    if (Consumption > 0) {
         State = PowerState::Unpowered; // set as unpowered, the next update of the network will power the building if enough power is in the network
-    else
+        SetCondition(NewObject<UUnpowered>(GetOwner()));
+    } else {
         State = PowerState::Powered; // producers are always powered
+        SetCondition(nullptr);
+    }
     Substation = substation;
     The::ElectricityManager(this)->Disconnected.Remove(this);
-    // TODO update symbol
 }
 void UElectricComponent::SetDeactivated() {
     check(GetType() != Type::Habitat);
@@ -122,7 +117,7 @@ void UElectricComponent::SetDeactivated() {
     check(Consumption > 0);
 
     State = PowerState::Deactivated;
-    // TODO update symbol
+    SetCondition(NewObject<UDeactivated>(GetOwner()));
 }
 void UElectricComponent::SetUnpowered() {
     if (State == PowerState::Unpowered)
@@ -132,18 +127,18 @@ void UElectricComponent::SetUnpowered() {
     check(Consumption > 0);
 
     State = PowerState::Unpowered;
-    // TODO update symbol
+    SetCondition(NewObject<UUnpowered>(GetOwner()));
 }
 void UElectricComponent::SetPowered() {
     check(State == PowerState::Unpowered);
     check(GetType() != Type::IndoorBuilding || GetOwner<AIndoorBuilding>()->Habitat->GetComponentByClass<UElectricComponent>()->State == PowerState::Powered);
 
     State = PowerState::Powered;
-    // TODO update symbol
+    SetCondition(nullptr);
 }
 
 UBuilderModeExtension* UElectricComponent::CreateBuilderModeExtension() {
-    return NewObject<UElectricityBuilderModeExtension>(this);
+    return NewObject<UElectricityBuilderModeExtension>(GetOwner());
 }
 
 void UElectricComponent::OnConstructionComplete(UBuilderModeExtension* extension) {
@@ -167,7 +162,7 @@ void UElectricComponent::OnConstructionComplete(UBuilderModeExtension* extension
 }
 
 void UElectricComponent::AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {
-    components.Add(NewObject<UElectricComponentUI>(this)->Init(this));
+    components.Add(NewObject<UElectricComponentUI>(GetOwner())->Init(this));
 }
 
 UElectricComponentUI* UElectricComponentUI::Init(UElectricComponent* electricComponent) {

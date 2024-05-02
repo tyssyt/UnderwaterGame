@@ -6,7 +6,6 @@
 #include "ConstructionSite.h"
 #include "XD/Buildings/PickupPad.h"
 
-#include <vector>
 #include <deque>
 
 #include "Tickable.h"
@@ -14,8 +13,8 @@
 
 
 struct XD_API ConstructionResource {
-    ConstructionResource(const UResource* resource);
-    
+    explicit ConstructionResource(const UResource* resource);
+
     const UResource* const Resource;
 
     TArray<TPair<int, APickupPad*>> Pads;
@@ -47,8 +46,6 @@ protected:
     bool HasResourcesFor(const TArray<Material>* materials) const;
 
 public:
-    UConstructionManager();
-
     void SetConstructionResources(const TSet<UResource*>& constructionResources);
 
     UFUNCTION(BlueprintCallable)
@@ -66,9 +63,6 @@ public:
     virtual TStatId GetStatId() const override {
         RETURN_QUICK_DECLARE_CYCLE_STAT( FMyTickableThing, STATGROUP_Tickables );
     }
-
-    UPROPERTY(EditAnywhere)
-    UMaterial* GhostMaterial;
     
     TArray<ConstructionResource> ConstructionResources;
 };

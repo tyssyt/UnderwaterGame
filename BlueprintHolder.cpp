@@ -15,8 +15,8 @@ void UBlueprintHolder::Init(APlayerController* controller) {
 
 USelectedUI* UBlueprintHolder::GetUI(AXActor* actor) const {
     if (const auto building = Cast<ABuilding>(actor))
-        if (building->constructionState != EConstructionState::Done)
-            return nullptr; // TODO construction site UI
+        if (const auto condition = building->IsNonInteractable())
+            return condition->GetSelectedUI();
 
     // TODO this is still special cases from the old way of doing it, it should be removed eventually
     if (actor->IsA(AConveyor::StaticClass())) {

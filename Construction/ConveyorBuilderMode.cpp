@@ -57,7 +57,7 @@ void UConveyorBuilderMode::SourceTarget::RemoveHighlight() {
     case EType::NotSet:
         return;
     case EType::Building:
-        Building->SetAllMaterials(nullptr);
+        Building->RemoveCondition(Valid ? Parent->HighlightValid : Parent->HighlightInvalid);
         Building = nullptr;
         Gate = nullptr;
         break;
@@ -85,7 +85,7 @@ void UConveyorBuilderMode::SourceTarget::HighlightInvalid(ABuilding* building) {
     Type = EType::Building;
     Building = building;
 
-    Building->SetAllMaterials(Parent->RedMaterial);
+    Building->AddCondition(Parent->HighlightInvalid);
 }
 
 void UConveyorBuilderMode::SourceTarget::Highlight(UConveyorGate* gate, const TArray<UConveyorGate*>& otherGates) {
@@ -99,13 +99,13 @@ void UConveyorBuilderMode::SourceTarget::Highlight(UConveyorGate* gate, const TA
     Building = gate->GetOwner<ABuilding>();
     Gate = gate;
 
-    Building->SetAllMaterials(Parent->GreenMaterial);
-    
+    Building->AddCondition(Parent->HighlightValid);
+
     for (const auto otherGate : otherGates) {
         if (otherGate == gate)
             continue;
         for (int i=0; i < otherGate->GetMaterials().Num(); ++i)
-            otherGate->SetMaterial(i, Parent->YellowMaterial);
+            otherGate->SetMaterial(i, Parent->HighlightedOption->GetMaterial());
     }
 }
 void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyor* conveyor, UConveyorNode* node, bool valid) {
@@ -124,7 +124,7 @@ void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyo
     Conveyor = conveyor;
     ConveyorComponent = node;
 
-    Building->SetAllMaterials(valid ? Parent->GreenMaterial : Parent->RedMaterial);
+    Building->AddCondition(valid ? Parent->HighlightValid : Parent->HighlightInvalid);
     node->SetVisibility(false);
 }
 void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyor* conveyor, UConveyorLink* link, bool valid) {
@@ -133,7 +133,7 @@ void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyo
         check(building == Building);
         // even if we are on the same link, we still could be in a different location, so update valid
         Valid = valid;
-        Building->SetAllMaterials(valid ? Parent->GreenMaterial : Parent->RedMaterial);
+        Building->AddCondition(valid ? Parent->HighlightValid : Parent->HighlightInvalid);
         return;
     }
     RemoveHighlight();
@@ -144,12 +144,11 @@ void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyo
     Conveyor = conveyor;
     ConveyorComponent = link;
 
-    Building->SetAllMaterials(valid ? Parent->GreenMaterial : Parent->RedMaterial);
+    Building->AddCondition(valid ? Parent->HighlightValid : Parent->HighlightInvalid);
 }
 
 void UConveyorBuilderMode::SourceTarget::Reset() {
-    // TODO if the building/conveyor is under construction, this should restore the blue ghost material of construction
-    Building->SetAllMaterials(nullptr); 
+    Building->RemoveCondition(Valid ? Parent->HighlightValid : Parent->HighlightInvalid);
     Type = EType::NotSet;
     Building = nullptr;
     Gate = nullptr;
@@ -163,6 +162,7 @@ UConstructionSite* UConveyorBuilderMode::SourceTarget::CreateConstructionSite(co
 
     Conveyor->SplitAt(ConveyorComponent, Building);
 
+    Building->RemoveCondition(Parent->Condition);
     Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
 
     auto& materials = encyclopedia->Splitter->Materials;
@@ -197,19 +197,12 @@ void UConveyorBuilderMode::SourceTarget::GetOverlapIgnore(TArray<AActor*>& allow
     }
 }
 
-UConveyorBuilderMode::UConveyorBuilderMode() {    
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> RedMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
-    RedMaterial = RedMaterialFinder.Object; 
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> GreenMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_Buildable"));
-    GreenMaterial = GreenMaterialFinder.Object;
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> YellowMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostYellow"));
-    YellowMaterial = YellowMaterialFinder.Object;
-}
-
 UConveyorBuilderMode* UConveyorBuilderMode::Init(UConstructionPlan* constructionPlan) {
     PreInit();
-    const auto playerController = The::PlayerController(this);
 
+    Condition = NewObject<UInBuilderMode>(this);
+
+    const auto playerController = The::PlayerController(this);
     ConstructionUI->Init(constructionPlan, The::ConstructionManager(this));
     ConstructionUI->ConstructionMaterials->UpdateNeed(
         AConveyor::ComputeCosts(
@@ -404,7 +397,7 @@ ABuilding* UConveyorBuilderMode::SpawnSplitter(bool isSource, UResource* resourc
         building = GetWorld()->SpawnActor<ASplitter>();
     else
         building = GetWorld()->SpawnActor<AMerger>();
-    building->SetActorTickEnabled(false);
+    building->AddCondition(Condition);
     building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
 
     UInventoryComponent* inventory = building->GetComponentByClass<UInventoryComponent>();    
@@ -588,7 +581,7 @@ bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, const TArray
 
     if (hasOverlap)
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
-            mesh->SetMaterial(i, RedMaterial);
+            mesh->SetMaterial(i, HighlightInvalid->GetMaterial());
     else
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
             mesh->SetMaterial(i, nullptr);
@@ -796,7 +789,7 @@ void UConveyorBuilderMode::OnClickConfirm() {
 
     // Splitter
     if (const auto constructionSite = Source.CreateConstructionSite(encyclopedia))
-        constructionManager->AddConstruction(constructionSite);  
+        constructionManager->AddConstruction(constructionSite);
     // Merger
     if (const auto constructionSite = Target.CreateConstructionSite(encyclopedia))
         constructionManager->AddConstruction(constructionSite);     

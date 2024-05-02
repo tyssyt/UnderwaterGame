@@ -4,12 +4,33 @@
 
 #include "CoreMinimal.h"
 #include "XD/ComponentX.h"
+#include "XD/Buildings/Building.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Resources/Resource.h"
 #include "XD/Resources/ResourceBalanceUI.h"
 #include "ElectricComponent.generated.h"
 
 class ASubstation;
+
+UCLASS()
+class UDisconnected : public UCondition {
+    GENERATED_BODY()
+public:
+    UDisconnected();
+};
+
+UCLASS()
+class UDeactivated : public UCondition {
+    GENERATED_BODY()
+public:
+    UDeactivated();
+};
+UCLASS()
+class UUnpowered : public UCondition {
+    GENERATED_BODY()
+public:
+    UUnpowered();
+};
 
 enum class PowerState { Initial, Disconnected, Deactivated, Unpowered, Powered };
 
@@ -27,7 +48,9 @@ protected:
     ASubstation* Substation;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    UBillboardComponent* DisabledSymbol;
+    UCondition* Condition;
+
+    void SetCondition(UCondition* condition);
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)

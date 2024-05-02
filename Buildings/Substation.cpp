@@ -59,7 +59,7 @@ void ASubstation::Connect(UElectricComponent* building) {
 }
 void ASubstation::Disconnect(UElectricComponent* building) {
     check(building->GetType() != UElectricComponent::Type::IndoorBuilding);
-    check(building->GetState() == PowerState::Powered || building->GetState() == PowerState::Unpowered);
+    check(building->GetState() == PowerState::Powered || building->GetState() == PowerState::Unpowered || building->GetState() == PowerState::Deactivated);
     check(building->GetSubstation() == this);
 
     Remove(building);
@@ -149,7 +149,7 @@ TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> ASubstation::FindNearby
     TArray<UElectricComponent*> nearbyElecs;
     for (const FOverlapResult& overlap : overlaps) {
         const auto nearbySubstation = Cast<ASubstation>(overlap.GetActor());
-        if (nearbySubstation && nearbySubstation->constructionState == EConstructionState::Done && FVector::Distance(
+        if (nearbySubstation && !nearbySubstation->IsNonInteractable() && FVector::Distance(
             GetActorLocation(),
             nearbySubstation->GetActorLocation()
         ) < ElectricityNetwork::MAX_WIRE_DISTANCE) {

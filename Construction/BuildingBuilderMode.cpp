@@ -3,21 +3,18 @@
 #include "BuildingBuilderMode.h"
 
 #include "BuilderModeExtension.h"
+#include "IndoorBuilderMode.h"
 #include "The.h"
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Building.h"
 
-UBuildingBuilderMode::UBuildingBuilderMode() {
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> HighlightMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/BuilderMode_NotBuildable"));
-    HighlightMaterial = HighlightMaterialFinder.Object;
-}
-
 UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* constructionPlan) {
     PreInit();
     ConstructionPlan = constructionPlan;
     Preview = GetWorld()->SpawnActor<ABuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
-    Preview->SetActorTickEnabled(false);
+    Condition = NewObject<UInBuilderMode>(this);
+    Preview->AddCondition(Condition);
 
     TInlineComponentArray<UStaticMeshComponent*> meshes;
     Preview->GetComponents<UStaticMeshComponent>(meshes, true);
@@ -125,13 +122,13 @@ void UBuildingBuilderMode::CheckOverlap() {
     if (!HasOverlap && overlaps.Num() > 0) {
         // change to overlapping
         HasOverlap = true;
-        Preview->SetAllMaterials(HighlightMaterial);
+        Preview->AddCondition(HighlightInvalid);
         if (Phase == Waiting)
             ConfirmSymbol->SetVisibility(false);
     } else if (HasOverlap && overlaps.Num() == 0) {
         // change to not overlapping
         HasOverlap = false;
-        Preview->SetAllMaterials(nullptr);
+        Preview->RemoveCondition(HighlightInvalid);
         if (Phase == Waiting)
             ConfirmSymbol->SetVisibility(true);
     }
@@ -255,6 +252,7 @@ void UBuildingBuilderMode::OnClickConfirm() {
         return;
 
     Stop(false);
+    Preview->RemoveCondition(Condition);
 
     // create and add construction site
     const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, Extensions);

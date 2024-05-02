@@ -8,6 +8,13 @@
 #include "ConstructionSite.generated.h"
 
 UCLASS()
+class UUnderConstruction : public UCondition {
+    GENERATED_BODY()
+public:
+    UUnderConstruction();
+};
+
+UCLASS()
 class XD_API UConstructionSite : public UObject {
     GENERATED_BODY()
 
@@ -15,12 +22,13 @@ protected:
     TArray<Material> DeliveredMaterial;
     UPROPERTY()
     UBuilderModeExtensions* Extensions;
+    UPROPERTY()
+    UUnderConstruction* Condition;
 
 public:
     UConstructionSite* Init(AXActor* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions); 
     UConstructionSite* Init(AXActor* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions);
     
-    void SetGhostMaterial(UMaterial* ghostMaterial) const;
     void BeginConstruction();
 
     UPROPERTY()

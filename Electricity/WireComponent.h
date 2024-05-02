@@ -16,7 +16,7 @@ class XD_API UWireComponent : public USplineMeshComponent {
     ABuilding* Start;
     UPROPERTY()
     ABuilding* End;
-    
+
 public:
     UWireComponent();
     static UWireComponent* Create(AActor* wireParent, ABuilding* start, ABuilding* end);

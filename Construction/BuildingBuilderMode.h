@@ -24,11 +24,11 @@ class XD_API UBuildingBuilderMode : public UBuilderMode {
     Phase Phase = Positioning;
     
     UPROPERTY()
-    UMaterialInstance* HighlightMaterial;
-    UPROPERTY()
     UConstructionPlan* ConstructionPlan;
     UPROPERTY()
     ABuilding* Preview;
+    UPROPERTY()
+    UInBuilderMode* Condition;
 
     UPROPERTY()
     UWidgetComponent* ConfirmSymbol;
@@ -64,7 +64,6 @@ class XD_API UBuildingBuilderMode : public UBuilderMode {
     void Rotate90();
 
 public:
-    UBuildingBuilderMode();
     UBuildingBuilderMode* Init(UConstructionPlan* constructionPlan);
     virtual bool Tick(const ACameraPawn& camera) override;
     virtual UClass* IDK() override;

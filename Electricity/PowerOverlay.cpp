@@ -11,14 +11,10 @@
 #include "XD/Buildings/Habitat.h"
 
 UPowerOverlay::UPowerOverlay() : Active(false) {
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> MatPoweredFinder(TEXT("/Game/Assets/Materials/GhostMaterials/PowerOverlay_Powered"));
-    MatPowered = MatPoweredFinder.Object;
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> MatUnpoweredFinder(TEXT("/Game/Assets/Materials/GhostMaterials/PowerOverlay_Unpowered"));
-    MatUnpowered = MatUnpoweredFinder.Object;
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> MatDeactivatedFinder(TEXT("/Game/Assets/Materials/GhostMaterials/PowerOverlay_Deactivated"));
-    MatDeactivated = MatDeactivatedFinder.Object;    
-    const static ConstructorHelpers::FObjectFinder<UMaterialInstance> MatHighlightFinder(TEXT("/Game/Assets/Materials/GhostMaterials/PowerOverlay_Highlight"));
-    MatHighlight = MatHighlightFinder.Object;    
+    HighlightPowered = NewObject<UHighlighted>()->SetColor(UHighlighted::Green);
+    HighlightUnpowered = NewObject<UHighlighted>()->SetColor(UHighlighted::Red);
+    HighlightDeactivated = NewObject<UHighlighted>()->SetColor(UHighlighted::Gray);
+    HighlightUnderCursor = NewObject<UHighlighted>()->SetColor(UHighlighted::Yellow);
 }
 
 void UPowerOverlay::Tick(float DeltaTime) {    
@@ -100,10 +96,10 @@ void UPowerOverlay::TickTogglePower() {
         switch (elec->GetState()) {
         case PowerState::Powered:
         case PowerState::Unpowered:
-            underCursor->SetAllMaterials(MatDeactivated);
+            underCursor->AddCondition(HighlightDeactivated);
             break;
         case PowerState::Deactivated:
-            underCursor->SetAllMaterials(MatPowered);
+            underCursor->AddCondition(HighlightPowered);
             break;
         case PowerState::Disconnected:
         case PowerState::Initial:
@@ -116,9 +112,8 @@ void UPowerOverlay::TickTogglePower() {
 }
 
 void UPowerOverlay::TickConnect() {
-
     ABuilding* underCursor = The::PlayerController(this)->GetUnderCursor<ABuilding>();
-    if (underCursor && underCursor->constructionState != EConstructionState::Done)
+    if (underCursor && underCursor->IsNonInteractable())
         underCursor = nullptr;
 
     if (const auto elec = CheckElec(underCursor)) {
@@ -137,7 +132,7 @@ void UPowerOverlay::TickConnect() {
         ResetConnect(false);
 
         if (underCursor)
-            underCursor->SetAllMaterials(MatHighlight);
+            underCursor->AddCondition(HighlightUnderCursor);
 
         ModeHighlight.Current = underCursor;
     } else {
@@ -151,12 +146,12 @@ void UPowerOverlay::TickConnect() {
         ResetConnect(false);
 
         if (underCursor) {
-            underCursor->SetAllMaterials(MatHighlight);
+            underCursor->AddCondition(HighlightUnderCursor);
             ModeHighlight.Current = underCursor;
             ModeHighlight.Wire = UWireComponent::Create(ComponentHolder, ModeHighlight.Source, underCursor);
-            ModeHighlight.Wire->SetMaterial(0, MatPowered);
+            ModeHighlight.Wire->SetMaterial(0, HighlightPowered->GetMaterial());
             if (oldLink) {
-                oldLink->SetMaterial(0, MatUnpowered);
+                oldLink->SetMaterial(0, HighlightUnpowered->GetMaterial());
                 ModeHighlight.Wires.Add(oldLink);
             }
         }
@@ -190,12 +185,12 @@ void UPowerOverlay::TickDisconnect() {
             for (UWireComponent* w : wires) {
                 if ((w->GetStart() == substation && w->GetEnd()->IsA(ASubstation::StaticClass())) ||
                     (w->GetEnd() == substation && w->GetStart()->IsA(ASubstation::StaticClass()))) {
-                    w->SetMaterial(0, MatUnpowered);
+                    w->SetMaterial(0, HighlightUnpowered->GetMaterial());
                     ModeHighlight.Wires.Add(w);
                 }
             }
         } else {
-            wire->SetMaterial(0, MatUnpowered);
+            wire->SetMaterial(0, HighlightUnpowered->GetMaterial());
         }
     }
 
@@ -298,38 +293,39 @@ void UPowerOverlay::ResetModeHighlight(bool deactivate) {
     ModeHighlight.Mode = EPowerOverlayMode::None;
 }
 void UPowerOverlay::ResetTogglePower() {    
-    if (ModeHighlight.Current) {
-        Highlight(ModeHighlight.Current->GetComponentByClass<UElectricComponent>());
+    if (ModeHighlight.Current) {    
+        switch (ModeHighlight.Current->GetComponentByClass<UElectricComponent>()->GetState()) {
+        case PowerState::Powered:
+        case PowerState::Unpowered:
+            ModeHighlight.Current->RemoveCondition(HighlightDeactivated);
+            break;
+        case PowerState::Deactivated:
+            ModeHighlight.Current->RemoveCondition(HighlightPowered);
+            break;
+        case PowerState::Disconnected:
+        case PowerState::Initial:
+            checkNoEntry();
+            break;
+        }
         ModeHighlight.Current = nullptr;
     }
 }
 void UPowerOverlay::ResetConnect(bool deactivate) {
     if (ModeHighlight.Current) {
-        if (const UElectricComponent* elec = ModeHighlight.Current->GetComponentByClass<UElectricComponent>()) {
-            Highlight(elec);
-        } else {
-            check(ModeHighlight.Current->IsA(ASubstation::StaticClass()));
-            ModeHighlight.Current->SetAllMaterials(nullptr);
-        }
+        ModeHighlight.Current->RemoveCondition(HighlightUnderCursor);
         ModeHighlight.Current = nullptr;
     }
 
     if (ModeHighlight.Source) {
         if (deactivate) {
-            // reset source
-            if (const UElectricComponent* elec = ModeHighlight.Source->GetComponentByClass<UElectricComponent>()) {
-                Highlight(elec);
-            } else {
-                check(ModeHighlight.Source->IsA(ASubstation::StaticClass()));
-                ModeHighlight.Source->SetAllMaterials(nullptr);
-            }
+            ModeHighlight.Source->RemoveCondition(HighlightUnderCursor);
             ModeHighlight.Source = nullptr;
         }
 
         if (ModeHighlight.Wire) {
             ModeHighlight.Wire->DestroyComponent();
             ModeHighlight.Wire = nullptr;
-            for (UWireComponent* wire : ModeHighlight.Wires) {
+            for (const auto wire : ModeHighlight.Wires) {
                 wire->SetMaterial(0, nullptr);
             }
             ModeHighlight.Wires.Empty();
@@ -409,7 +405,7 @@ bool UPowerOverlay::CanBeConnected(const ASubstation* substation, const UElectri
         }
         checkNoEntry();
     }
-    
+
     return true;
 }
 
@@ -423,14 +419,14 @@ void UPowerOverlay::Toggle() {
 void UPowerOverlay::Activate() {
     if (Active)
         return;
-    
+
     const auto playerController = The::PlayerController(this);
     playerController->BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), playerController->BlueprintHolder->PowerOverlayUI);
     playerController->InputComponent->BindAction("Select", IE_Pressed, this, &UPowerOverlay::ConfirmModeHighlight);
-    
+
     if (PowerUI == nullptr)
         PowerUI = CreateWidget<UPowerUI>(playerController, playerController->BlueprintHolder->PowerUIClass);   
-    
+
     DoActivate();
 }
 
@@ -607,14 +603,14 @@ void UPowerOverlay::ScaleFloatingWidget(UWidgetComponent* widgetComponent, FVect
 void UPowerOverlay::Highlight(const UElectricComponent* building) const {    
     switch (building->GetState()) {
     case PowerState::Powered:
-        building->GetOwner<AXActor>()->SetAllMaterials(MatPowered);
+        building->GetOwner<ABuilding>()->AddCondition(HighlightPowered);
         break;
     case PowerState::Unpowered:
     case PowerState::Disconnected:
-        building->GetOwner<AXActor>()->SetAllMaterials(MatUnpowered);
+        building->GetOwner<ABuilding>()->AddCondition(HighlightUnpowered);
         break;
     case PowerState::Deactivated:
-        building->GetOwner<AXActor>()->SetAllMaterials(MatDeactivated);
+        building->GetOwner<ABuilding>()->AddCondition(HighlightDeactivated);
         break;
     case PowerState::Initial:
         checkNoEntry();
@@ -627,8 +623,10 @@ void UPowerOverlay::Highlight(const UElectricComponent* building) const {
                 Highlight(elec);
 }
 
-void UPowerOverlay::RemoveHighlight(const UElectricComponent* building) {
-    building->GetOwner<AXActor>()->SetAllMaterials(nullptr);
+void UPowerOverlay::RemoveHighlight(const UElectricComponent* building) {  
+    building->GetOwner<ABuilding>()->RemoveCondition(HighlightPowered);
+    building->GetOwner<ABuilding>()->RemoveCondition(HighlightUnpowered);
+    building->GetOwner<ABuilding>()->RemoveCondition(HighlightDeactivated);
 
     if (building->GetType() == UElectricComponent::Type::Habitat)
         for (const auto b : building->GetOwner<AHabitat>()->Buildings)

@@ -22,7 +22,6 @@ void ElectricityNetwork::RecomputeStats() {
     TotalConstantProduction = 0;
     TotalConstantConsumption = 0;
 
-
     TArray<UElectricComponent*> unpowered = CollectStats();
     UnpowerBuildings(unpowered);
 

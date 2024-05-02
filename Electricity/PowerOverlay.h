@@ -9,6 +9,7 @@
 #include "WireComponent.h"
 #include "Components/WidgetComponent.h"
 #include "UObject/Object.h"
+#include "XD/Buildings/Highlighted.h"
 #include "PowerOverlay.generated.h"
 
 class ABuilding;
@@ -29,15 +30,15 @@ protected:
     AActor* ComponentHolder;
     UPROPERTY()
     UPowerUI* PowerUI;
-    
+
     UPROPERTY()
-    UMaterialInstance* MatPowered;
+    UHighlighted* HighlightPowered;
     UPROPERTY()
-    UMaterialInstance* MatUnpowered;
+    UHighlighted* HighlightUnpowered;
     UPROPERTY()
-    UMaterialInstance* MatDeactivated;
+    UHighlighted* HighlightDeactivated;
     UPROPERTY()
-    UMaterialInstance* MatHighlight;
+    UHighlighted* HighlightUnderCursor;
 
     struct UModeHighlight {
         EPowerOverlayMode Mode;
@@ -99,5 +100,5 @@ private:
     void AddFloatingWidget(FVector location, UUserWidget* widget, const APlayerControllerX* playerController) const;
     static void ScaleFloatingWidget(UWidgetComponent* widgetComponent, FVector cameraLocation);
     void Highlight(const UElectricComponent* building) const;
-    static void RemoveHighlight(const UElectricComponent* building);
+    void RemoveHighlight(const UElectricComponent* building);
 };
