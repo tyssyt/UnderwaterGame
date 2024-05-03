@@ -7,6 +7,7 @@ class ACameraPawn;
 class APlayerControllerX;
 class UElectricityManager;
 class UConstructionManager;
+class UCheats;
 class UEncyclopedia;
 
 namespace The {
@@ -21,6 +22,10 @@ namespace The {
     template <class T>
     static UElectricityManager* ElectricityManager(T HasWorld) {
         return HasWorld->GetWorld()->template GetGameInstance<UGameInstanceX>()->TheElectricityManager;
+    }
+    template <class T>
+    static UCheats* Cheats(T HasWorld) {
+        return HasWorld->GetWorld()->template GetGameInstance<UGameInstanceX>()->TheCheats;        
     }
     template <class T>
     static APlayerControllerX* PlayerController(T HasWorld) {

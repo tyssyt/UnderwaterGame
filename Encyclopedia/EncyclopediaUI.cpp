@@ -59,12 +59,12 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
     Encyclopedia = encyclopedia;
     Categories->ClearChildren();
 
-    /* TODO add settings
     {
         const auto settings = AddCategory(TEXT("Settings"));
-        settings->AddEntry(TEXT("Settings"), nullptr);
+
+        const auto cheatsPage = CreateWidget<UEncyclopediaPageCheats>(GetOwningPlayer(), UEncyclopediaPageCheatsClass)->Init();
+        AddPage(settings, FText::FromString(TEXT("Cheats")), cheatsPage);
     }
-    */
 
     {
         const auto concepts = AddCategory(TEXT("Concepts"));

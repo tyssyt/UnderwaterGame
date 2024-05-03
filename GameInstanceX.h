@@ -4,6 +4,7 @@
 
 
 #include "CoreMinimal.h"
+#include "Cheats.h"
 #include "Construction/ConstructionManager.h"
 #include "Electricity/ElectricityManager.h"
 #include "Encyclopedia/Encyclopedia.h"
@@ -33,5 +34,8 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UElectricityManager* TheElectricityManager;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UCheats* TheCheats;
 
 };

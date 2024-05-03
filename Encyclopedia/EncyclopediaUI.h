@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Encyclopedia.h"
 #include "EncyclopediaPageBuilding.h"
+#include "EncyclopediaPageCheats.h"
 #include "EncyclopediaPageNaturalResource.h"
 #include "EncyclopediaPageNeed.h"
 #include "EncyclopediaPageResource.h"
@@ -81,6 +82,8 @@ public:
     TSubclassOf<UEncyclopediaPageNeed> EncyclopediaPageNeedClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UEncyclopediaPageText> EncyclopediaPageTextClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UEncyclopediaPageCheats> UEncyclopediaPageCheatsClass;
 };
 
 UCLASS(Abstract)

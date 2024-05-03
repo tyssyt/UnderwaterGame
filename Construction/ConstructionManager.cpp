@@ -2,6 +2,7 @@
 
 #include "ConstructionManager.h"
 
+#include "The.h"
 #include "XD/Cheats.h"
 
 ConstructionResource::ConstructionResource(const UResource* resource) : Resource(resource) {}
@@ -17,7 +18,7 @@ void UConstructionManager::AddIdleBuilder(ABuilderShip* builder) {
 }
 
 void UConstructionManager::AddConstruction(UConstructionSite* constructionSite) {
-    if (Cheats::INSTA_BUILD)
+    if (The::Cheats(this)->InstantBuild)
         constructionSite->BeginConstruction();
     else
         NewConstructionSites.Add(constructionSite);

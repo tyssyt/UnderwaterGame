@@ -9,7 +9,6 @@
 #include "UI.h"
 #include "XD/BlueprintHolder.h"
 #include "XD/CameraPawn.h"
-#include "XD/Cheats.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Buildings/Habitat.h"
 #include "XD/Buildings/IndoorBuilding.h"
@@ -19,17 +18,17 @@
 UDisconnected::UDisconnected() {   
     const static ConstructorHelpers::FObjectFinder<UTexture2D> SymbolFinder(TEXT("/Game/Assets/Images/Disconnected"));
     Symbol = SymbolFinder.Object;
-    Type = Cheats::ALWAYS_POWERED ? EType::Visual : EType::TickDisabled;
+    Type = !UObject::GetWorld() || The::Cheats(this)->AlwaysPowered ? EType::Visual : EType::TickDisabled;
 }
 UDeactivated::UDeactivated() {
     const static ConstructorHelpers::FObjectFinder<UTexture2D> SymbolFinder(TEXT("/Game/Assets/Images/Deactivated"));
     Symbol = SymbolFinder.Object;
-    Type = Cheats::ALWAYS_POWERED ? EType::Visual : EType::TickDisabled;
+    Type = !UObject::GetWorld() || The::Cheats(this)->AlwaysPowered ? EType::Visual : EType::TickDisabled;
 }
 UUnpowered::UUnpowered() {
     const static ConstructorHelpers::FObjectFinder<UTexture2D> SymbolFinder(TEXT("/Game/Assets/Images/Unpowered"));
     Symbol = SymbolFinder.Object;
-    Type = Cheats::ALWAYS_POWERED ? EType::Visual : EType::TickDisabled;
+    Type = !UObject::GetWorld() || The::Cheats(this)->AlwaysPowered ? EType::Visual : EType::TickDisabled;
 }
 
 UElectricComponent::UElectricComponent() {
