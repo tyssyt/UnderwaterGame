@@ -9,39 +9,26 @@ double ABuilderShip::Speed = 10.f; // why c++ be like this?
 double ABuilderShip::SlowSpeed = 3.333f;
 double ABuilderShip::RotationSpeed = 1.f;
 
-ABuilderShip::ABuilderShip() {
-    PrimaryActorTick.bCanEverTick = true;
-
-    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/BuilderShip"));
-    Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
-    Mesh->SetStaticMesh(MeshFinder.Object);
-    Mesh->SetRenderCustomDepth(true);
-    SetRootComponent(Mesh);
-}
-
 void ABuilderShip::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
-    switch (State) {
-    case ShipState::IDLE:
-        Idle();
+    switch (Command.Type) {
+    case FCommand::EType::Nothing:
+        SetActorTickEnabled(false);
         break;
-    case ShipState::FLYING:
-        Fly();
+    case FCommand::EType::FlyTo:
+        FlyTo();
+        break;
+    case FCommand::EType::Wait:
+        Wait();
         break;
     }
 }
 
-void ABuilderShip::Idle() {
-    SetActorTickEnabled(false);
-    The::ConstructionManager(this)->AddIdleBuilder(this);
-}
-
-
-void ABuilderShip::Fly() {
+void ABuilderShip::FlyTo() {
     const FVector location = GetActorLocation();
 
-    FVector target = NextStop->GetActorLocation();
+    FVector target = Command.FlyToTarget;
     target.Z = 150.f;
     const FVector toTarget = target - location;
     const double targetRotation = toTarget.Rotation().Yaw;
@@ -70,56 +57,48 @@ void ABuilderShip::Fly() {
         AddActorWorldOffset(speed / distance * toTarget);
         return;
     }
-    
+
     // We arrived
     SetActorLocation(target);
+    NextCommand();
+}
 
-    if (NextStop == PickupFrom) {
-        // collect resource
-        for (auto& input : PickupFrom->Inventory->GetInputs()) {
-            if (input.Resource == PickupMaterial.resource) {
-                Inventory.resource = PickupMaterial.resource;
-                Inventory.amount = input.PullFrom(PickupMaterial.amount);
-                The::ConstructionManager(this)->UnreserveResource(Inventory.resource, Inventory.amount);
-            }
+void ABuilderShip::Wait() {    
+    if (Command.WaitTicks-- <= 0)
+        NextCommand();
+}
+
+void ABuilderShip::NextCommand() {
+    if (!Task) {
+        Command.Type = FCommand::EType::Nothing;
+        return;
+    }
+
+    Command = Task->GetNextCommand();
+    if (Command.Type == FCommand::EType::Nothing) {
+        Task = nullptr;
+
+        const auto constructionManager = The::ConstructionManager(this);
+        constructionManager->AddIdleBuilder(this);
+        if (const auto pickupPad = constructionManager->GetNearestPickupPad(GetActorLocation())) {
+            Command = FCommand(pickupPad->GetActorLocation());
         }
-        
-        NextStop = TargetSite->Building;
-    } else if (PickupMaterial.resource) {
-        // deliver resource
-        TargetSite->DeliverMaterial(Inventory);
-        Inventory.amount = 0;
-        Inventory.resource = nullptr;
-        DoNextStop();
-    } else {
-        // start construction
-        TargetSite->BeginConstruction();
-        State = ShipState::IDLE;
     }
-
 }
 
+ABuilderShip::ABuilderShip() {
+    PrimaryActorTick.bCanEverTick = true;
 
-void ABuilderShip::StartConstructing(UConstructionSite* constructionSite) {
+    const static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshFinder(TEXT("/Game/Assets/Meshes/BuilderShip"));
+    const auto mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockMesh0"));
+    mesh->SetStaticMesh(MeshFinder.Object);
+    mesh->SetRenderCustomDepth(true);
+    SetRootComponent(mesh);
+}
+
+void ABuilderShip::DoTask(UBuilderTask* task) {
+    check(Task == nullptr);
+    Task = task;
     SetActorTickEnabled(true);
-    TargetSite = constructionSite;
-    State = ShipState::FLYING;
-
-    DoNextStop();
-}
-
-void ABuilderShip::DoNextStop() {
-    const auto nextDelivery = TargetSite->GetNextDelivery(The::ConstructionManager(this)->ConstructionResources);
-
-    if (nextDelivery.Key) {
-        NextStop = nextDelivery.Key;
-        PickupFrom = nextDelivery.Key;
-        PickupMaterial = nextDelivery.Value;        
-    } else {
-        // all Material is delivered, go to Build Site and finish it
-        NextStop = TargetSite->Building;
-        PickupFrom = nullptr;
-        PickupMaterial.amount = 0;
-        PickupMaterial.resource = nullptr;
-    }
+    NextCommand();
 }

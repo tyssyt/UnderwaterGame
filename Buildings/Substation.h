@@ -19,7 +19,7 @@ UCLASS()
 class XD_API ASubstation : public ABuilding {
     GENERATED_BODY()
 
-protected:    
+protected:
     void Add(UElectricComponent* building);
     void Remove(UElectricComponent* building);
 
@@ -37,11 +37,12 @@ public:
     UPROPERTY(EditAnywhere)
     TArray<UElectricComponent*> ConnectedHabitats;
 
-    void Connect(UElectricComponent* building);
+    void Connect(UElectricComponent* building, bool recomputeStats = true);
     void Disconnect(UElectricComponent* building);
 
     void DisconnectFromNetwork();
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
+    virtual void OnDismantle() override;
     virtual UBuilderModeExtensions* CreateBuilderModeExtension() override;
 
     TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> FindNearby() const;

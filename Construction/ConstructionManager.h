@@ -3,66 +3,42 @@
 #pragma once
 
 #include "BuilderShip.h"
-#include "ConstructionSite.h"
+#include "BuilderTaskQueue.h"
+#include "ConstructionResources.h"
 #include "XD/Buildings/PickupPad.h"
-
-#include <deque>
 
 #include "Tickable.h"
 #include "ConstructionManager.generated.h"
 
-
-struct XD_API ConstructionResource {
-    explicit ConstructionResource(const UResource* resource);
-
-    const UResource* const Resource;
-
-    TArray<TPair<int, APickupPad*>> Pads;
-    int Total = 0;
-    int Reserved = 0;
-};
-
 UCLASS()
 class XD_API UConstructionManager : public UObject, public FTickableGameObject {
     GENERATED_BODY()
-    
-protected:    
-    std::deque<ABuilderShip*> IdleBuilders;
 
-    // TODO optimization: when there are a lot of Buildings waiting for resources, we can store them in Groups by building and so we only need to check once for each building type. Can become relevant if we have Blueprints and thousands of things need to be build
+protected:
     UPROPERTY()
-    TArray<UConstructionSite*> NewConstructionSites;
-
-    UPROPERTY()
-    TArray<UConstructionSite*> WipConstructionSites; // TODO ununsed, but I think I want to have it?
+    TArray<ABuilderShip*> IdleBuilders;
     UPROPERTY()
     TArray<APickupPad*> PickupPads;
-    
-    // The last frame number we were ticked.
-    // We don't want to tick multiple times per frame 
+    UPROPERTY()
+    UBuilderTaskQueue* Tasks;
+
     uint32 LastFrameNumberWeTicked = INDEX_NONE;
 
-    UConstructionSite* FindBuildableConstructionSite();
-    bool HasResourcesFor(const TArray<Material>* materials) const;
-
 public:
-    void SetConstructionResources(const TSet<UResource*>& constructionResources);
+    UConstructionManager();
 
-    UFUNCTION(BlueprintCallable)
-    void AddIdleBuilder(ABuilderShip* builder);
-    
-    void AddConstruction(UConstructionSite* constructionSite);
-    
-    UFUNCTION(BlueprintCallable)
-    void AddPickupPad(APickupPad* pickupPad);
+    UPROPERTY()
+    UConstructionResources* ConstructionResources;
 
-    void UnreserveResource(UResource* resource, int amount);
-    void FinishConstruction(UConstructionSite* constructionSite);
+    void AddPickupPad(APickupPad* pickupPad) { PickupPads.Add(pickupPad); }
+    void RemovePickupPad(APickupPad* pickupPad) { PickupPads.Remove(pickupPad); }
+    APickupPad* GetNearestPickupPad(const FVector& location);
+
+    void AddIdleBuilder(ABuilderShip* builder) { IdleBuilders.Add(builder); }
+    void AddTask(UBuilderTask* task) const { Tasks->Enqueue(task); }
 
     virtual void Tick(float DeltaTime) override;    
     virtual TStatId GetStatId() const override {
         RETURN_QUICK_DECLARE_CYCLE_STAT( FMyTickableThing, STATGROUP_Tickables );
     }
-    
-    TArray<ConstructionResource> ConstructionResources;
 };

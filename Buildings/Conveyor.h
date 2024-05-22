@@ -22,7 +22,7 @@ class ASplitter;
 struct Material;
 
 UCLASS()
-class XD_API AConveyor : public AXActor {
+class XD_API AConveyor : public ABuilding {
     GENERATED_BODY()
 
 public:
@@ -72,6 +72,7 @@ public:
 
     UFUNCTION(CallInEditor, Category="Conveyor")
     void Connect(UResource* resource = nullptr);
+    virtual void OnDismantle() override;
 
     static bool HasCommonResource(UInventoryComponent* source, UInventoryComponent* target);
     static TSet<UResource*> FindCommonResources(UInventoryComponent* source, UInventoryComponent* target);

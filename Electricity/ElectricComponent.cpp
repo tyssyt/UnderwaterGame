@@ -79,7 +79,7 @@ void UElectricComponent::SetDisconnected() {
     check(GetType() != Type::IndoorBuilding);
     if (State == PowerState::Disconnected)
         return;
-    
+
     const auto oldState = State;
     State = PowerState::Disconnected;
     SetCondition(NewObject<UDisconnected>(GetOwner()));
@@ -158,6 +158,24 @@ void UElectricComponent::OnConstructionComplete(UBuilderModeExtension* extension
             substation->Network->RecomputeStats();
         break;
     }}
+}
+
+void UElectricComponent::OnDismantle() {
+    if (const auto substation = GetSubstation()) {
+        switch (GetType()) {
+        case Type::OutdoorBuilding: case Type::Habitat:
+            substation->Disconnect(this);
+            break;
+        case Type::IndoorBuilding:
+            substation->Network->RecomputeStats();
+            break;
+        }
+    }
+
+    The::ElectricityManager(this)->Disconnected.Remove(this);
+    SetCondition(nullptr);
+
+    State = PowerState::Initial;
 }
 
 void UElectricComponent::AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {

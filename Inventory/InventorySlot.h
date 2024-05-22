@@ -40,5 +40,4 @@ public:
 
     int PushInto(int amount);
     int PullFrom(int amount);
-
 };

@@ -236,8 +236,8 @@ void ACameraPawn::Hotbar0() {
     ActivateHotbar(0);
 }
 
-bool ACameraPawn::PrepBuilderMode(UClass* newThing) const {
-    const APlayerControllerX* playerController = GetController<APlayerControllerX>();
+bool ACameraPawn::PrepBuilderMode(const UClass* newThing) const {
+    const auto playerController = GetController<APlayerControllerX>();
     if (!playerController || !playerController->bShowMouseCursor)
         return false;
 

@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "XD/Buildings/ConstructionPlan.h"
-#include "XD/Buildings/PickupPad.h"
-#include "GameFramework/Actor.h"
+#include "BuilderShip.h"
+#include "XD/Buildings/Building.h"
 #include "ConstructionSite.generated.h"
+
+class UDeliverResource;
 
 UCLASS()
 class UUnderConstruction : public UCondition {
@@ -19,25 +20,39 @@ class XD_API UConstructionSite : public UObject {
     GENERATED_BODY()
 
 protected:
-    TArray<Material> DeliveredMaterial;
     UPROPERTY()
     UBuilderModeExtensions* Extensions;
     UPROPERTY()
     UUnderConstruction* Condition;
 
 public:
-    UConstructionSite* Init(AXActor* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions); 
-    UConstructionSite* Init(AXActor* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions);
-    
-    void BeginConstruction();
-
     UPROPERTY()
-    AXActor* Building;
-    UPROPERTY()
-    int Time;    
+    ABuilding* Building;
     TArray<Material> Materials;
-    //class ABuilderShip* BuilderShip;
+    UPROPERTY()
+    int Time;
+    UPROPERTY()
+    TArray<UDeliverResource*> Tasks;
 
-    TPair<APickupPad*, Material> GetNextDelivery(TArray<struct ConstructionResource>& constructionResources) const;
-    void DeliverMaterial(Material material);
+    UConstructionSite* Init(ABuilding* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions); 
+    UConstructionSite* Init(ABuilding* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions);
+
+    void QueueTasks();
+    void FinishConstruction() const;
+};
+
+UCLASS()
+class UDeliverResource : public UBuilderTask {
+    GENERATED_BODY()
+
+    UPROPERTY()
+    UConstructionSite* ConstructionSite;
+
+    void PickupMaterial() const;
+
+public:
+    enum class EState { Collect, Deliver, Construct, Done } NextCommand;
+
+    UDeliverResource* Init(UConstructionSite* constructionSite, const Material& material);    
+    virtual ABuilderShip::FCommand GetNextCommand() override;    
 };

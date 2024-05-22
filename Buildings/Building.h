@@ -53,6 +53,7 @@ public:
 
     virtual ABuilding* Init(UConstructionPlan* constructionPlan);
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions);
+    virtual void OnDismantle();
 
     void AddCondition(UCondition* condition);
     void RemoveCondition(UCondition* condition);

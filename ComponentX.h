@@ -27,6 +27,7 @@ public:
     }
     
     virtual void OnConstructionComplete(UBuilderModeExtension* extension) {}
+    virtual void OnDismantle() {}
 
     virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {}
 };

@@ -3,6 +3,7 @@
 #include "IndoorBuilderMode.h"
 
 #include "BuilderModeExtension.h"
+#include "ConstructionSite.h"
 #include "The.h"
 #include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Habitat.h"
@@ -96,8 +97,7 @@ void UIndoorBuilderMode::ConfirmPosition() {
     Stop(false);
     Preview->RemoveCondition(Condition);
     Preview->Habitat->PlaceBuilding(Preview);
-    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, Extensions);
-    The::ConstructionManager(this)->AddConstruction(constructionSite);
+    NewObject<UConstructionSite>(Preview)->Init(Preview, ConstructionPlan, Extensions)->QueueTasks();
     Preview = nullptr;
 }
 
@@ -135,11 +135,11 @@ void UIndoorBuilderMode::SetInvisible() {
 void UIndoorBuilderMode::SetNotBuildable() {
     Buildable = false;
     Preview->SetActorHiddenInGame(false);
-    Preview->AddCondition(HighlightInvalid);
+    Preview->AddCondition(HighlightedInvalid);
 }
 
 void UIndoorBuilderMode::SetBuildable() {
     Buildable = true;
     Preview->SetActorHiddenInGame(false);
-    Preview->RemoveCondition(HighlightInvalid);
+    Preview->RemoveCondition(HighlightedInvalid);
 }

@@ -74,6 +74,7 @@ public:
 
     virtual UBuilderModeExtension* CreateBuilderModeExtension() override;
     virtual void OnConstructionComplete(UBuilderModeExtension* extension) override;
+    virtual void OnDismantle() override;
 
     virtual void AddToSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
 

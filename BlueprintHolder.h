@@ -78,5 +78,4 @@ public:
 
     void Init(APlayerController* controller);
     USelectedUI* GetUI(AXActor* actor) const;
-
 };

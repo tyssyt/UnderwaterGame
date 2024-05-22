@@ -12,6 +12,23 @@ namespace Arrays {
     }
 }
 
+namespace Actors {
+    template <class T>
+    static T* FindNearest(const FVector& location, TArray<T*>& actors) {  
+        T* nearest = nullptr;
+        double nearestDist = INFINITY;
+
+        for (const auto actor : actors) {
+            const double dist = FVector::Distance(location, actor->GetActorLocation());
+            if (dist < nearestDist) {
+                nearest = actor;
+                nearestDist = dist;
+            }
+        }
+        return nearest;
+    }
+}
+
 namespace MultiMaps {
     template <class K, class V>
     static void AddTo(TMap<K, TArray<V>>& map, const K& key, const V& value) {

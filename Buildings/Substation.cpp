@@ -38,7 +38,7 @@ ASubstation::ASubstation() {
     SetRootComponent(Mesh);
 }
 
-void ASubstation::Connect(UElectricComponent* building) {
+void ASubstation::Connect(UElectricComponent* building, bool recomputeStats) {
     check(building->GetType() != UElectricComponent::Type::IndoorBuilding);
     
     if (const auto oldSubstation = building->GetSubstation()) {
@@ -55,7 +55,8 @@ void ASubstation::Connect(UElectricComponent* building) {
 
     Add(building);
     building->SetConnected(this);
-    Network->RecomputeStats();
+    if (recomputeStats)
+        Network->RecomputeStats();
 }
 void ASubstation::Disconnect(UElectricComponent* building) {
     check(building->GetType() != UElectricComponent::Type::IndoorBuilding);
@@ -68,10 +69,10 @@ void ASubstation::Disconnect(UElectricComponent* building) {
 }
 
 void ASubstation::DisconnectFromNetwork() {
-    check(Network->substations.Num() > 1);
+    check(Network->Substations.Num() > 1);
     ElectricityNetwork* old = Network;
     Network = new ElectricityNetwork(this);
-    old->substations.Remove(this);
+    old->Substations.Remove(this);
     old->CheckForNetworkSplit();
     Network->RecomputeStats();
 }
@@ -95,7 +96,7 @@ void ASubstation::OnConstructionComplete(UBuilderModeExtensions* extensions) {
     if (!nearby.Key.IsEmpty()) {
         // join & merge nearby networks
         Network = nearby.Key[0]->Network;
-        Network->substations.Add(this);
+        Network->Substations.Add(this);
         for (const ASubstation* nearbySubstation : nearby.Key) {
             Network->MergeNetworkNoRecompute(nearbySubstation->Network);
         }
@@ -121,6 +122,39 @@ void ASubstation::OnConstructionComplete(UBuilderModeExtensions* extensions) {
     }
 
     Network->RecomputeStats();
+}
+
+void ASubstation::OnDismantle() {
+    Super::OnDismantle();
+
+    if (Network->Substations.Num() == 1) {
+        while (!ConnectedBuildings.IsEmpty())
+            Disconnect(ConnectedBuildings.Last());
+        while (!ConnectedHabitats.IsEmpty())
+            Disconnect(ConnectedHabitats.Last());
+        delete Network;
+        Network = nullptr;
+        return;
+    }
+
+    Network->Substations.Remove(this);
+    while (!ConnectedBuildings.IsEmpty()) {
+        const auto building = ConnectedBuildings.Pop();
+        if (const auto substation = Network->FindNearestSubstation(building->GetOwner()->GetActorLocation()))
+            substation->Connect(building, false);
+        else
+            Disconnect(building);
+    }
+    while (!ConnectedHabitats.IsEmpty()) {
+        const auto building = ConnectedHabitats.Pop();
+        if (const auto substation = Network->FindNearestSubstation(building->GetOwner()->GetActorLocation()))
+            substation->Connect(building, false);
+        else
+            Disconnect(building);
+    }
+
+    Network->CheckForNetworkSplit();
+    Network = nullptr;
 }
 
 UBuilderModeExtensions* ASubstation::CreateBuilderModeExtension() {

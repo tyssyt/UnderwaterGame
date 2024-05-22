@@ -24,6 +24,7 @@ struct XD_API Material {
     static const Material* Find(const TArray<Material>& in, const UResource* resource);
     static void AddTo(TArray<Material>& to, const Material& mat, int factor = 1);
     static void AddTo(TArray<Material>& to, const TArray<Material>& from, int factor = 1);
+    static void RemoveFrom(TArray<Material>& to, const Material& mat);
 };
 
 UCLASS()

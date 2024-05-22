@@ -2,49 +2,61 @@
 
 #pragma once
 
-#include "ConstructionSite.h"
 #include "XD/Buildings/XActor.h"
 
 #include "CoreMinimal.h"
+#include "XD/Buildings/ConstructionPlan.h"
 #include "BuilderShip.generated.h"
 
-enum class ShipState {
-    IDLE,
-    FLYING
-};
+class APickupPad;
+class UBuilderTask;
 
 UCLASS()
 class XD_API ABuilderShip : public AXActor {
     GENERATED_BODY()
 
 public:
-    ABuilderShip();
-
-    UPROPERTY(EditAnywhere)
-    UStaticMeshComponent* Mesh;
-
     static double Speed;
     static double SlowSpeed;
     static double RotationSpeed;
 
-    void StartConstructing(UConstructionSite* constructionSite);
+    struct FCommand {
+        FCommand() : Type(EType::Nothing) {}
+        FCommand(FVector flyToTarget) : Type(EType::FlyTo), FlyToTarget(flyToTarget) {}
+        FCommand(int waitTicks) : Type(EType::Wait), WaitTicks(waitTicks) {}
 
+        enum class EType { Nothing, FlyTo, Wait } Type;
+        union {
+            FVector FlyToTarget;
+            int WaitTicks;
+        };
+    };
 
 protected:
-    ShipState State = ShipState::IDLE;
-    AActor* NextStop;
-    
-    UConstructionSite* TargetSite;
-    Material Inventory;
+    UPROPERTY()
+    UBuilderTask* Task;
+    FCommand Command;
 
-    APickupPad* PickupFrom;
-    Material PickupMaterial;
+    virtual void Tick(float DeltaTime) override;    
+    void FlyTo();
+    void Wait();
+    void NextCommand();
 
-    
-    virtual void Tick(float DeltaTime) override;
+public:
+    ABuilderShip();
+    void DoTask(UBuilderTask* task);
+};
 
-    void Idle();
-    void Fly();
+UCLASS(Abstract)
+class XD_API UBuilderTask : public UObject {
+    GENERATED_BODY()
 
-    void DoNextStop();
+public:
+    UPROPERTY()
+    FVector Location;
+    Material RequiredMaterial;
+    UPROPERTY()
+    APickupPad* PickupFrom; // set by the construction manager, the material is already reserved for us in there
+
+    virtual ABuilderShip::FCommand GetNextCommand() { return ABuilderShip::FCommand(); }
 };

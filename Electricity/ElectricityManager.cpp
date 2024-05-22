@@ -8,8 +8,8 @@ ASubstation* UElectricityManager::FindNearestSubstation(FVector from) {
     ASubstation* nearest = nullptr;
     double nearestDist = INFINITY;
 
-    for (const ElectricityNetwork* network : ElectricityNetworks) {
-        for (ASubstation* substation : network->substations) {
+    for (const auto network : ElectricityNetworks) {
+        if (const auto substation = network->FindNearestSubstation(from)) {
             const double dist = FVector::Distance(from, substation->GetActorLocation());
             if (dist < nearestDist) {
                 nearest = substation;
@@ -18,7 +18,5 @@ ASubstation* UElectricityManager::FindNearestSubstation(FVector from) {
         }
     }
 
-    if (nearestDist > ElectricityNetwork::MAX_WIRE_DISTANCE)
-        return nullptr;
     return nearest;
 }

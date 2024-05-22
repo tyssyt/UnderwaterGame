@@ -3,6 +3,7 @@
 #include "BuildingBuilderMode.h"
 
 #include "BuilderModeExtension.h"
+#include "ConstructionSite.h"
 #include "IndoorBuilderMode.h"
 #include "The.h"
 #include "XD/CollisionProfiles.h"
@@ -122,13 +123,13 @@ void UBuildingBuilderMode::CheckOverlap() {
     if (!HasOverlap && overlaps.Num() > 0) {
         // change to overlapping
         HasOverlap = true;
-        Preview->AddCondition(HighlightInvalid);
+        Preview->AddCondition(HighlightedInvalid);
         if (Phase == Waiting)
             ConfirmSymbol->SetVisibility(false);
     } else if (HasOverlap && overlaps.Num() == 0) {
         // change to not overlapping
         HasOverlap = false;
-        Preview->RemoveCondition(HighlightInvalid);
+        Preview->RemoveCondition(HighlightedInvalid);
         if (Phase == Waiting)
             ConfirmSymbol->SetVisibility(true);
     }
@@ -255,8 +256,7 @@ void UBuildingBuilderMode::OnClickConfirm() {
     Preview->RemoveCondition(Condition);
 
     // create and add construction site
-    const auto constructionSite = NewObject<UConstructionSite>()->Init(Preview, ConstructionPlan, Extensions);
-    The::ConstructionManager(this)->AddConstruction(constructionSite);
+    NewObject<UConstructionSite>(Preview)->Init(Preview, ConstructionPlan, Extensions)->QueueTasks();
 }
 
 void UBuildingBuilderMode::OnClickCancel() {

@@ -3,6 +3,7 @@
 #include "ConveyorBuilderMode.h"
 
 #include "ArrowMover.h"
+#include "ConstructionSite.h"
 #include "The.h"
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
@@ -57,7 +58,7 @@ void UConveyorBuilderMode::SourceTarget::RemoveHighlight() {
     case EType::NotSet:
         return;
     case EType::Building:
-        Building->RemoveCondition(Valid ? Parent->HighlightValid : Parent->HighlightInvalid);
+        Building->RemoveCondition(Valid ? Parent->HighlightedValid : Parent->HighlightedInvalid);
         Building = nullptr;
         Gate = nullptr;
         break;
@@ -85,7 +86,7 @@ void UConveyorBuilderMode::SourceTarget::HighlightInvalid(ABuilding* building) {
     Type = EType::Building;
     Building = building;
 
-    Building->AddCondition(Parent->HighlightInvalid);
+    Building->AddCondition(Parent->HighlightedInvalid);
 }
 
 void UConveyorBuilderMode::SourceTarget::Highlight(UConveyorGate* gate, const TArray<UConveyorGate*>& otherGates) {
@@ -99,7 +100,7 @@ void UConveyorBuilderMode::SourceTarget::Highlight(UConveyorGate* gate, const TA
     Building = gate->GetOwner<ABuilding>();
     Gate = gate;
 
-    Building->AddCondition(Parent->HighlightValid);
+    Building->AddCondition(Parent->HighlightedValid);
 
     for (const auto otherGate : otherGates) {
         if (otherGate == gate)
@@ -124,7 +125,7 @@ void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyo
     Conveyor = conveyor;
     ConveyorComponent = node;
 
-    Building->AddCondition(valid ? Parent->HighlightValid : Parent->HighlightInvalid);
+    Building->AddCondition(valid ? Parent->HighlightedValid : Parent->HighlightedInvalid);
     node->SetVisibility(false);
 }
 void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyor* conveyor, UConveyorLink* link, bool valid) {
@@ -133,7 +134,7 @@ void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyo
         check(building == Building);
         // even if we are on the same link, we still could be in a different location, so update valid
         Valid = valid;
-        Building->AddCondition(valid ? Parent->HighlightValid : Parent->HighlightInvalid);
+        Building->AddCondition(valid ? Parent->HighlightedValid : Parent->HighlightedInvalid);
         return;
     }
     RemoveHighlight();
@@ -144,11 +145,11 @@ void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyo
     Conveyor = conveyor;
     ConveyorComponent = link;
 
-    Building->AddCondition(valid ? Parent->HighlightValid : Parent->HighlightInvalid);
+    Building->AddCondition(valid ? Parent->HighlightedValid : Parent->HighlightedInvalid);
 }
 
 void UConveyorBuilderMode::SourceTarget::Reset() {
-    Building->RemoveCondition(Valid ? Parent->HighlightValid : Parent->HighlightInvalid);
+    Building->RemoveCondition(Valid ? Parent->HighlightedValid : Parent->HighlightedInvalid);
     Type = EType::NotSet;
     Building = nullptr;
     Gate = nullptr;
@@ -169,7 +170,7 @@ UConstructionSite* UConveyorBuilderMode::SourceTarget::CreateConstructionSite(co
     if (Type == EType::ConveyorNode)
         Material::AddTo(materials, encyclopedia->ConveyorNode->Materials, -1);
 
-    return NewObject<UConstructionSite>()->Init(
+    return NewObject<UConstructionSite>(Building)->Init(
         Building,
         encyclopedia->Splitter->Time,
         materials,
@@ -581,7 +582,7 @@ bool UConveyorBuilderMode::CheckOverlap(UStaticMeshComponent* mesh, const TArray
 
     if (hasOverlap)
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
-            mesh->SetMaterial(i, HighlightInvalid->GetMaterial());
+            mesh->SetMaterial(i, HighlightedInvalid->GetMaterial());
     else
         for (int i=0; i < mesh->GetMaterials().Num(); ++i)
             mesh->SetMaterial(i, nullptr);
@@ -785,14 +786,12 @@ void UConveyorBuilderMode::OnClickConfirm() {
         return;
 
     const auto encyclopedia = The::Encyclopedia(this);
-    const auto constructionManager = The::ConstructionManager(this);
-
     // Splitter
     if (const auto constructionSite = Source.CreateConstructionSite(encyclopedia))
-        constructionManager->AddConstruction(constructionSite);
+        constructionSite->QueueTasks();
     // Merger
     if (const auto constructionSite = Target.CreateConstructionSite(encyclopedia))
-        constructionManager->AddConstruction(constructionSite);     
+        constructionSite->QueueTasks();     
 
     // Conveyor
     TArray<FVector> nodes;
@@ -810,13 +809,12 @@ void UConveyorBuilderMode::OnClickConfirm() {
         nodes,
         Resource
     );
-    const auto constructionSite = NewObject<UConstructionSite>()->Init(
+    NewObject<UConstructionSite>(conveyor)->Init(
         conveyor,
         1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
         AConveyor::ComputeCosts(nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, encyclopedia),
         NewObject<UBuilderModeExtensions>()
-    ); 
-    constructionManager->AddConstruction(constructionSite);
+    )->QueueTasks(); 
 
     Stop(false);
 }
@@ -845,7 +843,7 @@ void UConveyorBuilderMode::Stop(bool cancelled) {
         return;
     Done = true;
 
-    if (!cancelled) {
+    if (cancelled) {
         Source.RemoveHighlight();
         Target.RemoveHighlight();
     }

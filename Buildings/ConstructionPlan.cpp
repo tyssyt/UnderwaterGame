@@ -19,16 +19,23 @@ const Material* Material::Find(const TArray<Material>& in, const UResource* reso
     return nullptr;
 }
 
-void Material::AddTo(TArray<Material>& to, const Material& mat, int factor) {    
+void Material::AddTo(TArray<Material>& to, const Material& mat, int factor) {
     if (const auto into = Find(to, mat.resource))
         into->amount += factor * mat.amount;
     else
         to.Emplace(factor * mat.amount, mat.resource);
 }
-
 void Material::AddTo(TArray<Material>& to, const TArray<Material>& from, int factor) {
     for (const auto& mat : from)
         AddTo(to, mat, factor);
+}
+
+void Material::RemoveFrom(TArray<Material>& to, const Material& mat) {
+    if (auto from = Find(to, mat.resource)) {
+        from->amount -= mat.amount;
+        if (from->amount < 0)
+            to.RemoveAt(from - to.GetData());
+    }
 }
 
 UConstructionPlan* UConstructionPlan::Init(

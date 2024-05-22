@@ -60,5 +60,5 @@ public:
     void Hotbar9();
     void Hotbar0();
 
-    bool PrepBuilderMode(UClass* newThing) const;
+    bool PrepBuilderMode(const UClass* newThing) const;
 };

@@ -27,7 +27,7 @@ protected:
     TArray<FInventorySlot> Outputs;
 
     bool bIsBuffer = false;
-    
+
 public:
     UInventoryComponent();
 
@@ -40,6 +40,7 @@ public:
     FInventorySlot* GetOutput(const UResource* resource);
 
     TArray<FInventorySlot*> GetUnconnected(bool isInput);
+    AConveyor* GetConveyor(bool isInput, int idx) const;
     void SetConveyor(bool isInput, FInventorySlot* slot, AConveyor* conveyor);
 
     void SetRecipe(URecipe* recipe);

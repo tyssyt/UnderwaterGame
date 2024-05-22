@@ -8,12 +8,12 @@ class ASubstation;
 class XD_API ElectricityNetwork {
 
 public:
-    inline static constexpr double MAX_WIRE_DISTANCE = 500.f;
+    static constexpr double MAX_WIRE_DISTANCE = 500.f;
 
     explicit ElectricityNetwork(ASubstation* substation);
     ~ElectricityNetwork();
 
-    TArray<ASubstation*> substations;
+    TArray<ASubstation*> Substations;
 
     /*
     * Calculates total Production and Consumption
@@ -26,8 +26,10 @@ public:
     void MergeNetwork(const ElectricityNetwork* otherNetwork);
     void MergeNetworkNoRecompute(const ElectricityNetwork* otherNetwork);
 
-    int GetTotalConstantProduction() const {return TotalConstantProduction;}
-    int GetTotalConstantConsumption() const {return TotalConstantConsumption;}
+    int GetTotalConstantProduction() const { return TotalConstantProduction; }
+    int GetTotalConstantConsumption() const { return TotalConstantConsumption; }
+    
+    ASubstation* FindNearestSubstation(const FVector& location);
 
 protected:
 

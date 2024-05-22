@@ -67,6 +67,10 @@ void UPowerOverlay::Tick(float DeltaTime) {
 void UPowerOverlay::TickTogglePower() {    
     const UElectricComponent* elec = CheckElec(The::PlayerController(this)->GetUnderCursor<ABuilding>());
 
+    // can't toggle non interactable Buildings
+    if (elec && elec->GetOwner<ABuilding>()->IsNonInteractable())
+        elec = nullptr;
+
     // can't toggle disconnected Buildings
     if (elec && elec->GetState() == PowerState::Disconnected)
         elec = nullptr;
@@ -430,7 +434,7 @@ void UPowerOverlay::Activate() {
     DoActivate();
 }
 
-void UPowerOverlay::Deactivate() {      
+void UPowerOverlay::Deactivate() {
     if (!Active)
         return;
     
@@ -469,7 +473,7 @@ void UPowerOverlay::DoActivate() {
 
     // handle network
     for (const ElectricityNetwork* network : electricityManager->ElectricityNetworks) {          
-        for (const auto substation : network->substations) {
+        for (const auto substation : network->Substations) {
             AddWires(substation);
             AddFloatingTexts(substation);
             HighlightBuildings(substation);
@@ -497,7 +501,7 @@ void UPowerOverlay::DoDeactivate() {
 
     // remove highlights
     for (const auto network : electricityManager->ElectricityNetworks) {
-        for (const auto substation : network->substations) {
+        for (const auto substation : network->Substations) {
             for (const auto building : substation->ConnectedBuildings)
                 RemoveHighlight(building);
             for (const auto habitat : substation->ConnectedHabitats)
@@ -512,7 +516,7 @@ void UPowerOverlay::DoDeactivate() {
 
 void UPowerOverlay::AddWires(ASubstation* substation) const {
     // Connect to nearby Substations
-    for (const auto otherSubstation : substation->Network->substations) {
+    for (const auto otherSubstation : substation->Network->Substations) {
         if (substation == otherSubstation || FVector::Distance(substation->GetActorLocation(), otherSubstation->GetActorLocation()) > ElectricityNetwork::MAX_WIRE_DISTANCE)
             continue;
         // this will create 2 connections in the end, but that should be fine
@@ -531,9 +535,12 @@ void UPowerOverlay::AddFloatingTexts(const ASubstation* substation) const {
         AddFloatingText(building);
     for (const auto habitat : substation->ConnectedHabitats) {
         AddFloatingText(habitat);
-        for (const auto building : habitat->GetOwner<AHabitat>()->Buildings)
+        for (const auto building : habitat->GetOwner<AHabitat>()->Buildings) {
+            if (building->IsNonInteractable())
+                continue;
             if (const auto elec = building->GetComponentByClass<UElectricComponent>())
                 AddFloatingText(elec);
+        }
     }
 }
 void UPowerOverlay::HighlightBuildings(const ASubstation* substation) const {    
@@ -618,18 +625,25 @@ void UPowerOverlay::Highlight(const UElectricComponent* building) const {
     }
 
     if (building->GetType() == UElectricComponent::Type::Habitat)
-        for (const auto b : building->GetOwner<AHabitat>()->Buildings)
+        for (const auto b : building->GetOwner<AHabitat>()->Buildings) {
+            if (b->IsNonInteractable())
+                continue;
             if (const auto elec = b->GetComponentByClass<UElectricComponent>())
                 Highlight(elec);
+        }
 }
 
-void UPowerOverlay::RemoveHighlight(const UElectricComponent* building) {  
-    building->GetOwner<ABuilding>()->RemoveCondition(HighlightPowered);
-    building->GetOwner<ABuilding>()->RemoveCondition(HighlightUnpowered);
-    building->GetOwner<ABuilding>()->RemoveCondition(HighlightDeactivated);
+void UPowerOverlay::RemoveHighlight(const UElectricComponent* building) {
+    const auto owner = building->GetOwner<ABuilding>();
+    owner->RemoveCondition(HighlightPowered);
+    owner->RemoveCondition(HighlightUnpowered);
+    owner->RemoveCondition(HighlightDeactivated);
 
     if (building->GetType() == UElectricComponent::Type::Habitat)
-        for (const auto b : building->GetOwner<AHabitat>()->Buildings)
+        for (const auto b : building->GetOwner<AHabitat>()->Buildings) {
+            if (b->IsNonInteractable())
+                continue;
             if (const auto elec = b->GetComponentByClass<UElectricComponent>())
                 RemoveHighlight(elec);
+        }
 }

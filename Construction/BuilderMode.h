@@ -26,9 +26,9 @@ protected:
     UConstructionUI* ConstructionUI;
 
     UPROPERTY()
-    UHighlighted* HighlightValid;
+    UHighlighted* HighlightedValid;
     UPROPERTY()
-    UHighlighted* HighlightInvalid;
+    UHighlighted* HighlightedInvalid;
     UPROPERTY()
     UHighlighted* HighlightedOption;
 

@@ -2,40 +2,15 @@
 
 #include "ConstructionManager.h"
 
-#include "The.h"
-#include "XD/Cheats.h"
+#include "Collections.h"
 
-ConstructionResource::ConstructionResource(const UResource* resource) : Resource(resource) {}
-
-void UConstructionManager::SetConstructionResources(const TSet<UResource*>& constructionResources) {
-    for (const auto resource : constructionResources)
-        ConstructionResources.Emplace(resource);
+UConstructionManager::UConstructionManager() {
+    Tasks = CreateDefaultSubobject<UBuilderTaskQueue>(TEXT("Tasks"));
+    ConstructionResources = CreateDefaultSubobject<UConstructionResources>(TEXT("ConstructionResources"));
 }
 
-// TODO if Tick can happen multi-threaded, these calls need to be synchronized
-void UConstructionManager::AddIdleBuilder(ABuilderShip* builder) {
-    IdleBuilders.push_back(builder);
-}
-
-void UConstructionManager::AddConstruction(UConstructionSite* constructionSite) {
-    if (The::Cheats(this)->InstantBuild)
-        constructionSite->BeginConstruction();
-    else
-        NewConstructionSites.Add(constructionSite);
-}
-
-void UConstructionManager::AddPickupPad(APickupPad* pickupPad) {
-    PickupPads.Add(pickupPad);
-}
-
-void UConstructionManager::UnreserveResource(UResource* resource, int amount) {
-    for (auto& constructionResource : ConstructionResources)
-        if (constructionResource.Resource == resource)
-            constructionResource.Reserved -= amount;
-}
-
-void UConstructionManager::FinishConstruction(UConstructionSite* constructionSite) {
-    WipConstructionSites.Remove(constructionSite);
+APickupPad* UConstructionManager::GetNearestPickupPad(const FVector& location) {
+    return Actors::FindNearest(location, PickupPads);;
 }
 
 void UConstructionManager::Tick(float DeltaTime) {
@@ -48,68 +23,35 @@ void UConstructionManager::Tick(float DeltaTime) {
     for (auto& constructionResource : ConstructionResources) {
         constructionResource.Total = 0;
         constructionResource.Pads.Empty();
-    }
-    
-    for (APickupPad* pad : PickupPads) {
-        for (auto& input : pad->Inventory->GetInputs()) {
-            if (!input.Resource)
-                continue;
-            
-            for (auto& constructionResource : ConstructionResources) {
-                if (input.Resource == constructionResource.Resource) {
-                    constructionResource.Total += input.Current;
-                    constructionResource.Pads.Emplace(input.Current, pad);
-                }
-            }
-        }
-    }
-
-    // sort by the amount of resources
-    for (auto& constructionResource : ConstructionResources)
-        constructionResource.Pads.Sort();
-
-    // start construction
-    while (!IdleBuilders.empty() && !NewConstructionSites.IsEmpty()) {
-        const auto constructionSite = FindBuildableConstructionSite();
-        if (!constructionSite)
-            return;
         
-        // reserve resources
-        for (const auto& material : constructionSite->Materials) {
-            for (auto& constructionResource : ConstructionResources) {
-                if (material.resource == constructionResource.Resource) {
-                    constructionResource.Reserved += material.amount;
-                }
+        for (const auto pad : PickupPads) {
+            const int resource = pad->GetUnreserved(constructionResource.Resource);
+            if (resource > 0) {
+                constructionResource.Total += resource;
+                constructionResource.Pads.Emplace(resource, pad);
             }
         }
 
-        // get Ship
-        ABuilderShip* builder = IdleBuilders.front();
-        IdleBuilders.pop_front();
-    
-        WipConstructionSites.Add(constructionSite);
-        builder->StartConstructing(constructionSite);
+        constructionResource.Pads.Sort();
+    }
+
+    while (!IdleBuilders.IsEmpty()) {
+        const auto task = Tasks->Dequeue(ConstructionResources);
+        if (!task)
+            break;
+
+        FVector location = task->Location;
+        if (task->RequiredMaterial.resource) {
+            const auto constructionResource = ConstructionResources->Find(task->RequiredMaterial.resource);
+            const auto pad = constructionResource->FindNearestPad(location, task->RequiredMaterial.amount);
+            pad->Key -= task->RequiredMaterial.amount;
+            pad->Value->Reserve(task->RequiredMaterial);
+            task->PickupFrom = pad->Value;
+            location = pad->Value->GetActorLocation();
+        }
+
+        const auto builder = Actors::FindNearest(location, IdleBuilders);
+        IdleBuilders.Remove(builder);
+        builder->DoTask(task);
     }
 }
-
-UConstructionSite* UConstructionManager::FindBuildableConstructionSite() {
-    const int idx = NewConstructionSites.IndexOfByPredicate([this](const UConstructionSite* site) {
-        return HasResourcesFor(&site->Materials);
-    });
-    if (idx == INDEX_NONE)
-        return nullptr;
-
-    const auto site = NewConstructionSites[idx];
-    NewConstructionSites.RemoveAt(idx); // TODO optimization if NewConstructionSites is a queue this should be a little faster?
-    return site;
-}
-
-bool UConstructionManager::HasResourcesFor(const TArray<Material>* materials) const {    
-    for (auto& material : *materials)
-        for (auto& constructionResource : ConstructionResources)
-            if (material.resource == constructionResource.Resource)
-                if (material.amount > constructionResource.Total - constructionResource.Reserved)
-                    return false;
-    return true;
-}
-

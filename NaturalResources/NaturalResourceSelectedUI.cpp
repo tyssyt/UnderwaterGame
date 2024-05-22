@@ -4,6 +4,7 @@
 
 #include "The.h"
 #include "XD/PlayerControllerX.h"
+#include "XD/Construction/ConstructionSite.h"
 #include "XD/Encyclopedia/Encyclopedia.h"
 
 UNaturalResourceSelectedUI* UNaturalResourceSelectedUI::Init(ANaturalResourceActor* actor) {
@@ -58,9 +59,7 @@ void UNaturalResourceSelectedUI::OnClickConstruct() {
         Selected->GetActorRotation()
     )->Init(constructionPlan);
 
-    The::ConstructionManager(Selected)->AddConstruction(
-        NewObject<UConstructionSite>()->Init(building, constructionPlan, NewObject<UBuilderModeExtensions>())
-    );
+    NewObject<UConstructionSite>(building)->Init(building, constructionPlan, NewObject<UBuilderModeExtensions>())->QueueTasks();
     The::PlayerController(Selected)->Deselect(); // TODO once we have an UI for construction sites, we can select that instead
     Selected->Destroy();
     Selected = nullptr;

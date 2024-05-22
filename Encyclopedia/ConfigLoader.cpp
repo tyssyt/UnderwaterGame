@@ -7,6 +7,7 @@
 #include "XD/PlayerControllerX.h"
 #include "XD/Construction/BuildingBuilderMode.h"
 #include "XD/Construction/ConveyorBuilderMode.h"
+#include "XD/Construction/DismantleMode.h"
 #include "XD/Construction/IndoorBuilderMode.h"
 #include "XD/Hotbar/HotbarSlotAction.h"
 #include "XD/Hotbar/HotbarSlotSubmenu.h"
@@ -417,6 +418,17 @@ UHotbarSlot* LoadHotbarSlot(const FYamlNode& node, Config& config) {
                     return slot;
             } else
                 UE_LOG(LogConfigLoader, Error, TEXT("Unable to find Building \"Conveyor\", which is required for ConveyorBuilderMode as referenced on line %d"), builderMode.GetMark().line +1);
+        }
+
+        if (const auto builderMode = node["DismantleMode"]) {            
+            return CreateWidget<UHotbarSlotAction>(config.UIOwner, config.HotbarSlotActionUIClass)->Init(
+                FText::FromString(TEXT("Dismantle")),
+                LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Images/Dismantle")),
+                [pawn = config.UIOwner->GetPawn<ACameraPawn>()] {
+                    if (pawn->PrepBuilderMode(UDismantleMode::StaticClass()))
+                        pawn->BuilderMode = NewObject<UDismantleMode>(pawn)->Init();
+                }
+            );
         }
 
         UE_LOG(LogConfigLoader, Warning, TEXT("Can't create a Hotbar Slot from Block %s on line %d"), *node.GetContent(), node.GetMark().line +1);

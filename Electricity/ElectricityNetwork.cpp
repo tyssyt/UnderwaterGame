@@ -2,6 +2,7 @@
 
 #include "ElectricityNetwork.h"
 
+#include "Collections.h"
 #include "ElectricityManager.h"
 #include "PowerOverlay.h"
 #include "The.h"
@@ -10,12 +11,12 @@
 #include "XD/Buildings/Substation.h"
 
 ElectricityNetwork::ElectricityNetwork(ASubstation* substation) {
-    substations.Add(substation);
+    Substations.Add(substation);
     The::ElectricityManager(substation)->ElectricityNetworks.Add(this);
 }
 
 ElectricityNetwork::~ElectricityNetwork() {
-    The::ElectricityManager(substations[0])->ElectricityNetworks.Remove(this);
+    The::ElectricityManager(Substations[0])->ElectricityNetworks.Remove(this);
 }
 
 void ElectricityNetwork::RecomputeStats() {
@@ -25,7 +26,7 @@ void ElectricityNetwork::RecomputeStats() {
     TArray<UElectricComponent*> unpowered = CollectStats();
     UnpowerBuildings(unpowered);
 
-    The::CameraPawn(substations[0])->PowerOverlay->OnNetworkUpdate();
+    The::CameraPawn(Substations[0])->PowerOverlay->OnNetworkUpdate();
 }
 
 TArray<ASubstation*> FindShard(TArray<ASubstation*>& network) {
@@ -53,12 +54,12 @@ TArray<ASubstation*> FindShard(TArray<ASubstation*>& network) {
 }
 
 void ElectricityNetwork::CheckForNetworkSplit() { // TODO there are much faster algos for this, this is n²
-    if (substations.Num() < 2) {
+    if (Substations.Num() < 2) {
         this->RecomputeStats();
         return;
     }
     
-    TArray<ASubstation*> network = TArray(substations);
+    TArray<ASubstation*> network = TArray(Substations);
 
     while (network.Num() > 0) {
         TArray<ASubstation*> shard = FindShard(network);
@@ -69,7 +70,7 @@ void ElectricityNetwork::CheckForNetworkSplit() { // TODO there are much faster 
                 substation->Network = shardNetwork;
             shardNetwork->RecomputeStats();
         } else { // the last shard can keep this network
-            this->substations = shard;
+            this->Substations = shard;
             this->RecomputeStats();
         }
     }
@@ -84,11 +85,18 @@ void ElectricityNetwork::MergeNetworkNoRecompute(const ElectricityNetwork* other
     if (this == otherNetwork)
         return;
 
-    substations.Append(otherNetwork->substations);
-    for (const auto otherSubstation : otherNetwork->substations)
+    Substations.Append(otherNetwork->Substations);
+    for (const auto otherSubstation : otherNetwork->Substations)
         otherSubstation->Network = this;
     delete otherNetwork;
     UE_LOG(LogTemp, Warning, TEXT("Networks Connected."));
+}
+
+ASubstation* ElectricityNetwork::FindNearestSubstation(const FVector& location) {
+    const auto nearest = Actors::FindNearest(location, Substations);
+    if (!nearest || FVector::Distance(location, nearest->GetActorLocation()) > MAX_WIRE_DISTANCE)
+        return nullptr;
+    return nearest;
 }
 
 bool ElectricityNetwork::CollectStats(UElectricComponent* elec) {
@@ -106,7 +114,7 @@ bool ElectricityNetwork::CollectStats(UElectricComponent* elec) {
 
 TArray<UElectricComponent*> ElectricityNetwork::CollectStats() {
     TArray<UElectricComponent*> unpowered;
-    for (const auto substation : substations) {
+    for (const auto substation : Substations) {
         for (const auto elec : substation->ConnectedBuildings)
             if (CollectStats(elec))
                 unpowered.Add(elec);
@@ -115,10 +123,13 @@ TArray<UElectricComponent*> ElectricityNetwork::CollectStats() {
             if (CollectStats(habitat))
                 unpowered.Add(habitat);
 
-            for (const auto building : habitat->GetOwner<AHabitat>()->Buildings)
+            for (const auto building : habitat->GetOwner<AHabitat>()->Buildings) {
+                if (building->IsNonInteractable())
+                    continue;
                 if (const auto elec = building->GetComponentByClass<UElectricComponent>())
                     if (CollectStats(elec))
-                        unpowered.Add(elec);    
+                        unpowered.Add(elec);
+            }
         }
     }
     return MoveTemp(unpowered);
@@ -145,14 +156,14 @@ void ElectricityNetwork::UnpowerBuildings(TArray<UElectricComponent*>& unpowered
         // unpower buildings that were powered
         if (reducedConsumption > TotalConstantProduction) {
             // TODO I hate how this code turned out, I have to find some way to do this that does not suck
-            for (const auto substation : substations) {
+            for (const auto substation : Substations) {
                 for (const auto elec : substation->ConnectedBuildings) {
                     reducedConsumption -= UnpowerBuilding(elec);
                     if (reducedConsumption <= TotalConstantProduction)
                         return;
                 }
             }
-            for (const auto substation : substations) {
+            for (const auto substation : Substations) {
                 for (const auto habitat : substation->ConnectedHabitats) {
                     for (const auto building : habitat->GetOwner<AHabitat>()->Buildings) {
                         if (const auto elec = building->GetComponentByClass<UElectricComponent>()) {
@@ -163,7 +174,7 @@ void ElectricityNetwork::UnpowerBuildings(TArray<UElectricComponent*>& unpowered
                     }
                 }
             }            
-            for (const auto substation : substations) {
+            for (const auto substation : Substations) {
                 for (const auto habitat : substation->ConnectedHabitats) {
                     reducedConsumption -= UnpowerBuilding(habitat);
                     if (reducedConsumption <= TotalConstantProduction)

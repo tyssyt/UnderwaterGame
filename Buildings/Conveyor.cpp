@@ -138,6 +138,26 @@ void AConveyor::Connect(UResource* resource) {
     }
 }
 
+void AConveyor::OnDismantle() {
+    Super::OnDismantle();
+
+    if (Source->IsA<ASplitter>() || Source->IsA<AMerger>())
+        checkNoEntry(); // TODO
+    Source->FindComponentByClass<UInventoryComponent>()->SetConveyor(false, SourceInv, nullptr);
+    SourceGate->Conveyor = nullptr;
+    Source = nullptr;
+    SourceInv = nullptr;
+    SourceGate = nullptr;
+
+    if (Target->IsA<ASplitter>() || Target->IsA<AMerger>())
+        checkNoEntry(); // TODO
+    Target->FindComponentByClass<UInventoryComponent>()->SetConveyor(true, TargetInv, nullptr);
+    TargetGate->Conveyor = nullptr;
+    Target = nullptr;
+    TargetInv = nullptr;
+    TargetGate = nullptr;
+}
+
 void AConveyor::MakeNode(const FVector& location) {
     UConveyorNode* node = NewObject<UConveyorNode>(this);
     node->RegisterComponent();

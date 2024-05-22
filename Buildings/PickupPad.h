@@ -12,8 +12,7 @@ class XD_API APickupPad : public ABuilding {
     GENERATED_BODY()
 
 protected:
-    UPROPERTY(EditAnywhere)
-    UStaticMeshComponent* Mesh;
+    TArray<Material> ReservedMaterials;
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -21,5 +20,10 @@ public:
 
     APickupPad();
 
+    void Reserve(const Material& material) { Material::AddTo(ReservedMaterials, material); }
+    void Unreserve(const Material& material) { Material::RemoveFrom(ReservedMaterials, material); }
+    int GetUnreserved(const UResource* resource) const;
+
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
+    virtual void OnDismantle() override;
 };

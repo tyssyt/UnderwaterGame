@@ -49,7 +49,7 @@ void UConstructionMaterialsUI::UpdateHave(const UConstructionManager* constructi
     for (const auto& matUpdate : MaterialsToUpdate) {
         for (auto& resource : constructionManager->ConstructionResources) {
             if (matUpdate.Material == resource.Resource) {
-                matUpdate.Ui->SetHave(resource.Total - resource.Reserved);
+                matUpdate.Ui->SetHave(resource.Total);
                 break;
             }
         }

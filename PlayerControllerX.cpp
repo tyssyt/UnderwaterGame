@@ -2,6 +2,7 @@
 
 #include "PlayerControllerX.h"
 
+#include "EngineUtils.h"
 #include "GameInstanceX.h"
 #include "The.h"
 #include "Encyclopedia/ConfigLoader.h"
@@ -22,11 +23,13 @@ void APlayerControllerX::BeginPlay() {
     UEncyclopedia* encyclopedia = The::Encyclopedia(this);
     BlueprintHolder->EncyclopediaUI->Fill(encyclopedia, loadedData.Value);
     UConstructionManager* constructionManager = The::ConstructionManager(this);
-    constructionManager->SetConstructionResources(encyclopedia->FindConstructionResources());
+    constructionManager->ConstructionResources->SetResources(encyclopedia->FindConstructionResources());
 
     // generate initial resources
-    TObjectIterator<APickupPad> it;
-    while (it->GetWorld() != GetWorld()) ++it; // TODO only do this when editor is open    
+    for (const auto ship : TActorRange<ABuilderShip>(GetWorld())) 
+        constructionManager->AddIdleBuilder(ship);
+    
+    TActorIterator<APickupPad> it(GetWorld());
     constructionManager->AddPickupPad(*it);
     
     int i = 0;
@@ -38,7 +41,6 @@ void APlayerControllerX::BeginPlay() {
         if (i == 4) {
             i = 0;
             ++it;
-            while (it->GetWorld() != GetWorld()) ++it; // TODO only do this when editor is open
             constructionManager->AddPickupPad(*it);
         }
     }

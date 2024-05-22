@@ -47,6 +47,10 @@ TArray<FInventorySlot*> UInventoryComponent::GetUnconnected(bool isInput) {
     return MoveTemp(unconnected);
 }
 
+AConveyor* UInventoryComponent::GetConveyor(bool isInput, int idx) const {
+    return isInput ? Inputs[idx].Conveyor : Outputs[idx].Conveyor;
+}
+
 void UInventoryComponent::SetConveyor(bool isInput, FInventorySlot* slot, AConveyor* conveyor) {
     if (bIsBuffer && !isInput) {
         const int idx = slot - Inputs.GetData();

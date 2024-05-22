@@ -34,6 +34,12 @@ void ABuilding::OnConstructionComplete(UBuilderModeExtensions* extensions) {
         else
             component->OnConstructionComplete(nullptr);
 }
+void ABuilding::OnDismantle() {    
+    TInlineComponentArray<UComponentX*> components;
+    GetComponents<>(components);
+    for (const auto component : components)
+        component->OnDismantle();
+}
 
 void ABuilding::AddCondition(UCondition* condition) {
     Conditions.Add(condition);
