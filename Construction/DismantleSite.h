@@ -24,6 +24,7 @@ protected:
     UGettingDismantled* Condition;
     UPROPERTY()
     UDismantleTask* Task;
+    // TODO add dismantle time
 
 public:
     UPROPERTY()

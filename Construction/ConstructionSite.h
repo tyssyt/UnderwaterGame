@@ -38,7 +38,8 @@ public:
     UConstructionSite* Init(ABuilding* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions);
 
     void QueueTasks();
-    void FinishConstruction() const;
+    UFUNCTION()
+    void FinishConstruction();
 };
 
 UCLASS()
@@ -49,6 +50,8 @@ class UDeliverResource : public UBuilderTask {
     UConstructionSite* ConstructionSite;
 
     void PickupMaterial() const;
+    ABuilderShip::FCommand Deliver() const;
+    ABuilderShip::FCommand Construct();
 
 public:
     enum class EState { Collect, Deliver, Construct, Done } NextCommand;

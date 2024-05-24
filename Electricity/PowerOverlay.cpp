@@ -17,10 +17,12 @@ UPowerOverlay::UPowerOverlay() : Active(false) {
     HighlightUnderCursor = NewObject<UHighlighted>()->SetColor(UHighlighted::Yellow);
 }
 
-void UPowerOverlay::Tick(float DeltaTime) {    
-    // TODO the LastFrameNumberWeTicked is copy pasted from the tutorial on ticking, should I put this in other places as well?
-    if (LastFrameNumberWeTicked == GFrameCounter)
+void UPowerOverlay::Tick(float DeltaTime) {
+    // TODO if this never explodes, we can remove it at some point
+    if (LastFrameNumberWeTicked == GFrameCounter) {
+        checkNoEntry();
         return;
+    }
     LastFrameNumberWeTicked = GFrameCounter;
 
     if (!Active)

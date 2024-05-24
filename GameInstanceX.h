@@ -5,15 +5,13 @@
 
 #include "CoreMinimal.h"
 #include "Cheats.h"
+#include "TickTimer.h"
 #include "Construction/ConstructionManager.h"
 #include "Electricity/ElectricityManager.h"
 #include "Encyclopedia/Encyclopedia.h"
 #include "Engine/GameInstance.h"
 #include "GameInstanceX.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class XD_API UGameInstanceX : public UGameInstance {
     GENERATED_BODY()
@@ -38,4 +36,6 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UCheats* TheCheats;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UTickTimer* TheTickTimer;
 };

@@ -27,6 +27,12 @@ void UDismantleSite::QueueTasks() {
         return;
     }
 
+    if (Building->IsA<AIndoorBuilding>()) {
+        // TODO wait dismantle time
+        FinishDismantle();
+        return;
+    }
+
     Task = NewObject<UDismantleTask>(this)->Init(this);
     The::ConstructionManager(this)->AddTask(Task);
 }
@@ -48,6 +54,7 @@ ABuilderShip::FCommand UDismantleTask::GetNextCommand() {
     case EState::FlyToSite:
         NextCommand = EState::Done;
         return ABuilderShip::FCommand(DismantleSite->Building->GetActorLocation());
+    // TODO wait dismantle time
     case EState::Done:
         DismantleSite->FinishDismantle();
         return ABuilderShip::FCommand();

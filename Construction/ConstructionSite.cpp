@@ -4,6 +4,8 @@
 
 #include "ConstructionManager.h"
 #include "The.h"
+#include "XD/Buildings/Habitat.h"
+#include "XD/Buildings/IndoorBuilding.h"
 
 UUnderConstruction::UUnderConstruction() {
     const static ConstructorHelpers::FObjectFinder<UMaterial> GhostMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostMaterial"));
@@ -41,7 +43,7 @@ void UConstructionSite::QueueTasks() {
     }
 }
 
-void UConstructionSite::FinishConstruction() const {
+void UConstructionSite::FinishConstruction() {
     Building->RemoveCondition(Condition);
     Building->OnConstructionComplete(Extensions);
 }
@@ -53,9 +55,28 @@ void UDeliverResource::PickupMaterial() const {
     PickupFrom->Unreserve(RequiredMaterial);
 }
 
+ABuilderShip::FCommand UDeliverResource::Deliver() const {
+    FVector target;
+    if (const auto indoorBuilding = Cast<AIndoorBuilding>(ConstructionSite->Building))
+        target = indoorBuilding->Habitat->GetActorLocation();
+    else
+        target = ConstructionSite->Building->GetActorLocation();
+    return ABuilderShip::FCommand(target);
+}
+ABuilderShip::FCommand UDeliverResource::Construct() {
+    if (const auto indoorBuilding = Cast<AIndoorBuilding>(ConstructionSite->Building)) {
+        The::TickTimer(this)->AddTimer(ConstructionSite->Time)->OnTimerFinished.BindDynamic(ConstructionSite, &UConstructionSite::FinishConstruction);
+        return ABuilderShip::FCommand();
+    }
+    return ABuilderShip::FCommand(ConstructionSite->Time);
+}
+
 UDeliverResource* UDeliverResource::Init(UConstructionSite* constructionSite, const Material& material) {
     ConstructionSite = constructionSite;
-    Location = constructionSite->Building->GetActorLocation();
+    if (const auto indoorBuilding = Cast<AIndoorBuilding>(constructionSite->Building))
+        Location = indoorBuilding->Habitat->GetActorLocation();
+    else
+        Location = constructionSite->Building->GetActorLocation();
     RequiredMaterial = material;
     return this;
 }
@@ -68,12 +89,12 @@ ABuilderShip::FCommand UDeliverResource::GetNextCommand() {
     case EState::Deliver:
         NextCommand = EState::Construct;
         PickupMaterial();
-        return ABuilderShip::FCommand(ConstructionSite->Building->GetActorLocation());
+        return Deliver();
     case EState::Construct:
         NextCommand = EState::Done;
         ConstructionSite->Tasks.Remove(this);
         if (ConstructionSite->Tasks.IsEmpty())
-            return ABuilderShip::FCommand(ConstructionSite->Time);
+            return Construct();
         return ABuilderShip::FCommand();
     case EState::Done:
         ConstructionSite->FinishConstruction();

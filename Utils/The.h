@@ -28,6 +28,10 @@ namespace The {
         return HasWorld->GetWorld()->template GetGameInstance<UGameInstanceX>()->TheCheats;        
     }
     template <class T>
+    static UTickTimer* TickTimer(T HasWorld) {
+        return HasWorld->GetWorld()->template GetGameInstance<UGameInstanceX>()->TheTickTimer;        
+    }
+    template <class T>
     static APlayerControllerX* PlayerController(T HasWorld) {
         return HasWorld->GetWorld()->template GetFirstPlayerController<APlayerControllerX>();
     }

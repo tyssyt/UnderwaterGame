@@ -14,9 +14,11 @@ APickupPad* UConstructionManager::GetNearestPickupPad(const FVector& location) {
 }
 
 void UConstructionManager::Tick(float DeltaTime) {
-    // TODO the LastFrameNumberWeTicked is copy pasted from the tutorial on ticking, should I put this in other places as well?
-    if (LastFrameNumberWeTicked == GFrameCounter)
+    // TODO if this never explodes, we can remove it at some point
+    if (LastFrameNumberWeTicked == GFrameCounter) {
+        checkNoEntry();
         return;
+    }
     LastFrameNumberWeTicked = GFrameCounter;
 
     // collect which resources are where
