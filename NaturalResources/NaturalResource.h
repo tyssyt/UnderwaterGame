@@ -7,11 +7,16 @@
 #include "XD/Buildings/XActor.h"
 #include "NaturalResource.generated.h"
 
+class ABuilding;
+class UConstructionSite;
 class UEncyclopediaEntry;
 
 UCLASS(Abstract)
 class XD_API ANaturalResourceActor : public AXActor {
     GENERATED_BODY()
+
+public:
+    UConstructionSite* Construct();
 };
 
 UCLASS()
@@ -37,4 +42,6 @@ public:
     UEncyclopediaEntry* EncyclopediaEntry;
 
     bool operator<(const UNaturalResource& other) const;
+
+    void Respawn(const ABuilding* building) const;
 };

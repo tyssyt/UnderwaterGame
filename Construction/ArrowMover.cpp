@@ -36,27 +36,31 @@ void UArrowMover::OnHoverEnd(UPrimitiveComponent*) {
     Lowlight();
 }
 
-const static FName ParameterNameOpacity = FName(TEXT("Opacity Amount"));
+inline void SetAlpha(UMaterialInstanceDynamic* mad, float alpha) {    
+    auto color = mad->K2_GetVectorParameterValue("Color");
+    color.A = alpha;
+    mad->SetVectorParameterValue("Color", color);
+}
 
 void UArrowMover::Highlight() {
-    UMaterialInterface* MaterialInterface = GetMaterial(0);
-    UMaterialInstanceDynamic* MaterialInstance = Cast<UMaterialInstanceDynamic>(MaterialInterface);
-    if (!MaterialInstance) {
-        MaterialInstance = UMaterialInstanceDynamic::Create(MaterialInterface, this);
-        Super::SetMaterial(0, MaterialInstance);
+    const auto MaterialInterface = GetMaterial(0);
+    auto mad = Cast<UMaterialInstanceDynamic>(MaterialInterface);
+    if (!mad) {
+        mad = UMaterialInstanceDynamic::Create(MaterialInterface, this);
+        Super::SetMaterial(0, mad);
     }
 
-    MaterialInstance->SetScalarParameterValue(ParameterNameOpacity, 1.);
+    SetAlpha(mad, 1.);
 }
 
 void UArrowMover::Lowlight() const {
     if (HasHover || IsComponentTickEnabled())
         return;
 
-    UMaterialInstanceDynamic* MaterialInstance = Cast<UMaterialInstanceDynamic>(GetMaterial(0));
-    if (!MaterialInstance)
+    const auto mad = Cast<UMaterialInstanceDynamic>(GetMaterial(0));
+    if (!mad)
         return;
-    MaterialInstance->SetScalarParameterValue(ParameterNameOpacity, 0.7);
+    SetAlpha(mad, 0.7);
 }
 
 void UArrowMover::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {

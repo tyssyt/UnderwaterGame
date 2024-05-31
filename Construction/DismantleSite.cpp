@@ -17,7 +17,7 @@ UDismantleSite* UDismantleSite::Init(ABuilding* building) {
     Building = building;
     Condition = NewObject<UGettingDismantled>(this);
     building->AddCondition(Condition);
-    building->OnDismantle();
+    building->OnDismantleStart();
     return this;
 }
 
@@ -38,8 +38,7 @@ void UDismantleSite::QueueTasks() {
 }
 
 void UDismantleSite::FinishDismantle() const {
-    if (const auto indoorBuilding = Cast<AIndoorBuilding>(Building))
-        indoorBuilding->Habitat->RemoveBuilding(indoorBuilding);
+    Building->OnDismantleFinish();
     Building->Destroy();
 }
 

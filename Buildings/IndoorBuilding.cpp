@@ -13,6 +13,11 @@ AIndoorBuilding* AIndoorBuilding::Init(UConstructionPlan* constructionPlan) {
     return this;
 }
 
+void AIndoorBuilding::OnDismantleFinish() {
+    Habitat->RemoveBuilding(this);
+    Super::OnDismantleFinish();
+}
+
 void AIndoorBuilding::Rotate() {
     int i = static_cast<int>(Orientation);
     i = (i + 1) % 4;

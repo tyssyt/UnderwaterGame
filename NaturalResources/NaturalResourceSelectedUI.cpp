@@ -4,7 +4,6 @@
 
 #include "The.h"
 #include "XD/PlayerControllerX.h"
-#include "XD/Construction/ConstructionSite.h"
 #include "XD/Encyclopedia/Encyclopedia.h"
 
 UNaturalResourceSelectedUI* UNaturalResourceSelectedUI::Init(ANaturalResourceActor* actor) {
@@ -49,18 +48,7 @@ void UNaturalResourceSelectedUI::OnClickConstruct() {
     if (!Selected)
         return;
 
-    const auto encyclopedia = The::Encyclopedia(Selected);
-    const auto constructionPlan = encyclopedia->GetBuildings(encyclopedia->GetNaturalResource(Selected->GetClass()))[0];
-
-    const auto building = GetWorld()->SpawnActor<ABuilding>(
-        constructionPlan->BuildingClass,
-        // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
-        Selected->GetActorLocation() - FVector(.0f, .0f, 50.f),
-        Selected->GetActorRotation()
-    )->Init(constructionPlan);
-
-    NewObject<UConstructionSite>(building)->Init(building, constructionPlan, NewObject<UBuilderModeExtensions>())->QueueTasks();
+    Selected->Construct();
     The::PlayerController(Selected)->Deselect(); // TODO once we have an UI for construction sites, we can select that instead
-    Selected->Destroy();
     Selected = nullptr;
 }

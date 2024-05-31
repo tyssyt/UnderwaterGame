@@ -72,7 +72,7 @@ public:
 
     UFUNCTION(CallInEditor, Category="Conveyor")
     void Connect(UResource* resource = nullptr);
-    virtual void OnDismantle() override;
+    virtual void OnDismantleStart() override;
 
     static bool HasCommonResource(UInventoryComponent* source, UInventoryComponent* target);
     static TSet<UResource*> FindCommonResources(UInventoryComponent* source, UInventoryComponent* target);

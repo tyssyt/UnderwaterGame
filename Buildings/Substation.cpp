@@ -124,8 +124,8 @@ void ASubstation::OnConstructionComplete(UBuilderModeExtensions* extensions) {
     Network->RecomputeStats();
 }
 
-void ASubstation::OnDismantle() {
-    Super::OnDismantle();
+void ASubstation::OnDismantleStart() {
+    Super::OnDismantleStart();
 
     if (Network->Substations.Num() == 1) {
         while (!ConnectedBuildings.IsEmpty())

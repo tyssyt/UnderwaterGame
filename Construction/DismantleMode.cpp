@@ -82,14 +82,6 @@ bool UDismantleMode::CanBeDismantled(ABuilding* building) {
                 return false;
     }
 
-    // buildings on natural resources are invalid
-    {
-        // TODO allow and respawn the resource
-        const auto constructionPlan = The::Encyclopedia(this)->GetBuilding(building->GetClass());
-        if (constructionPlan->ConstructedOn)
-            return false;
-    }
-
     // habitats with buildings in them are invalid
     if (const auto habitat = Cast<AHabitat>(building)) {
         if (!habitat->Buildings.IsEmpty())

@@ -42,7 +42,7 @@ public:
 
     void DisconnectFromNetwork();
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
-    virtual void OnDismantle() override;
+    virtual void OnDismantleStart() override;
     virtual UBuilderModeExtensions* CreateBuilderModeExtension() override;
 
     TPair<TArray<ASubstation*>, TArray<UElectricComponent*>> FindNearby() const;

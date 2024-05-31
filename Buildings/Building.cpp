@@ -3,6 +3,7 @@
 #include "Building.h"
 
 #include "ConstructionPlan.h"
+#include "The.h"
 #include "Components/BillboardComponent.h"
 #include "XD/ComponentX.h"
 #include "XD/Construction/BuilderModeExtension.h"
@@ -34,30 +35,38 @@ void ABuilding::OnConstructionComplete(UBuilderModeExtensions* extensions) {
         else
             component->OnConstructionComplete(nullptr);
 }
-void ABuilding::OnDismantle() {    
+void ABuilding::OnDismantleStart() {    
     TInlineComponentArray<UComponentX*> components;
     GetComponents<>(components);
     for (const auto component : components)
         component->OnDismantle();
 }
 
+void ABuilding::OnDismantleFinish() {
+    const auto constructionPlan = The::Encyclopedia(this)->GetBuilding(GetClass());
+    if (const auto naturalResource = constructionPlan->ConstructedOn)
+        naturalResource->Respawn(this);
+}
+
 void ABuilding::AddCondition(UCondition* condition) {
     Conditions.Add(condition);
-    if (condition->GetSymbol()) {
+    if (const auto symbol = condition->GetSymbol()) {
         auto floatingSymbol = GetComponentByClass<UBillboardComponent>();
         check(!floatingSymbol); // TODO handle multiple symbols
 
         floatingSymbol = NewObject<UBillboardComponent>(this, TEXT("ConditionBillboard"));
         floatingSymbol->RegisterComponent();
         floatingSymbol->AttachToComponent(GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-        floatingSymbol->SetSprite(condition->GetSymbol()); 
+        floatingSymbol->SetSprite(symbol); 
         floatingSymbol->SetRelativeLocation(FVector(.0f, .0f, 60.f));
         floatingSymbol->SetHiddenInGame(false);
         floatingSymbol->SetVisibility(true);
         AddInstanceComponent(floatingSymbol);
     }
-    if (condition->GetMaterial())
-        SetAllMaterials(condition->GetMaterial());
+    if (const auto material = condition->GetMaterial())
+        SetAllMaterials(material);
+    if (const auto overlayMaterial = condition->GetOverlayMaterial())
+        SetOverlayMaterial(overlayMaterial);
     if (condition->DisablesTick())
         SetActorTickEnabled(false);
 }
@@ -81,6 +90,16 @@ void ABuilding::RemoveCondition(UCondition* condition) {
             }
         }
         SetAllMaterials(newMat);
+    }
+    if (condition->GetOverlayMaterial()) {
+        UMaterialInterface* newOverlayMat = nullptr;
+        for (int i = Conditions.Num()-1; i >= 0; i--) {
+            if (Conditions[i]->GetOverlayMaterial()) {
+                newOverlayMat = Conditions[i]->GetOverlayMaterial();
+                break;
+            }
+        }
+        SetOverlayMaterial(newOverlayMat);
     }
     if (condition->DisablesTick()) {
         bool enable = true;

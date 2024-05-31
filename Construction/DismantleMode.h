@@ -27,5 +27,5 @@ public:
 protected:
     void Confirm();
     void SetHighlight(ABuilding* building);
-    bool CanBeDismantled(ABuilding* building);
+    static bool CanBeDismantled(ABuilding* building);
 };

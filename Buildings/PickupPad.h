@@ -25,5 +25,5 @@ public:
     int GetUnreserved(const UResource* resource) const;
 
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
-    virtual void OnDismantle() override;
+    virtual void OnDismantleStart() override;
 };

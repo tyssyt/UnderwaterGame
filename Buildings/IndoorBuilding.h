@@ -17,9 +17,6 @@ class XD_API AIndoorBuilding : public ABuilding {
     GENERATED_BODY()
 
 public:
-    AIndoorBuilding();
-    virtual AIndoorBuilding* Init(UConstructionPlan* constructionPlan) override;
-
     UPROPERTY()
     AHabitat* Habitat;
     int GridX;
@@ -29,4 +26,9 @@ public:
     void Rotate();
     virtual const TArray<Coordinate>* GetGridOffsets();
     virtual void SetCoordinates(int x, int y, AHabitat* habitat);
+
+    AIndoorBuilding();
+    virtual AIndoorBuilding* Init(UConstructionPlan* constructionPlan) override;
+
+    virtual void OnDismantleFinish() override;
 };

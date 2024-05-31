@@ -138,8 +138,8 @@ void AConveyor::Connect(UResource* resource) {
     }
 }
 
-void AConveyor::OnDismantle() {
-    Super::OnDismantle();
+void AConveyor::OnDismantleStart() {
+    Super::OnDismantleStart();
 
     if (Source->IsA<ASplitter>() || Source->IsA<AMerger>())
         checkNoEntry(); // TODO

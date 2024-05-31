@@ -13,4 +13,6 @@ class XD_API AXActor : public AActor {
 protected:
     UFUNCTION(BlueprintCallable)
     void SetAllMaterials(UMaterialInterface* material) const;
+    UFUNCTION(BlueprintCallable)
+    void SetOverlayMaterial(UMaterialInterface* material) const;
 };

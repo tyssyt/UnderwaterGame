@@ -13,17 +13,21 @@ class UUnderConstruction : public UCondition {
     GENERATED_BODY()
 public:
     UUnderConstruction();
+    void SetProgress(float progress) const;
 };
 
 UCLASS()
-class XD_API UConstructionSite : public UObject {
+class XD_API UConstructionSite : public UObject, public FTickableGameObject {
     GENERATED_BODY()
 
 protected:
+    uint32 LastFrameNumberWeTicked = INDEX_NONE;
     UPROPERTY()
     UBuilderModeExtensions* Extensions;
     UPROPERTY()
     UUnderConstruction* Condition;
+
+    enum class EState { Initial, Constructing, Finished } State;
 
 public:
     UPROPERTY()
@@ -32,13 +36,23 @@ public:
     UPROPERTY()
     int Time;
     UPROPERTY()
+    int Progress;
+    UPROPERTY()
     TArray<UDeliverResource*> Tasks;
 
     UConstructionSite* Init(ABuilding* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions); 
     UConstructionSite* Init(ABuilding* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions);
 
     void QueueTasks();
-    UFUNCTION()
+    void StartConstruction();
+
+    virtual void Tick(float DeltaTime) override;
+    virtual TStatId GetStatId() const override {
+        RETURN_QUICK_DECLARE_CYCLE_STAT( FMyTickableThing, STATGROUP_Tickables );
+    }
+    virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
+
+protected:
     void FinishConstruction();
 };
 

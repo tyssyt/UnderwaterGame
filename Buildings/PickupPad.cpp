@@ -62,7 +62,7 @@ void APickupPad::OnConstructionComplete(UBuilderModeExtensions* extensions) {
     The::ConstructionManager(this)->AddPickupPad(this);
 }
 
-void APickupPad::OnDismantle() {
-    Super::OnDismantle();
+void APickupPad::OnDismantleStart() {
+    Super::OnDismantleStart();
     The::ConstructionManager(this)->RemovePickupPad(this);
 }

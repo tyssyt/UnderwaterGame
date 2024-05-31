@@ -8,10 +8,14 @@
 #include "XD/Buildings/IndoorBuilding.h"
 
 UUnderConstruction::UUnderConstruction() {
-    const static ConstructorHelpers::FObjectFinder<UMaterial> GhostMaterialFinder(TEXT("/Game/Assets/Materials/GhostMaterials/GhostMaterial"));
-    Material = GhostMaterialFinder.Object;
+    const static ConstructorHelpers::FObjectFinder<UMaterial> ConstructionOverlayFinder(TEXT("/Game/Assets/Materials/GhostMaterials/ConstructionOverlay"));
+    OverlayMaterial = UMaterialInstanceDynamic::Create(ConstructionOverlayFinder.Object, this, FName(TEXT("ConstructionOverlay Material")));
     Type = EType::NonInteractable;
-    // TODO construction UI
+}
+
+void UUnderConstruction::SetProgress(float progress) const {   
+    const auto mad = Cast<UMaterialInstanceDynamic>(OverlayMaterial);
+    mad->SetScalarParameterValue("Progress", progress);
 }
 
 UConstructionSite* UConstructionSite::Init(ABuilding* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions) {
@@ -43,7 +47,29 @@ void UConstructionSite::QueueTasks() {
     }
 }
 
+void UConstructionSite::Tick(float DeltaTime) {    
+    // TODO if this never explodes, we can remove it at some point
+    if (LastFrameNumberWeTicked == GFrameCounter) {
+        checkNoEntry();
+        return;
+    }
+    LastFrameNumberWeTicked = GFrameCounter;
+
+    if (State != EState::Constructing)
+        return;
+
+    Progress++;
+    Condition->SetProgress(static_cast<float>(Progress)/Time);
+    if (Progress >= Time)
+        FinishConstruction();
+}
+
+void UConstructionSite::StartConstruction() {
+    State = EState::Constructing;
+}
+
 void UConstructionSite::FinishConstruction() {
+    State = EState::Finished;
     Building->RemoveCondition(Condition);
     Building->OnConstructionComplete(Extensions);
 }
@@ -64,8 +90,8 @@ ABuilderShip::FCommand UDeliverResource::Deliver() const {
     return ABuilderShip::FCommand(target);
 }
 ABuilderShip::FCommand UDeliverResource::Construct() {
+    ConstructionSite->StartConstruction();
     if (const auto indoorBuilding = Cast<AIndoorBuilding>(ConstructionSite->Building)) {
-        The::TickTimer(this)->AddTimer(ConstructionSite->Time)->OnTimerFinished.BindDynamic(ConstructionSite, &UConstructionSite::FinishConstruction);
         return ABuilderShip::FCommand();
     }
     return ABuilderShip::FCommand(ConstructionSite->Time);
@@ -97,7 +123,6 @@ ABuilderShip::FCommand UDeliverResource::GetNextCommand() {
             return Construct();
         return ABuilderShip::FCommand();
     case EState::Done:
-        ConstructionSite->FinishConstruction();
         return ABuilderShip::FCommand();
     }
     checkNoEntry();

@@ -2,14 +2,16 @@
 
 #include "BuilderTaskQueue.h"
 
-bool CheckMaterial(const Material& material, UConstructionResources* constructionResources) {    
+bool CheckMaterial(const Material& material, UConstructionResources* constructionResources) {
     const auto constructionResource = constructionResources->Find(material.resource);
     return !constructionResource->Pads.IsEmpty() && constructionResource->Pads[0].Key >= material.amount;
 }
 
 UBuilderTask* UBuilderTaskQueue::TryDequeueTask(UConstructionResources* constructionResources) {
     UBuilderTask* task;
-    if (!!Tasks.Dequeue(task) || !task->RequiredMaterial.resource || CheckMaterial(task->RequiredMaterial, constructionResources))
+    if (!Tasks.Dequeue(task))
+        return nullptr;
+    if (!task->RequiredMaterial.resource || CheckMaterial(task->RequiredMaterial, constructionResources))
         return task;
 
     AddTaskWithMissingResource(task);

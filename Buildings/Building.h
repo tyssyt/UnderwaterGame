@@ -26,6 +26,8 @@ protected:
     UPROPERTY()
     UMaterialInterface* Material;
     UPROPERTY()
+    UMaterialInterface* OverlayMaterial;
+    UPROPERTY()
     USelectedUI* SelectedUI; // only for Type NonInteractable
     EType Type;
     // TODO maybe a text that shows when hovered
@@ -34,6 +36,7 @@ protected:
 public:
     UTexture2D* GetSymbol() const { return Symbol; }
     UMaterialInterface* GetMaterial() const { return Material; }
+    UMaterialInterface* GetOverlayMaterial() const { return OverlayMaterial; }
     USelectedUI* GetSelectedUI() const { return SelectedUI; }
     EType GetType() const { return Type; }
 
@@ -53,7 +56,8 @@ public:
 
     virtual ABuilding* Init(UConstructionPlan* constructionPlan);
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions);
-    virtual void OnDismantle();
+    virtual void OnDismantleStart();
+    virtual void OnDismantleFinish();
 
     void AddCondition(UCondition* condition);
     void RemoveCondition(UCondition* condition);
