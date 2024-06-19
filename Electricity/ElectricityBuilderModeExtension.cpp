@@ -12,7 +12,7 @@
 void UElectricityBuilderModeExtension::Init(ABuilding* preview, UConstructionUI* constructionUI) {
     const auto elec = preview->GetComponentByClass<UElectricComponent>();
     check(elec);
-    
+
     Preview = preview;
     ConstructionUI = constructionUI;
 
@@ -93,7 +93,6 @@ void UElectricityBuilderModeExtension::Update() {
     } else {
         PowerResourceUI->SetHave(0);
     }
-    
 }
 
 void UElectricityBuilderModeExtension::End(bool cancelled) {

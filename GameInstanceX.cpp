@@ -10,6 +10,7 @@ void UGameInstanceX::Init() {
     UE_LOG(LogTemp, Warning, TEXT("GameInstanceX Init"));
     TheConstructionManager = NewObject<UConstructionManager>(this);
     TheElectricityManager = NewObject<UElectricityManager>(this);
+    ThePopulationManager = NewObject<UBiomePopulationManager>(this);
     TheCheats = NewObject<UCheats>(this);
     TheTickTimer = NewObject<UTickTimer>(this);
 }

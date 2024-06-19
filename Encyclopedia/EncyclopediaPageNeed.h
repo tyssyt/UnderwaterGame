@@ -22,8 +22,6 @@ protected:
     
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UResourceAmountUI* InterestStart;
-    UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-    UResourceAmountUI* FullNeed;
 
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UVerticalBox* SatisfiedBy;

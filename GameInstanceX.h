@@ -10,6 +10,7 @@
 #include "Electricity/ElectricityManager.h"
 #include "Encyclopedia/Encyclopedia.h"
 #include "Engine/GameInstance.h"
+#include "PopulationManager/BiomePopulationManager.h"
 #include "GameInstanceX.generated.h"
 
 UCLASS()
@@ -32,6 +33,9 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UElectricityManager* TheElectricityManager;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UBiomePopulationManager* ThePopulationManager;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UCheats* TheCheats;

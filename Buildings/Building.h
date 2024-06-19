@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ConstructionPlan.h"
 #include "XActor.h"
+#include "Components/Image.h"
 #include "Building.generated.h"
 
 class USelectedUI;
@@ -34,6 +35,9 @@ protected:
     // TODO maybe even a link into the encyclopedia
 
 public:
+    UPROPERTY()
+    UImage* Image;
+
     UTexture2D* GetSymbol() const { return Symbol; }
     UMaterialInterface* GetMaterial() const { return Material; }
     UMaterialInterface* GetOverlayMaterial() const { return OverlayMaterial; }

@@ -2,10 +2,15 @@
 
 #include "Building.h"
 
+#include "ConditionListUI.h"
 #include "ConstructionPlan.h"
+#include "ScalingWidgetComponent.h"
 #include "The.h"
-#include "Components/BillboardComponent.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "XD/BlueprintHolder.h"
 #include "XD/ComponentX.h"
+#include "XD/PlayerControllerX.h"
 #include "XD/Construction/BuilderModeExtension.h"
 
 bool UCondition::DisablesTick() const {
@@ -51,17 +56,28 @@ void ABuilding::OnDismantleFinish() {
 void ABuilding::AddCondition(UCondition* condition) {
     Conditions.Add(condition);
     if (const auto symbol = condition->GetSymbol()) {
-        auto floatingSymbol = GetComponentByClass<UBillboardComponent>();
-        check(!floatingSymbol); // TODO handle multiple symbols
+        auto floatingSymbols = GetComponentByClass<UScalingWidgetComponent>();
+        if (!floatingSymbols) {
+            const auto playerController = The::PlayerController(this);
+            const auto conditionList = CreateWidget<UConditionListUI>(playerController, playerController->BlueprintHolder->ConditionListUIClass);
+            floatingSymbols = NewObject<UScalingWidgetComponent>(this, TEXT("ConditionsWidget"));
+            floatingSymbols->Init(conditionList, 500., 1/4.);
+            floatingSymbols->RegisterComponent();
+            floatingSymbols->AttachToComponent(GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
+            floatingSymbols->SetRelativeLocation(FVector(0,0,60.));
+            AddInstanceComponent(floatingSymbols);
+        }
 
-        floatingSymbol = NewObject<UBillboardComponent>(this, TEXT("ConditionBillboard"));
-        floatingSymbol->RegisterComponent();
-        floatingSymbol->AttachToComponent(GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
-        floatingSymbol->SetSprite(symbol); 
-        floatingSymbol->SetRelativeLocation(FVector(.0f, .0f, 60.f));
-        floatingSymbol->SetHiddenInGame(false);
-        floatingSymbol->SetVisibility(true);
-        AddInstanceComponent(floatingSymbol);
+        const auto widget = Cast<UConditionListUI>(floatingSymbols->GetWidget());
+        check(widget);
+
+        condition->Image = widget->WidgetTree->ConstructWidget<UImage>();
+        condition->Image->SetBrushFromTexture(symbol);
+        condition->Image->SetDesiredSizeOverride(FVector2d(240, 240));
+
+        const auto slot = widget->List->AddChildToHorizontalBox(condition->Image);
+        slot->SetHorizontalAlignment(HAlign_Center);
+        slot->SetVerticalAlignment(VAlign_Center);
     }
     if (const auto material = condition->GetMaterial())
         SetAllMaterials(material);
@@ -75,11 +91,16 @@ void ABuilding::RemoveCondition(UCondition* condition) {
     if (removed <= 0)
         return;
 
-    if (condition->GetSymbol()) {
-        // TODO handle multiple symbols
-        const auto floatingSymbol = GetComponentByClass<UBillboardComponent>();
-        RemoveInstanceComponent(floatingSymbol);
-        floatingSymbol->DestroyComponent();
+    if (condition->Image) {
+        auto floatingSymbols = GetComponentByClass<UScalingWidgetComponent>();
+        check(floatingSymbols);
+
+        const auto widget = Cast<UConditionListUI>(floatingSymbols->GetWidget());
+        check(widget);
+        widget->List->RemoveChild(condition->Image);
+
+        if (widget->List->GetChildrenCount() == 0)
+            RemoveInstanceComponent(floatingSymbols);
     }
     if (condition->GetMaterial()) {
         UMaterialInterface* newMat = nullptr;

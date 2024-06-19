@@ -63,6 +63,13 @@ void AHabitat::OnConstructionComplete(UBuilderModeExtensions* extensions) {
 
     for (const auto good : The::Encyclopedia(this)->FindGoods())
         Inventory->GetInputs().Emplace(1000, good);
+
+    The::PopulationManager(this)->AddHabitat(PopulationManager);
+}
+
+void AHabitat::OnDismantleStart() {
+    Super::OnDismantleStart();
+    The::PopulationManager(this)->RemoveHabitat(PopulationManager);
 }
 
 void AHabitat::Tick(float DeltaTime) {

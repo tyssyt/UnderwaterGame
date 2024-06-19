@@ -9,6 +9,7 @@
 #include "ImageUI.h"
 #include "TextUI.h"
 #include "Buildings/BuildingSelectedUI.h"
+#include "Buildings/ConditionListUI.h"
 #include "Buildings/Substation.h"
 #include "Construction/ConstructionUI.h"
 #include "Electricity/PowerOverlayUI.h"
@@ -18,7 +19,6 @@
 #include "PopulationManager/NeedsSummaryUI.h"
 #include "Recipes/RecipeSelectorUI.h"
 #include "BlueprintHolder.generated.h"
-
 
 UCLASS(Abstract, Blueprintable)
 class XD_API UBlueprintHolder : public UObject {
@@ -61,6 +61,8 @@ public:
     TSubclassOf<URecipeSelectorUI> RecipeSelectorUIClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UImageUI> ImageUIClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UConditionListUI> ConditionListUIClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UTextUI> TextUIClass;
     UPROPERTY(EditDefaultsOnly)

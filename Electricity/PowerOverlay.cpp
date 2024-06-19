@@ -3,9 +3,9 @@
 #include "PowerOverlay.h"
 
 #include "ElectricityManager.h"
+#include "ScalingWidgetComponent.h"
 #include "The.h"
 #include "XD/BlueprintHolder.h"
-#include "XD/CameraPawn.h"
 #include "XD/CollisionProfiles.h"
 #include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Habitat.h"
@@ -27,13 +27,6 @@ void UPowerOverlay::Tick(float DeltaTime) {
 
     if (!Active)
         return;
-    
-    // Scale texts
-    const FVector cameraLocation = The::CameraPawn(this)->GetActorLocation();
-    TInlineComponentArray<UWidgetComponent*> widgetComponents;
-    ComponentHolder->GetComponents<UWidgetComponent>(widgetComponents, true);
-    for (UWidgetComponent* widgetComponent : widgetComponents)
-        ScaleFloatingWidget(widgetComponent, cameraLocation);
     
     const EPowerOverlayMode mode = The::BPHolder(this)->PowerOverlayUI->GetMode();
     if (mode != ModeHighlight.Mode) {
@@ -559,7 +552,7 @@ void UPowerOverlay::AddFloatingPowerUI(const ASubstation* substation) const {
         ui->Set(substation->Network->GetTotalConstantProduction(), substation->Network->GetTotalConstantConsumption());
     else
         ui->Set(0, 0);
-    AddFloatingWidget(substation->GetActorLocation(), ui, playerController);
+    AddFloatingWidget(substation->GetActorLocation(), ui);
 }
 
 void UPowerOverlay::AddFloatingText(const UElectricComponent* building) const {    
@@ -569,44 +562,17 @@ void UPowerOverlay::AddFloatingText(const UElectricComponent* building) const {
    if (building->Consumption > 0)
        ui->Text->SetColorAndOpacity(PowerUI->GetConsumptionColor());
    else
-       ui->Text->SetColorAndOpacity(PowerUI->GetProductionColor());  
-   AddFloatingWidget(building->GetOwner()->GetActorLocation(), ui, playerController);    
+       ui->Text->SetColorAndOpacity(PowerUI->GetProductionColor());
+   AddFloatingWidget(building->GetOwner()->GetActorLocation(), ui);
 }
 
-void UPowerOverlay::AddFloatingWidget(FVector location, UUserWidget* widget, const APlayerControllerX* playerController) const {
-    // TODO copied from Buildemode
-    UWidgetComponent* widgetComponent = NewObject<UWidgetComponent>(ComponentHolder);
+void UPowerOverlay::AddFloatingWidget(FVector location, UUserWidget* widget) const {
+    UScalingWidgetComponent* widgetComponent = NewObject<UScalingWidgetComponent>(ComponentHolder);
+    widgetComponent->Init(widget, 500., 1./4.);
     widgetComponent->RegisterComponent();
     widgetComponent->AttachToComponent(ComponentHolder->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));
     widgetComponent->SetWorldLocation(location + FVector(0., 0. , 25.));
-    widgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
-    widgetComponent->SetWidget(widget);
-    //widgetComponent->SetDrawSize(FVector2D(150, 75));
-    widgetComponent->SetDrawAtDesiredSize(true);
-    widgetComponent->SetPivot(FVector2D(0.5, 0.5));
-    widgetComponent->SetGenerateOverlapEvents(false);
-    widgetComponent->RecreatePhysicsState();
     ComponentHolder->AddInstanceComponent(widgetComponent);
-
-    ScaleFloatingWidget(widgetComponent, playerController->GetPawn<ACameraPawn>()->GetActorLocation());
-}
-
-void UPowerOverlay::ScaleFloatingWidget(UWidgetComponent* widgetComponent, FVector cameraLocation) {
-    static double FULL_SIZE_DISTANCE = 500.;
-    static double CUTOFF_SCALE = 1./4.;
-    
-    const double distance = FVector::Distance(cameraLocation, widgetComponent->GetComponentLocation());
-    const double scale = FMath::Min(FULL_SIZE_DISTANCE / distance, 1.);
-        
-    if (scale < CUTOFF_SCALE) {
-        widgetComponent->SetVisibility(false);
-        return;
-    }
-
-    widgetComponent->SetVisibility(true);
-    // TODO the doc says that WidgetComponent at desired scale with constant resizing could be expensive...
-    // TODO maybe calculate the "desired size" of the full scale widget, set that as size for this component and then scale the widget down inside
-    widgetComponent->GetWidget()->SetRenderScale(FVector2d(scale));
 }
 
 void UPowerOverlay::Highlight(const UElectricComponent* building) const {    

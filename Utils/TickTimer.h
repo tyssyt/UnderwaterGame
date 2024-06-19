@@ -36,7 +36,7 @@ public:
 
     virtual void Tick(float DeltaTime) override;
     virtual TStatId GetStatId() const override {
-        RETURN_QUICK_DECLARE_CYCLE_STAT( FMyTickableThing, STATGROUP_Tickables );
+        RETURN_QUICK_DECLARE_CYCLE_STAT( UTickTimer, STATGROUP_Tickables );
     }
     virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
 };

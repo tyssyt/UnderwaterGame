@@ -39,7 +39,6 @@ void UHabitatPopulationManager::TickPopulation() {
             And they just die at the 1% rate that everthing else uses
             propably want some form of prio system for energy (and workforce) so that cities or not "accidently" turned off...
             and propably also a warning if a substation or power producer is removed that would kill a cities power?
-    
     */
 }
 
@@ -66,13 +65,21 @@ int UHabitatPopulationManager::SatisfyNeeds() {
     const int targetPop = FMath::Min(MaxPop, CurrentPop + ConsecutiveGrowthTicks * 25);
     int satisfiedPop = targetPop;
 
+    const int biomePop = The::PopulationManager(this)->Population;
     for (const auto need : encyclopedia->GetAllNeeds()) {
-        if (need->StartPop > satisfiedPop)
+        if (need->StartPop > biomePop)
             break;
         const int satisfiedPopBefore = satisfiedPop;
         satisfiedPop = need->IsSatisfied(Habitat, satisfiedPop);
         if (satisfiedPop == satisfiedPopBefore && targetPop > 0)
             SatisfiedNeedsLastTick.Add(need);
+
+        if (satisfiedPopBefore > satisfiedPop) { // don't reduce under StartPop
+            const float biomePopPercent = static_cast<float>(CurrentPop) / biomePop;
+            const int adjustedStartPop = static_cast<int>(biomePopPercent * need->StartPop);
+            satisfiedPop = FMath::Max(satisfiedPop, adjustedStartPop);
+            satisfiedPop = FMath::Min(satisfiedPop, satisfiedPopBefore); // not sure if this is even possible... better safe than sorry
+        }
     }
 
     if (satisfiedPop == targetPop && targetPop < MaxPop)

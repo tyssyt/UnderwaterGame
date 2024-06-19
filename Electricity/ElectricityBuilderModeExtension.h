@@ -11,6 +11,7 @@
 #include "XD/Resources/ResourceBalanceUI.h"
 #include "ElectricityBuilderModeExtension.generated.h"
 
+class ASubstation;
 class AIndoorBuilding;
 
 UCLASS()

@@ -7,7 +7,6 @@
 UEncyclopediaPageNeed* UEncyclopediaPageNeed::Init(UNeed* need, UEncyclopedia* encyclopedia) {
     Description->SetText(need->Description);
     InterestStart->Init(need->StartPop, encyclopedia->People);
-    FullNeed->Init(need->FullPop, encyclopedia->People);
 
     {
         SatisfiedBy->ClearChildren();

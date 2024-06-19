@@ -25,13 +25,11 @@ public:
     int NotificationPop;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     int StartPop;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    int FullPop;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UEncyclopediaEntry* EncyclopediaEntry;
 
-    UNeed* Init(const FText& name, const TCHAR* image, const FText& description, const int notificationPop, const int startPop, const int fullPop);
+    UNeed* Init(const FText& name, const TCHAR* image, const FText& description, const int notificationPop, const int startPop);
 
     int IsSatisfied(const AHabitat* habitat, int population);
 

@@ -143,7 +143,7 @@ void UBuildingBuilderMode::ConfirmPosition() {
     const auto playerController = The::PlayerController(this);;
     const TObjectPtr<UInputComponent> inputComponent = playerController->InputComponent;
     inputComponent->RemoveActionBinding("Select", IE_Pressed);
-    
+
     UImageUI* confirmImageUI = CreateWidget<UImageUI>(playerController, playerController->BlueprintHolder->ImageUIClass);
     confirmImageUI->Image->SetBrushFromTexture(LoadObject<UTexture2D>(nullptr, TEXT("/Game/Assets/Resources/Confirm")));
     confirmImageUI->Button->OnClicked.AddDynamic(this, &UBuildingBuilderMode::OnClickConfirm);
@@ -172,7 +172,7 @@ void UBuildingBuilderMode::ConfirmPosition() {
     CancelSymbol->SetGenerateOverlapEvents(false);
     CancelSymbol->RecreatePhysicsState(); // without this, some of the arrows below are not clickable, no idea why
     Preview->AddInstanceComponent(CancelSymbol);
-    
+
     ArrowForward = NewObject<UArrowMoverLine>(Preview);
     ArrowForward->RegisterComponent();
     ArrowForward->AttachToComponent(Preview->GetRootComponent(), FAttachmentTransformRules(EAttachmentRule::KeepRelative, true));

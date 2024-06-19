@@ -37,8 +37,8 @@ public:
     void AddIdleBuilder(ABuilderShip* builder) { IdleBuilders.Add(builder); }
     void AddTask(UBuilderTask* task) const { Tasks->Enqueue(task); }
 
-    virtual void Tick(float DeltaTime) override;    
+    virtual void Tick(float DeltaTime) override;
     virtual TStatId GetStatId() const override {
-        RETURN_QUICK_DECLARE_CYCLE_STAT( FMyTickableThing, STATGROUP_Tickables );
+        RETURN_QUICK_DECLARE_CYCLE_STAT( UConstructionManager, STATGROUP_Tickables );
     }
 };

@@ -7,13 +7,11 @@
 #include "ElectricComponent.h"
 #include "PowerUI.h"
 #include "WireComponent.h"
-#include "Components/WidgetComponent.h"
 #include "UObject/Object.h"
 #include "XD/Buildings/Highlighted.h"
 #include "PowerOverlay.generated.h"
 
 class ABuilding;
-
 
 enum class EPowerOverlayMode {None, TogglePower, Connect, Disconnect};
 
@@ -76,7 +74,7 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     virtual TStatId GetStatId() const override {
-        RETURN_QUICK_DECLARE_CYCLE_STAT( FMyTickableThing, STATGROUP_Tickables );
+        RETURN_QUICK_DECLARE_CYCLE_STAT( UPowerOverlay, STATGROUP_Tickables );
     }
 
     bool IsActive() const {return Active;}
@@ -97,8 +95,7 @@ private:
     
     void AddFloatingPowerUI(const ASubstation* substation) const;
     void AddFloatingText(const UElectricComponent* building) const;
-    void AddFloatingWidget(FVector location, UUserWidget* widget, const APlayerControllerX* playerController) const;
-    static void ScaleFloatingWidget(UWidgetComponent* widgetComponent, FVector cameraLocation);
+    void AddFloatingWidget(FVector location, UUserWidget* widget) const;
     void Highlight(const UElectricComponent* building) const;
     void RemoveHighlight(const UElectricComponent* building);
 };

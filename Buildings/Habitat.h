@@ -34,6 +34,7 @@ public:
     UHabitatPopulationManager* PopulationManager;
     
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions) override;
+    virtual void OnDismantleStart() override;
 
     virtual void Tick(float DeltaTime) override;
 

@@ -350,8 +350,7 @@ void LoadNeed(const FYamlNode& node, Config& config) {
             *node["Image"].As<FString>(TEXT("/Game/Assets/Resources/Placeholder")),
             node["Description"].As<FText>(FText::FromString(TEXT(""))),
             node["Notification"].As<int>(),
-            node["Start"].As<int>(),
-            node["Full"].As<int>()
+            node["Start"].As<int>()
         );
         if (need)
             config.Needs.Add(name.ToString(), need);
