@@ -16,7 +16,7 @@ class XD_API UConveyorBuilderMode : public UBuilderMode {
     GENERATED_BODY()
 
     class SourceTarget {
-        enum class EType {NotSet, Building, ConveyorLink, ConveyorNode};
+        enum class EType {NotSet, Building, Junction, ConveyorLink, ConveyorNode};
 
         UConveyorBuilderMode* Parent;
 
@@ -34,10 +34,10 @@ class XD_API UConveyorBuilderMode : public UBuilderMode {
     public:
         explicit SourceTarget(UConveyorBuilderMode* const parent) : Parent(parent) {}
 
-        bool IsSet() const;
-        bool IsValid() const;
-        bool IsConveyorNode(const UConveyorNode* node) const;
-        bool IsConveyorLink(const UConveyorLink* link) const;
+        bool IsSet() const { return Type != EType::NotSet; }
+        bool IsValid() const { return IsSet() && Valid; }
+        bool IsConveyorNode(const UConveyorNode* node) const { return Type == EType::ConveyorNode && ConveyorComponent == node; }
+        bool IsConveyorLink(const UConveyorLink* link) const { return Type == EType::ConveyorLink && ConveyorComponent == link; }
 
         ABuilding* GetBuilding() const { return Building; }
         AConveyor* GetConveyor() const { return Conveyor; }
@@ -48,6 +48,7 @@ class XD_API UConveyorBuilderMode : public UBuilderMode {
         void RemoveHighlight();
         void HighlightInvalid(ABuilding* building);
         void Highlight(UConveyorGate* gate, const TArray<UConveyorGate*>& otherGates);
+        void Highlight(AJunction* junction);
         void Highlight(ABuilding* building, AConveyor* conveyor, UConveyorNode* node, bool valid);
         void Highlight(ABuilding* building, AConveyor* conveyor, UConveyorLink* link, bool valid);
 

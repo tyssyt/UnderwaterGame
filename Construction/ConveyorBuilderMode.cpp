@@ -10,25 +10,13 @@
 #include "XD/Buildings/Splitter.h"
 #include "XD/Inventory/ConveyorGate.h"
 
-bool UConveyorBuilderMode::SourceTarget::IsSet() const {
-    return Type != EType::NotSet;
-}
-bool UConveyorBuilderMode::SourceTarget::IsValid() const {
-    return IsSet() && Valid;
-}
-bool UConveyorBuilderMode::SourceTarget::IsConveyorNode(const UConveyorNode* node) const {
-    return Type == EType::ConveyorNode && ConveyorComponent == node;
-}
-bool UConveyorBuilderMode::SourceTarget::IsConveyorLink(const UConveyorLink* link) const {
-    return Type == EType::ConveyorLink && ConveyorComponent == link;
-}
-
 FVector UConveyorBuilderMode::SourceTarget::GetLocation() const {
     check(IsValid());
      
     switch (Type) {
     case EType::Building:
         return Gate->GetComponentLocation();
+    case EType::Junction:
     case EType::ConveyorLink:
     case EType::ConveyorNode:
         return Building->GetActorLocation();
@@ -42,6 +30,7 @@ FVector UConveyorBuilderMode::SourceTarget::GetLocation() const {
 AConveyor::ESourceTargetType UConveyorBuilderMode::SourceTarget::ToConveyorType() const {    
     switch (Type) {
     case EType::Building:
+    case EType::Junction:
         return AConveyor::ESourceTargetType::Building;
     case EType::ConveyorLink:
         return AConveyor::ESourceTargetType::ConveyorLink;
@@ -58,6 +47,7 @@ void UConveyorBuilderMode::SourceTarget::RemoveHighlight() {
     case EType::NotSet:
         return;
     case EType::Building:
+    case EType::Junction:
         Building->RemoveCondition(Valid ? Parent->HighlightedValid : Parent->HighlightedInvalid);
         Building = nullptr;
         Gate = nullptr;
@@ -109,6 +99,20 @@ void UConveyorBuilderMode::SourceTarget::Highlight(UConveyorGate* gate, const TA
             otherGate->SetMaterial(i, Parent->HighlightedOption->GetMaterial());
     }
 }
+
+void UConveyorBuilderMode::SourceTarget::Highlight(AJunction* junction) {
+    check(junction);
+    if (Building == junction)
+        return;
+    RemoveHighlight();
+
+    Valid = true;
+    Type = EType::Junction;
+    Building = junction;
+
+    Building->AddCondition(Parent->HighlightedValid);
+}
+
 void UConveyorBuilderMode::SourceTarget::Highlight(ABuilding* building, AConveyor* conveyor, UConveyorNode* node, bool valid) {
     check(node);
 
@@ -185,6 +189,7 @@ void UConveyorBuilderMode::SourceTarget::GetOverlapIgnore(TArray<AActor*>& allow
     case EType::Building:
         allowedMeshes.Add(Gate);
         break;
+    case EType::Junction:
     case EType::ConveyorLink:
         allowedActors.Add(Building);
         break;
@@ -260,7 +265,7 @@ void UConveyorBuilderMode::TickSelectSource(const ACameraPawn& camera) {
     const APlayerControllerX* playerController = camera.GetController<APlayerControllerX>();
     if (!playerController)
         return;
-    
+
     HighlightUnderCursor(playerController, true);
 }
 
@@ -466,6 +471,16 @@ bool UConveyorBuilderMode::HighlightConveyorLinkUnderCursor(AConveyor* conveyor,
 }
 
 bool UConveyorBuilderMode::HighlightBuildingUnderCursor(ABuilding* building, const FVector& hitLoc, bool isSource) {
+    if (const auto junction = Cast<AJunction>(building)) { // junctions don't have conveyor gates
+        if (CheckValidBuilding(junction, isSource)) {            
+            CurrentHighlight.Highlight(junction);
+            return true;
+        } else {
+            CurrentHighlight.HighlightInvalid(junction);
+            return false;
+        }
+    }
+
     TArray<UConveyorGate*> gates;
     building->GetComponents<UConveyorGate>(gates);
     gates.RemoveAllSwap([isSource](const UConveyorGate* it){return it->Conveyor != nullptr || isSource == it->IsInput();});
