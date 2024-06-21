@@ -3,6 +3,8 @@
 #include "Conveyor.h"
 
 #include "Splitter.h"
+#include "The.h"
+#include "XD/Construction/DismantleSite.h"
 #include "XD/Inventory/ConveyorGate.h"
 
 AConveyor* AConveyor::Create(
@@ -141,21 +143,29 @@ void AConveyor::Connect(UResource* resource) {
 void AConveyor::OnDismantleStart() {
     Super::OnDismantleStart();
 
-    if (Source->IsA<ASplitter>() || Source->IsA<AMerger>())
-        checkNoEntry(); // TODO
-    Source->FindComponentByClass<UInventoryComponent>()->SetConveyor(false, SourceInv, nullptr);
-    SourceGate->Conveyor = nullptr;
+    if (const auto splitter = Cast<ASplitter>(Source)) {
+        splitter->Disconnect(this);
+        if (splitter->Connections == 1)
+            Remerge(splitter);
+    } else {
+        Source->FindComponentByClass<UInventoryComponent>()->SetConveyor(false, SourceInv, nullptr);
+        SourceGate->Conveyor = nullptr;
+        SourceInv = nullptr;
+        SourceGate = nullptr;
+    }
     Source = nullptr;
-    SourceInv = nullptr;
-    SourceGate = nullptr;
 
-    if (Target->IsA<ASplitter>() || Target->IsA<AMerger>())
-        checkNoEntry(); // TODO
-    Target->FindComponentByClass<UInventoryComponent>()->SetConveyor(true, TargetInv, nullptr);
-    TargetGate->Conveyor = nullptr;
+    if (const auto merger = Cast<AMerger>(Target)) {
+        merger->Disconnect(this);
+        if (merger->Connections == 1)
+            Remerge(merger);
+    } else {
+        Target->FindComponentByClass<UInventoryComponent>()->SetConveyor(true, TargetInv, nullptr);
+        TargetGate->Conveyor = nullptr;
+        TargetInv = nullptr;
+        TargetGate = nullptr;
+    }
     Target = nullptr;
-    TargetInv = nullptr;
-    TargetGate = nullptr;
 }
 
 void AConveyor::MakeNode(const FVector& location) {
@@ -301,7 +311,7 @@ TPair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABu
     nodes1.Add(building->GetActorLocation());
     nodes2.Add(Nodes.Last());
 
-    // TODO this should probably go to some generic onDelete
+    const auto resource = SourceInv->Resource;
     if (const auto splitter = Cast<ASplitter>(Source))
         splitter->Disconnect(this);
     else
@@ -311,12 +321,44 @@ TPair<AConveyor*, AConveyor*> AConveyor::SplitAt(UStaticMeshComponent* mesh, ABu
         merger->Disconnect(this);
     else
         Target->FindComponentByClass<UInventoryComponent>()->SetConveyor(true, TargetInv, nullptr);
-    
+
     this->Destroy();
     return MakeTuple(
-        Create(GetWorld(), Source, SourceGate, building, nullptr, nodes1, SourceInv->Resource),
-        Create(GetWorld(), building, nullptr, Target, TargetGate, nodes2, SourceInv->Resource)
+        Create(GetWorld(), Source, SourceGate, building, nullptr, nodes1, resource),
+        Create(GetWorld(), building, nullptr, Target, TargetGate, nodes2, resource)
     );
+}
+
+AConveyor* AConveyor::Remerge(AJunction* junction) {
+    if (junction->Connections != 1) {
+        checkNoEntry();
+        return nullptr;
+    }
+
+    const auto first = junction->Inventory->GetConveyor(true, 0);
+    const auto second = junction->Inventory->GetConveyor(false, 0);
+
+    TArray<FVector> nodes;
+    nodes.Append(first->Nodes.GetData(), first->Nodes.Num()-1);
+    nodes.Append(second->Nodes);
+
+    if (const auto splitter = Cast<ASplitter>(first->Source))
+        splitter->Disconnect(first);
+    else
+        first->Source->FindComponentByClass<UInventoryComponent>()->SetConveyor(false, first->SourceInv, nullptr);
+
+    if (const auto merger = Cast<AMerger>(second->Target))
+        merger->Disconnect(second);
+    else
+        second->Target->FindComponentByClass<UInventoryComponent>()->SetConveyor(true, second->TargetInv, nullptr);
+
+    const auto merged = Create(junction->GetWorld(), first->Source, first->SourceGate, second->Target, second->TargetGate, nodes, junction->Inventory->GetInputs()[0].Resource);
+    first->Destroy();
+    second->Destroy();
+
+    // create a destruction site for the junction
+    NewObject<UDismantleSite>(junction)->Init(junction)->QueueTasks();
+    return merged;
 }
 
 UConveyorLink::UConveyorLink() {    

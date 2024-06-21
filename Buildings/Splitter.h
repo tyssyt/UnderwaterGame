@@ -13,10 +13,13 @@ class XD_API AJunction : public ABuilding {
     GENERATED_BODY()
 
 protected:
-    void InternalDisconnect(bool isSplitter, UInventoryComponent* InventoryComponent, AConveyor* conveyor);
+    void InternalDisconnect(bool isSplitter, AConveyor* conveyor);
 
 public:
     int Connections = 0;
+
+    UPROPERTY(EditAnywhere)
+    UInventoryComponent* Inventory;
 };
 
 UCLASS()
@@ -25,9 +28,6 @@ class XD_API ASplitter : public AJunction {
 
 public:
     ASplitter();
-
-    UPROPERTY(EditAnywhere)
-    UInventoryComponent* Inventory;
 
     UPROPERTY(EditAnywhere)
     UConveyorNode* Mesh;
@@ -45,12 +45,7 @@ public:
     AMerger();
 
     UPROPERTY(EditAnywhere)
-    UInventoryComponent* Inventory;
-
-    UPROPERTY(EditAnywhere)
     UConveyorNode* Mesh;
-
-    int Connections = 0;
 
     virtual void Tick(float DeltaTime) override;
     void Disconnect(AConveyor* conveyor);

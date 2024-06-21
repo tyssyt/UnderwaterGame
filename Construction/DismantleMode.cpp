@@ -6,6 +6,7 @@
 #include "The.h"
 #include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Habitat.h"
+#include "XD/Buildings/Splitter.h"
 
 UDismantleMode* UDismantleMode::Init() {
     PreInit();
@@ -70,6 +71,17 @@ void UDismantleMode::SetHighlight(ABuilding* building) {
 bool UDismantleMode::CanBeDismantled(ABuilding* building) {
     if (building->IsNonInteractable())
         return false;
+
+    // splitter & mergers are invalid    
+    if (building->IsA<AJunction>()) {
+        return false;
+    }
+
+    // conveyors starting in mergers or ending in splitters are invalid
+    if (const auto conveyor = Cast<AConveyor>(building)) {
+        if (conveyor->Source->IsA<AMerger>() || conveyor->Target->IsA<ASplitter>())
+            return false;
+    }
 
     // buildings with attached conveyors are invalid
     if (const auto inventory = building->FindComponentByClass<UInventoryComponent>()) {

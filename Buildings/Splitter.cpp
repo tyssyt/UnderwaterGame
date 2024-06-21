@@ -9,17 +9,17 @@ constexpr int COMBINED_SLOT_SIZE = 150;
 constexpr int SPLIT_SLOT_SIZE = 100;
 constexpr double SPLIT_SLOT_SIZE_D = 100.;
 
-void AJunction::InternalDisconnect(bool isSplitter, UInventoryComponent* InventoryComponent, AConveyor* conveyor) {
-    auto& inventory = isSplitter ? InventoryComponent->GetOutputs() : InventoryComponent->GetInputs();
+void AJunction::InternalDisconnect(bool isSplitter, AConveyor* conveyor) {
+    auto& inventory = isSplitter ? Inventory->GetOutputs() : Inventory->GetInputs();
 
     const int idx = (isSplitter ? conveyor->SourceInv : conveyor->TargetInv) - inventory.GetData();
     check(idx >= 0 && idx < inventory.Num());
 
     // we don't waste
     if (isSplitter)
-        InventoryComponent->GetInputs()[0].Current += inventory[idx].Current;
+        Inventory->GetInputs()[0].Current += inventory[idx].Current;
     else
-        InventoryComponent->GetOutputs()[0].Current += inventory[idx].Current;
+        Inventory->GetOutputs()[0].Current += inventory[idx].Current;
 
     // swap with last
     if (idx != Connections-1) {
@@ -77,7 +77,7 @@ void ASplitter::Tick(float DeltaTime) {
 }
 
 void ASplitter::Disconnect(AConveyor* conveyor) {
-    InternalDisconnect(true, Inventory, conveyor);
+    InternalDisconnect(true, conveyor);
 }
 
 AMerger::AMerger() {
@@ -123,5 +123,5 @@ void AMerger::Tick(float DeltaTime) {
 }
 
 void AMerger::Disconnect(AConveyor* conveyor) {
-    InternalDisconnect(false, Inventory, conveyor);
+    InternalDisconnect(false, conveyor);
 }

@@ -80,7 +80,7 @@ public:
     static TArray<Material> ComputeCosts(double linkDist, int numNodes, ESourceTargetType splitter, ESourceTargetType merger, const UEncyclopedia* theEncyclopedia);
 
     TPair<AConveyor*, AConveyor*> SplitAt(UStaticMeshComponent* mesh, ABuilding* building);
-
+    static AConveyor* Remerge(AJunction* junction);
 };
 
 UCLASS()
@@ -89,9 +89,7 @@ class XD_API UConveyorLink : public UStaticMeshComponent {
 
 public:
     UConveyorLink();
-
     void Connect(FVector start, AConveyor::ESourceTargetType startType, FVector end, AConveyor::ESourceTargetType endType);
-    
 };
 
 UCLASS()
