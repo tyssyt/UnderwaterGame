@@ -23,6 +23,8 @@ public:
 
 protected:
     UPROPERTY()
+    UObject* Source;
+    UPROPERTY()
     UTexture2D* Symbol;
     UPROPERTY()
     UMaterialInterface* Material;
@@ -38,6 +40,9 @@ public:
     UPROPERTY()
     UImage* Image;
 
+    UCondition* WithSource(UObject* source) { Source = source; return this; }
+
+    UObject* GetSource() const { return Source; }
     UTexture2D* GetSymbol() const { return Symbol; }
     UMaterialInterface* GetMaterial() const { return Material; }
     UMaterialInterface* GetOverlayMaterial() const { return OverlayMaterial; }
@@ -64,6 +69,7 @@ public:
     virtual void OnDismantleFinish();
 
     void AddCondition(UCondition* condition);
+    void RemoveConditions(const UObject* source);
     void RemoveCondition(UCondition* condition);
     UCondition* IsNonInteractable() const;
 

@@ -17,8 +17,6 @@ class XD_API UIndoorBuilderMode : public UBuilderMode {
     UConstructionPlan* ConstructionPlan;
     UPROPERTY()
     AIndoorBuilding* Preview;
-    UPROPERTY()
-    UInBuilderMode* Condition;
 
     UPROPERTY()
     UBuilderModeExtensions* Extensions;

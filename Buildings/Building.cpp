@@ -54,6 +54,7 @@ void ABuilding::OnDismantleFinish() {
 }
 
 void ABuilding::AddCondition(UCondition* condition) {
+    check(condition->GetSource());
     Conditions.Add(condition);
     if (const auto symbol = condition->GetSymbol()) {
         auto floatingSymbols = GetComponentByClass<UScalingWidgetComponent>();
@@ -86,6 +87,14 @@ void ABuilding::AddCondition(UCondition* condition) {
     if (condition->DisablesTick())
         SetActorTickEnabled(false);
 }
+
+void ABuilding::RemoveConditions(const UObject* source) {
+    for (int i = Conditions.Num()-1; i >= 0; i--) {
+        if (Conditions[i]->GetSource() == source)
+            RemoveCondition(Conditions[i]);
+    }
+}
+
 void ABuilding::RemoveCondition(UCondition* condition) {
     const int removed = Conditions.Remove(condition);
     if (removed <= 0)

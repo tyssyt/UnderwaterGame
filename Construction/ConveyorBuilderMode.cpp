@@ -167,7 +167,7 @@ UConstructionSite* UConveyorBuilderMode::SourceTarget::CreateConstructionSite(co
 
     Conveyor->SplitAt(ConveyorComponent, Building);
 
-    Building->RemoveCondition(Parent->Condition);
+    Building->RemoveConditions(Parent);
     Building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::BlockAllDynamic, true);
 
     auto& materials = encyclopedia->Splitter->Materials;
@@ -205,8 +205,6 @@ void UConveyorBuilderMode::SourceTarget::GetOverlapIgnore(TArray<AActor*>& allow
 
 UConveyorBuilderMode* UConveyorBuilderMode::Init(UConstructionPlan* constructionPlan) {
     PreInit();
-
-    Condition = NewObject<UInBuilderMode>(this);
 
     const auto playerController = The::PlayerController(this);
     ConstructionUI->Init(constructionPlan, The::ConstructionManager(this));
@@ -397,13 +395,13 @@ FVector UConveyorBuilderMode::ProjectOntoLink(const FVector& loc, const UConveyo
     return meshLocation + projection;
 }
 
-ABuilding* UConveyorBuilderMode::SpawnSplitter(bool isSource, UResource* resource) const {
+ABuilding* UConveyorBuilderMode::SpawnJunction(bool isSource, UResource* resource) {
     ABuilding* building;
     if (isSource)
         building = GetWorld()->SpawnActor<ASplitter>();
     else
         building = GetWorld()->SpawnActor<AMerger>();
-    building->AddCondition(Condition);
+    building->AddCondition(NewObject<UInBuilderMode>(this)->WithSource(this));
     building->GetComponentByClass<UConveyorNode>()->SetCollisionProfileName(CollisionProfiles::OverlapAllDynamic, true);
 
     UInventoryComponent* inventory = building->GetComponentByClass<UInventoryComponent>();    
@@ -442,7 +440,7 @@ bool UConveyorBuilderMode::HighlightConveyorNodeUnderCursor(AConveyor* conveyor,
     if (CurrentHighlight.IsConveyorNode(node))
         return true; // already highlighted
 
-    const auto splitter = SpawnSplitter(isSource, conveyor->SourceInv->Resource);
+    const auto splitter = SpawnJunction(isSource, conveyor->SourceInv->Resource);
     splitter->SetActorLocation(node->GetComponentLocation());
 
     bool valid = CheckValidBuilding(splitter, isSource);
@@ -454,7 +452,7 @@ bool UConveyorBuilderMode::HighlightConveyorNodeUnderCursor(AConveyor* conveyor,
 
 
 bool UConveyorBuilderMode::HighlightConveyorLinkUnderCursor(AConveyor* conveyor, UConveyorLink* link, const FVector& hitLoc, bool isSource) {
-    const auto splitter = CurrentHighlight.IsConveyorLink(link) ? CurrentHighlight.GetBuilding() : SpawnSplitter(isSource, conveyor->SourceInv->Resource);
+    const auto splitter = CurrentHighlight.IsConveyorLink(link) ? CurrentHighlight.GetBuilding() : SpawnJunction(isSource, conveyor->SourceInv->Resource);
     splitter->SetActorLocation(ProjectOntoLink(hitLoc, link));
 
     bool valid = CheckValidBuilding(splitter, isSource);

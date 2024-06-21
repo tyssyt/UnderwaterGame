@@ -15,8 +15,7 @@ UGettingDismantled::UGettingDismantled() {
 
 UDismantleSite* UDismantleSite::Init(ABuilding* building) {
     Building = building;
-    Condition = NewObject<UGettingDismantled>(this);
-    building->AddCondition(Condition);
+    building->AddCondition(NewObject<UGettingDismantled>(this)->WithSource(this));
     building->OnDismantleStart();
     return this;
 }

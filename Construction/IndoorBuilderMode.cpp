@@ -12,8 +12,7 @@ UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan
     PreInit();
     ConstructionPlan = constructionPlan;
     Preview = GetWorld()->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
-    Condition = NewObject<UInBuilderMode>(this);
-    Preview->AddCondition(Condition);
+    Preview->AddCondition(NewObject<UInBuilderMode>(this)->WithSource(this));
     
     const auto playerController = The::PlayerController(this);
     ConstructionUI->Init(
@@ -95,7 +94,7 @@ void UIndoorBuilderMode::ConfirmPosition() {
         return;
 
     Stop(false);
-    Preview->RemoveCondition(Condition);
+    Preview->RemoveConditions(this);
     Preview->Habitat->PlaceBuilding(Preview);
     NewObject<UConstructionSite>(Preview)->Init(Preview, ConstructionPlan, Extensions)->QueueTasks();
     Preview = nullptr;

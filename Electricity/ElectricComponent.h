@@ -47,9 +47,6 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     ASubstation* Substation;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    UCondition* Condition;
-
     void SetCondition(UCondition* condition);
 
 public:

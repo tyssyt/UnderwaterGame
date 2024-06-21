@@ -27,8 +27,6 @@ class XD_API UBuildingBuilderMode : public UBuilderMode {
     UConstructionPlan* ConstructionPlan;
     UPROPERTY()
     ABuilding* Preview;
-    UPROPERTY()
-    UInBuilderMode* Condition;
 
     UPROPERTY()
     UWidgetComponent* ConfirmSymbol;

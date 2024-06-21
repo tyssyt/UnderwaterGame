@@ -22,17 +22,13 @@ UResource* UWorkforceComponent::GetWorkforce() const {
 
 void UWorkforceComponent::SetStaffed() {
     check(State != EWorkforceState::Staffed);
+    GetOwner<ABuilding>()->RemoveConditions(this);
     State = EWorkforceState::Staffed;
-    if (Condition) {
-        GetOwner<ABuilding>()->RemoveCondition(Condition);
-        Condition = nullptr;
-    }
 }
 void UWorkforceComponent::SetUnstaffed() {
     check(State != EWorkforceState::Unstaffed);
     State = EWorkforceState::Unstaffed;
-    Condition = NewObject<UNoWorkers>(GetOwner());
-    GetOwner<ABuilding>()->AddCondition(Condition);
+    GetOwner<ABuilding>()->AddCondition(NewObject<UNoWorkers>(GetOwner())->WithSource(this));
 }
 
 UBuilderModeExtension* UWorkforceComponent::CreateBuilderModeExtension() {

@@ -17,5 +17,6 @@ public:
     static FLinearColor Yellow;
 
     UHighlighted();
+    UHighlighted* WithSource(UObject* source) { Source = source; return this; }
     UHighlighted* SetColor(FLinearColor color);
 };

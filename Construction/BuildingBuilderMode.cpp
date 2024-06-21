@@ -14,8 +14,7 @@ UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* construction
     PreInit();
     ConstructionPlan = constructionPlan;
     Preview = GetWorld()->SpawnActor<ABuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
-    Condition = NewObject<UInBuilderMode>(this);
-    Preview->AddCondition(Condition);
+    Preview->AddCondition(NewObject<UInBuilderMode>(this)->WithSource(this));
 
     TInlineComponentArray<UStaticMeshComponent*> meshes;
     Preview->GetComponents<UStaticMeshComponent>(meshes, true);
@@ -253,7 +252,7 @@ void UBuildingBuilderMode::OnClickConfirm() {
         return;
 
     Stop(false);
-    Preview->RemoveCondition(Condition);
+    Preview->RemoveConditions(this);
 
     // create and add construction site
     NewObject<UConstructionSite>(Preview)->Init(Preview, ConstructionPlan, Extensions)->QueueTasks();

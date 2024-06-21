@@ -75,8 +75,6 @@ class XD_API UConveyorBuilderMode : public UBuilderMode {
 
     UPROPERTY()
     AActor* Preview;
-    UPROPERTY()
-    UInBuilderMode* Condition;
 
     UPROPERTY()
     UConveyorNode* NextNode;
@@ -113,7 +111,7 @@ private:
     void TickInsertNode(const ACameraPawn& camera);
     void ComputeCostInsertNode() const;
     static FVector ProjectOntoLink(const FVector& loc, const UConveyorLink* link);
-    ABuilding* SpawnSplitter(bool isSource, UResource* resource) const;
+    ABuilding* SpawnJunction(bool isSource, UResource* resource);
 
     bool HighlightUnderCursor(const APlayerControllerX* playerController, bool isSource);
     bool HighlightConveyorNodeUnderCursor(AConveyor* conveyor, UConveyorNode* node, bool isSource);

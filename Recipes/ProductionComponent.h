@@ -5,10 +5,17 @@
 #include "CoreMinimal.h"
 #include "Recipe.h"
 #include "XD/ComponentX.h"
+#include "XD/Buildings/Building.h"
 #include "XD/Buildings/BuildingSelectedUI.h"
 #include "XD/Inventory/InventoryComponent.h"
 #include "ProductionComponent.generated.h"
 
+UCLASS()
+class UNoRecipeSelected : public UCondition {
+    GENERATED_BODY()
+public:
+    UNoRecipeSelected();
+};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class XD_API UProductionComponent : public UComponentX {

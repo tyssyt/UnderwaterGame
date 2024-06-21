@@ -28,7 +28,7 @@ UConstructionSite* UConstructionSite::Init(ABuilding* building, int time, const 
     Materials = materials;
     Extensions = extensions;
 
-    Condition = NewObject<UUnderConstruction>(this);
+    Condition = Cast<UUnderConstruction>(NewObject<UUnderConstruction>(this)->WithSource(this));
     building->AddCondition(Condition);
     return this;
 }
@@ -70,7 +70,7 @@ void UConstructionSite::StartConstruction() {
 
 void UConstructionSite::FinishConstruction() {
     State = EState::Finished;
-    Building->RemoveCondition(Condition);
+    Building->RemoveConditions(this);
     Building->OnConstructionComplete(Extensions);
 }
 

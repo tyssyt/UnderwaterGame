@@ -26,9 +26,6 @@ class XD_API UWorkforceComponent : public UComponentX {
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    UCondition* Condition;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     EWorkforceState State;
 
 public:    

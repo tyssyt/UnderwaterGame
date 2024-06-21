@@ -41,14 +41,11 @@ UElectricComponent* UElectricComponent::Init(int consumption) {
     return this;
 }
 
-
 void UElectricComponent::SetCondition(UCondition* condition) {
     const auto building = GetOwner<ABuilding>();
-    if (Condition)
-        building->RemoveCondition(Condition);
-    Condition = condition;
+    building->RemoveConditions(this);
     if (condition)
-        building->AddCondition(condition);
+        building->AddCondition(condition->WithSource(this));
 }
 
 UElectricComponent::Type UElectricComponent::GetType() const {

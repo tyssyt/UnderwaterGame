@@ -12,6 +12,12 @@
 #include "XD/Inventory/InventoryUI.h"
 #include "XD/Resources/ResourceAmountUI.h"
 
+UNoRecipeSelected::UNoRecipeSelected() {
+    const static ConstructorHelpers::FObjectFinder<UTexture2D> SymbolFinder(TEXT("/Game/Assets/Images/NoRecipe"));
+    Symbol = SymbolFinder.Object;
+    Type = EType::TickDisabled;
+}
+
 UProductionComponent::UProductionComponent() {
     PrimaryComponentTick.bCanEverTick = true;
 
@@ -23,6 +29,8 @@ void UProductionComponent::OnConstructionComplete(UBuilderModeExtension* extensi
     check(recipes.Num() > 0);
     if (recipes.Num() == 1)
         SetRecipe(recipes[0]);
+    else
+        GetOwner<ABuilding>()->AddCondition(NewObject<UNoRecipeSelected>(GetOwner())->WithSource(this));
 }
 
 void UProductionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) {
@@ -58,6 +66,8 @@ void UProductionComponent::SetRecipe(URecipe* recipe) {
         // TODO and items currently in the inventory
         return;
     }
+
+    GetOwner<ABuilding>()->RemoveConditions(this);
 
     Recipe = recipe;
     Inventory->SetRecipe(recipe); // TODO maybe move the SetRecipe logic into here, no one else should need it?

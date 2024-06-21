@@ -11,10 +11,10 @@
 #include "XD/Buildings/Habitat.h"
 
 UPowerOverlay::UPowerOverlay() : Active(false) {
-    HighlightPowered = NewObject<UHighlighted>()->SetColor(UHighlighted::Green);
-    HighlightUnpowered = NewObject<UHighlighted>()->SetColor(UHighlighted::Red);
-    HighlightDeactivated = NewObject<UHighlighted>()->SetColor(UHighlighted::Gray);
-    HighlightUnderCursor = NewObject<UHighlighted>()->SetColor(UHighlighted::Yellow);
+    HighlightPowered = NewObject<UHighlighted>()->WithSource(this)->SetColor(UHighlighted::Green);
+    HighlightUnpowered = NewObject<UHighlighted>()->WithSource(this)->SetColor(UHighlighted::Red);
+    HighlightDeactivated = NewObject<UHighlighted>()->WithSource(this)->SetColor(UHighlighted::Gray);
+    HighlightUnderCursor = NewObject<UHighlighted>()->WithSource(this)->SetColor(UHighlighted::Yellow);
 }
 
 void UPowerOverlay::Tick(float DeltaTime) {
@@ -292,7 +292,7 @@ void UPowerOverlay::ResetModeHighlight(bool deactivate) {
     ModeHighlight.Mode = EPowerOverlayMode::None;
 }
 void UPowerOverlay::ResetTogglePower() {    
-    if (ModeHighlight.Current) {    
+    if (ModeHighlight.Current) {
         switch (ModeHighlight.Current->GetComponentByClass<UElectricComponent>()->GetState()) {
         case PowerState::Powered:
         case PowerState::Unpowered:
@@ -603,9 +603,7 @@ void UPowerOverlay::Highlight(const UElectricComponent* building) const {
 
 void UPowerOverlay::RemoveHighlight(const UElectricComponent* building) {
     const auto owner = building->GetOwner<ABuilding>();
-    owner->RemoveCondition(HighlightPowered);
-    owner->RemoveCondition(HighlightUnpowered);
-    owner->RemoveCondition(HighlightDeactivated);
+    owner->RemoveConditions(this);
 
     if (building->GetType() == UElectricComponent::Type::Habitat)
         for (const auto b : building->GetOwner<AHabitat>()->Buildings) {

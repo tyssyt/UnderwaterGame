@@ -21,8 +21,6 @@ class XD_API UDismantleSite : public UObject {
 
 protected:
     UPROPERTY()
-    UGettingDismantled* Condition;
-    UPROPERTY()
     UDismantleTask* Task;
     // TODO add dismantle time
 
