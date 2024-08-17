@@ -25,7 +25,7 @@ UProductionComponent::UProductionComponent() {
 }
 
 void UProductionComponent::OnConstructionComplete(UBuilderModeExtension* extension) {
-    const auto& recipes = The::Encyclopedia(this)->GetRecipes(GetOwner()->GetClass());
+    const auto& recipes = The::Encyclopedia(this)->GetRecipes(GetOwner<ABuilding>()->GetConstructionPlan());
     check(recipes.Num() > 0);
     if (recipes.Num() == 1)
         SetRecipe(recipes[0]);
@@ -128,7 +128,7 @@ void UProductionComponentUI::OpenRecipeSelector() {
         The::PlayerController(this),
         The::BPHolder(this)->RecipeSelectorUIClass
     )->Init(
-        The::Encyclopedia(this)->GetRecipes(ProductionComponent->GetOwner()->GetClass()),
+        The::Encyclopedia(this)->GetRecipes(ProductionComponent->GetOwner<ABuilding>()->GetConstructionPlan()),
         [this](URecipe* recipe) { ProductionComponent->SetRecipe(recipe); }
     );
     recipeSelector->AddToViewport();

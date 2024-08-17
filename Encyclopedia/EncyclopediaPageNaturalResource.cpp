@@ -29,7 +29,7 @@ UEncyclopediaPageNaturalResource* UEncyclopediaPageNaturalResource::Init(UNatura
         ExploitedWith->AddChildToVerticalBox(
         CreateWidget<UConstructionPlanUI>(GetOwningPlayer(), ConstructionPlanUIClass)->Init(building, true));
 
-        for (const auto recipe : encyclopedia->GetRecipes(building->BuildingClass))
+        for (const auto recipe : encyclopedia->GetRecipes(building))
             Gives->AddChildToVerticalBox(
         CreateWidget<URecipeWithBuildingUI>(GetOwningPlayer(), RecipeWithBuildingUIClass)->Init(recipe));
     }

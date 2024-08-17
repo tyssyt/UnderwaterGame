@@ -38,7 +38,6 @@ UEncyclopedia* UEncyclopedia::Init(
         ClassToNaturalResources.Add(naturalResource->BuildingClass, naturalResource);
     }
     for (const auto building : Buildings) {
-        ClassToBuildings.Add(building->BuildingClass, building);
         for (const auto& material : building->Materials)
             MultiMaps::AddTo(BuildingByMaterial, material.resource, building);
         for (const auto& need : building->GetNeeds())
@@ -48,7 +47,7 @@ UEncyclopedia* UEncyclopedia::Init(
     }
     for (const auto& recipe : Recipes) {
         for (const auto building : recipe->Buildings)
-            MultiMaps::AddTo(RecipesByBuilding, building->BuildingClass, recipe);
+            MultiMaps::AddTo(RecipesByBuilding, building, recipe);
         for (const auto& ingredient : recipe->Ingredients)
             MultiMaps::AddTo(RecipesByIngredient, ingredient.resource, recipe);
         for (const auto& result : recipe->Results)
@@ -96,13 +95,8 @@ UNaturalResource* UEncyclopedia::GetNaturalResource(const UClass* building) {
         return *naturalResource;
     return nullptr;
 }
-UConstructionPlan* UEncyclopedia::GetBuilding(const UClass* building) {
-    if (const auto constructionPlan = ClassToBuildings.Find(building))
-        return *constructionPlan;
-    return nullptr;
-}
 
-TArray<URecipe*>& UEncyclopedia::GetRecipes(UClass* building) {
+TArray<URecipe*>& UEncyclopedia::GetRecipes(UConstructionPlan* building) {
     return MultiMaps::Find(RecipesByBuilding, building);
 }
 TArray<URecipe*>& UEncyclopedia::GetRecipesByIngredient(UResource* resource) {

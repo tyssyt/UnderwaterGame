@@ -25,10 +25,20 @@ bool UCondition::DisablesTick() const {
     }
 }
 
-ABuilding* ABuilding::Init(UConstructionPlan* constructionPlan) {    
+ABuilding* ABuilding::Init(UConstructionPlan* constructionPlan) {
+    ConstructionPlan = constructionPlan;
     for (const auto componentLoader : constructionPlan->ComponentLoaders)
         componentLoader->AddComponentToBuilding(this);
     return this;
+}
+
+ABuilding* ABuilding::Spawn(UWorld* world, UConstructionPlan* constructionPlan) {
+    FActorSpawnParameters spawnParameters;
+    spawnParameters.Name = FName(constructionPlan->Name.ToString());
+    spawnParameters.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
+    const auto building = world->SpawnActor<ABuilding>(constructionPlan->BuildingClass, spawnParameters)->Init(constructionPlan);
+    building->SetActorLabel(building->GetName());
+    return building;
 }
 
 void ABuilding::OnConstructionComplete(UBuilderModeExtensions* extensions) {
@@ -48,8 +58,7 @@ void ABuilding::OnDismantleStart() {
 }
 
 void ABuilding::OnDismantleFinish() {
-    const auto constructionPlan = The::Encyclopedia(this)->GetBuilding(GetClass());
-    if (const auto naturalResource = constructionPlan->ConstructedOn)
+    if (const auto naturalResource = ConstructionPlan->ConstructedOn)
         naturalResource->Respawn(this);
 }
 

@@ -13,6 +13,8 @@
 class UEncyclopediaEntry;
 class UBuilderModeExtension;
 
+typedef TPair<int, int> Coordinate;
+
 struct XD_API Material {
     Material();
     Material(int amount, UResource* resource);
@@ -40,6 +42,7 @@ public:
         const int time,
         UNaturalResource* constructedOn,
         const TArray<Material>& materials,
+        const TArray<Coordinate> shape,
         const FText& category,
         const FText& description
     );
@@ -64,6 +67,8 @@ public:
 
     TArray<Material> Materials;
 
+    TArray<Coordinate> Shape[4];
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Category;
 
@@ -71,7 +76,7 @@ public:
     FText Description;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    UEncyclopediaEntry* EncyclopediaEntry;
+    UEncyclopediaEntry* EncyclopediaEntry;    
 
     TArray<Material> GetNeeds() const;
 

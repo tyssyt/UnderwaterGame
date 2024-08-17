@@ -13,29 +13,6 @@ AWorkerHouse::AWorkerHouse() {
     Mesh->SetStaticMesh(MeshFinder.Object);
     Mesh->SetRenderCustomDepth(true);
     SetRootComponent(Mesh);
-    
-    // Electricity = CreateDefaultSubobject<UElectricComponent>(TEXT("Electricity"));
-    // Electricity->Consumption = 20;
-}
-
-
-const TArray<Coordinate> OFFSETS_NORTH = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
-const TArray<Coordinate> OFFSETS_EAST = {{0, 0}, {1, 0}, {0, -1}, {1, -1}};
-const TArray<Coordinate> OFFSETS_SOUTH = {{0, 0}, {-1, 0}, {0, -1}, {-1, -1}};
-const TArray<Coordinate> OFFSETS_WEST = {{0, 0}, {-1, 0}, {0, 1}, {-1, 1}};
-
-const TArray<Coordinate>* AWorkerHouse::GetGridOffsets() {
-    switch (Orientation) {
-    case EGridOrientation::North:
-        return &OFFSETS_NORTH;
-    case EGridOrientation::East:
-        return &OFFSETS_EAST;
-    case EGridOrientation::West:
-        return &OFFSETS_SOUTH;
-    case EGridOrientation::South:
-        return &OFFSETS_WEST;
-    }
-    return nullptr;
 }
 
 void AWorkerHouse::InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) {

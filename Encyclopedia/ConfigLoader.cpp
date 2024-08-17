@@ -75,9 +75,26 @@ void* LoadFPropertyValue(const FYamlNode& node, FProperty* prop) {
         return new float(node.As<float>());
     if (const auto _ = ExactCastField<FDoubleProperty>(prop))
         return new double(node.As<double>());
+    if (const auto objProperty = CastField<FObjectProperty>(prop)) {
+        const auto obj = StaticLoadObject(objProperty->PropertyClass, nullptr, *node.As<FString>());
+        return obj;        
+    }
+    if (const auto structProperty = CastField<FStructProperty>(prop)) {
+        if (structProperty->Struct == TBaseStructure<FVector>::Get())
+            return new FVector(node.As<FVector>());
+        if (structProperty->Struct == TBaseStructure<FRotator>::Get())
+            return new FRotator(node.As<FRotator>());
+        if (structProperty->Struct == TBaseStructure<FColor>::Get())
+            return new FColor(node.As<FColor>());
+        if (structProperty->Struct == TBaseStructure<FLinearColor>::Get())
+            return new FLinearColor(node.As<FLinearColor>());
+
+        UE_LOG(LogConfigLoader, Error, TEXT("Cannot handle StructProperty %s with struct %s in line %d"), *structProperty->GetName(), *structProperty->Struct->GetName(), node.GetMark().line +1)
+        checkNoEntry();
+        return nullptr;
+    }
 
     // TODO FTextProperty, FNameProperty, FStrProperty
-    // TODO FObjectProperty? don't think we can really do that, maybe a few specific one like TClass etc.
     // TODO array, map, set, what about pair?
 
     UE_LOG(LogConfigLoader, Error, TEXT("Cannot handle Type of Property %s of class %s in line %d"), *prop->GetName(), *prop->GetClass()->GetName(), node.GetMark().line +1)
@@ -150,14 +167,68 @@ void LoadNeed(const FYamlNode& node, UComponentInfo* componentInfo, Config& conf
 
         const auto intProp = CastField<FIntProperty>(prop->Property);
         if (!intProp) {
-        UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component Need: %s is not an IntProperty in Block: %s, which starts on line %d"), *prop->Property->GetName(), *node.GetContent(), node.GetMark().line +1);
+            UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component Need: %s is not an IntProperty in Block: %s, which starts on line %d"), *prop->Property->GetName(), *node.GetContent(), node.GetMark().line +1);
             return;
         }
 
-        componentInfo->AddNeed(resource, intProp);
+        componentInfo->AddNeed(resource, prop);
     } catch (YAML::Exception e) {
         UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component Need: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
     }
+}
+TPair<UFunction*, FProperty*> FindProperty(const FString& name, const TSubclassOf<UActorComponent> componentClass) {
+    for (TFieldIterator<UFunction> it(componentClass, EFieldIterationFlags::IncludeSuper); it; ++it) {
+        const auto rawFunc = *it;
+        if (!rawFunc->GetName().Equals(TEXT("Set") + name))
+            continue;
+        
+        FProperty* param = nullptr;
+        for (TFieldIterator<FProperty> paramIt(rawFunc); paramIt; ++paramIt) {
+            if (!(paramIt->PropertyFlags & CPF_ReturnParm) && paramIt->PropertyFlags & CPF_Parm) {
+                if (param) {
+                    param = nullptr;
+                    break;
+                }
+                param = *paramIt;
+            }
+        }
+        if (!param)
+            continue;
+
+        return MakeTuple(rawFunc, param);
+    }
+
+    for (TFieldIterator<FProperty> it(componentClass, EFieldIterationFlags::IncludeSuper); it; ++it) {
+        const auto rawProp = *it;
+        if (!rawProp->GetName().Equals(name))
+            continue;
+
+        return MakeTuple(nullptr, rawProp);
+    }
+    return MakeTuple(nullptr, nullptr);
+}
+void LoadProperty(const FYamlNode& node, UComponentInfo* component) {    
+    const auto propertyName = node["Name"].As<FString>();
+
+    const auto [setter, prop] = FindProperty(propertyName, component->ComponentClass);
+    if (!prop) {                
+        UE_LOG(LogConfigLoader, Error, TEXT("Property %s from line %d was not found in Class %s"), *propertyName, node.GetMark().line +1, *component->ComponentClass->GetName());
+        return;
+    }
+
+    void* defaultValue = nullptr;
+    if (const auto defaultNode = node["Default"])
+        defaultValue = LoadFPropertyValue(defaultNode, prop);
+
+    if (component->Properties.Find(propertyName))
+        UE_LOG(LogConfigLoader, Warning, TEXT("Property %s was already defined in component %s, replacing old definition"), *propertyName, *component->Name.ToString());
+    component->AddProperty(
+        propertyName,
+        setter,
+        prop,
+        node["Required"].As<bool>(true),
+        defaultValue
+    );
 }
 void LoadComponent(const FYamlNode& node, Config& config) {
     try {
@@ -172,27 +243,9 @@ void LoadComponent(const FYamlNode& node, Config& config) {
             name,
             componentClass
         );
-        
-        for (const auto& property : node["Properties"]) {
-            const auto propertyName = property["Name"].As<FString>();
-            const auto result = component->AddProperty(
-                propertyName,
-                property["Required"].As<bool>(true)
-            );
-            switch (result) {
-            case UComponentInfo::AddPropertyResult::Success:
-                break;
-            case UComponentInfo::AddPropertyResult::UnknownProperty:
-                UE_LOG(LogConfigLoader, Error, TEXT("Property %s from line %d was not found in Class %s"), *propertyName, property.GetMark().line +1, *componentClass->GetName());
-                break;
-            case UComponentInfo::AddPropertyResult::DuplicateProperty:
-                UE_LOG(LogConfigLoader, Warning, TEXT("Property %s was already defined, replacing old definition"), *propertyName);
-                break;
-            default:
-                checkNoEntry();
-            }
-        }
-        
+
+        for (const auto& propertyNode : node["Properties"])
+            LoadProperty(propertyNode, component);        
         for (const auto& need : node["Needs"])
             LoadNeed(need, component, config);
 
@@ -269,10 +322,12 @@ UComponentLoader* LoadComponentRef(const FYamlNode& node, Config& config) {
 
         const auto componentLoader = NewObject<UComponentLoader>(config.ObjOwner)->Init(component);
 
-        for (const auto& propertyInfo : component->Properties) {
-            if (const auto propertyNode = node[propertyInfo.Key]) {
-                const auto prop = propertyInfo.Value.Property;
-                componentLoader->SetProperty(prop, LoadFPropertyValue(propertyNode, prop));
+        for (auto& propertyInfo : component->Properties) {
+            if (auto propertyNode = node[propertyInfo.Key]) {
+                auto& propInfo = propertyInfo.Value;
+                componentLoader->SetProperty(&propInfo, LoadFPropertyValue(propertyNode, propInfo.Property));
+            } else if (propertyInfo.Value.DefaultValue) {
+                componentLoader->SetProperty(&propertyInfo.Value, propertyInfo.Value.DefaultValue);
             } else if (propertyInfo.Value.Required) {
                 UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component: Required Property %s not Found. In Block: %s, which starts on line %d"), *propertyInfo.Key, *node.GetContent(), node.GetMark().line +1);
                 return nullptr;
@@ -297,7 +352,9 @@ void LoadBuilding(const FYamlNode& node, Config& config) {
         const auto name = node["Name"].As<FText>();
         UE_LOG(LogConfigLoader, Display, TEXT("Loading Building: %s (Line %d)"), *name.ToString(), node.GetMark().line +1);
 
-        UClass* uClass = LoadClass(node["Class"]);
+        UClass* uClass = ABuilding::StaticClass();
+        if (const auto classNode = node["Class"])
+            uClass = LoadClass(classNode);
         if (!uClass)
             return;
 
@@ -309,6 +366,7 @@ void LoadBuilding(const FYamlNode& node, Config& config) {
             node["ConstructionTime"].As<int>(),
             LoadReferenceOpt(node["ConstructedOn"], config.NaturalResources),
             LoadMaterials<Material>(node["ConstructionMaterials"], config),
+            node["Shape"].As<TArray<TPair<int, int>>>({}),
             node["Category"].As<FText>(FText::FromString(TEXT("MISSING"))),
             node["Description"].As<FText>(FText::FromString(TEXT("")))
         );

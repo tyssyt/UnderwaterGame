@@ -10,12 +10,9 @@ UConstructionSite* ANaturalResourceActor::Construct() {
     const auto encyclopedia = The::Encyclopedia(this);
     const auto constructionPlan = encyclopedia->GetBuildings(encyclopedia->GetNaturalResource(GetClass()))[0];
 
-    const auto building = GetWorld()->SpawnActor<ABuilding>(
-        constructionPlan->BuildingClass,
-        // TODO figure out why that -50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
-        GetActorLocation() - FVector(.0f, .0f, 50.f),
-        GetActorRotation()
-    )->Init(constructionPlan);
+    const auto building = ABuilding::Spawn(GetWorld(), constructionPlan);
+    building->SetActorLocation(GetActorLocation());
+    building->SetActorRotation(GetActorRotation());
 
     const auto constructionSite = NewObject<UConstructionSite>(building)->Init(building, constructionPlan, NewObject<UBuilderModeExtensions>());
     this->Destroy();
@@ -44,8 +41,7 @@ bool UNaturalResource::operator<(const UNaturalResource& other) const {
 void UNaturalResource::Respawn(const ABuilding* building) const {
     building->GetWorld()->SpawnActor<ANaturalResourceActor>(
         BuildingClass,
-        // TODO figure out why that 50 is needed, could be because of the cylinder placeholder model or maybe collision checking?
-        building->GetActorLocation() - FVector(.0f, .0f, 50.f),
+        building->GetActorLocation(),
         building->GetActorRotation()
     );
 }

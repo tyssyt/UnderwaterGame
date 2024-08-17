@@ -55,7 +55,7 @@ UEncyclopediaPageBuilding* UEncyclopediaPageBuilding::Init(UConstructionPlan* bu
 
     {
         Recipes->ClearChildren();
-        for (const auto recipe : encyclopedia->GetRecipes(building->BuildingClass))
+        for (const auto recipe : encyclopedia->GetRecipes(building))
             Recipes->AddChildToVerticalBox(
             CreateWidget<URecipeWithBuildingUI>(GetOwningPlayer(), RecipeWithBuildingUIClass)->Init(recipe));
         if (Recipes->GetChildrenCount() == 0)

@@ -12,22 +12,24 @@ struct Material;
 class UComponentLoader;
 
 struct PropertyInfo {
+    UFunction* Function;
     FProperty* Property;
     bool Required;
+    void* DefaultValue;
 };
 
 struct XD_API MaterialRef {
-    MaterialRef(UResource* resource, FIntProperty* amountRef) : Resource(resource), AmountRef(amountRef) {}
+    MaterialRef(UResource* resource, PropertyInfo* amountRef) : Resource(resource), AmountRef(amountRef) {}
     UResource* Resource;
-    FIntProperty* AmountRef;
+    PropertyInfo* AmountRef;
 };
 
 UCLASS()
 class XD_API UComponentInfo : public UObject {
     GENERATED_BODY()
 
-public:    
-    enum class AddPropertyResult { Success, UnknownProperty, DuplicateProperty };
+public:
+    virtual ~UComponentInfo() override;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Name;
@@ -41,8 +43,8 @@ public:
     TArray<MaterialRef> Needs;
     
     UComponentInfo* Init(const FText& name, const TSubclassOf<UActorComponent> componentClass);
-    AddPropertyResult AddProperty(const FString& name, bool required);
-    void AddNeed(UResource* resource, FIntProperty* amountRef);
+    void AddProperty(const FString& name, UFunction* setter, FProperty* prop, bool required, void* defaultValue);
+    void AddNeed(UResource* resource, PropertyInfo* amountRef);
 };
 
 UCLASS()
@@ -50,7 +52,7 @@ class XD_API UComponentLoader : public UObject {
     GENERATED_BODY()
 
 protected:
-    TMap<FProperty*, void*> PropertyValues;
+    TMap<PropertyInfo*, void*> PropertyValues;
 
 public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -59,14 +61,14 @@ public:
     UComponentLoader* Init(UComponentInfo* componentInfo);
     virtual ~UComponentLoader() override;
 
-    void SetProperty(FProperty* property, void* value);
+    void SetProperty(PropertyInfo* property, void* value);
 
     UActorComponent* AddComponentToBuilding(ABuilding* building) const;
 
     TArray<Material> GetNeeds();
 
     template<class T>
-    T* GetValue(FProperty* property) {
+    T* GetValue(PropertyInfo* property) {
         return static_cast<T*>(*PropertyValues.Find(property));
     }
 };

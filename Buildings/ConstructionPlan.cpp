@@ -2,6 +2,8 @@
 
 #include "ConstructionPlan.h"
 
+#include "IndoorBuilding.h"
+
 Material::Material() : amount(0), resource(nullptr) {}
 Material::Material(int amount, UResource* resource) : amount(amount), resource(resource) {}
 
@@ -38,6 +40,14 @@ void Material::RemoveFrom(TArray<Material>& to, const Material& mat) {
     }
 }
 
+TArray<Coordinate> rotate(TArray<Coordinate>& shape) {
+    TArray<Coordinate> rotated;
+    for (const auto coord : shape)
+        rotated.Emplace(-coord.Value, coord.Key);
+    rotated.Shrink();
+    return MoveTemp(rotated);
+}
+
 UConstructionPlan* UConstructionPlan::Init(
     UClass* buildingClass,
     const FText& name,
@@ -46,6 +56,7 @@ UConstructionPlan* UConstructionPlan::Init(
     const int time,
     UNaturalResource* constructedOn,
     const TArray<Material>& materials,
+    const TArray<Coordinate> shape,
     const FText& category,
     const FText& description
 ) {
@@ -60,11 +71,21 @@ UConstructionPlan* UConstructionPlan::Init(
 
     Image = LoadObject<UTexture2D>(nullptr, image);
     if (!Image)
-        UE_LOG(LogTemp, Error, TEXT("Failed to load %s"), image);
+        UE_LOG(LogTemp, Warning, TEXT("Failed to load %s"), image);
 
     ComponentLoaders = componentLoaders;
     ConstructedOn = constructedOn;
-    Materials = materials ;
+    Materials = materials;
+
+    if (buildingClass->IsChildOf(AIndoorBuilding::StaticClass()) && shape.IsEmpty()) {
+        UE_LOG(LogTemp, Error, TEXT("Indoor Building %s does not specify Shape"), *name.ToString());
+        return nullptr;
+    }
+    Shape[0] = shape;
+    Shape[1] = rotate(Shape[0]);
+    Shape[2] = rotate(Shape[1]);
+    Shape[3] = rotate(Shape[2]);
+
     Category = category;
     Description = description;
     return this;

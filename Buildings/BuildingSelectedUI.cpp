@@ -9,14 +9,9 @@
 UBuildingSelectedUI* UBuildingSelectedUI::Init(ABuilding* actor) {
     const auto encyclopedia = The::Encyclopedia(actor);
 
-    const auto constructionPlan = encyclopedia->GetBuilding(actor->GetClass());
-    check(constructionPlan);
-    if (!constructionPlan)
-        return nullptr;
-
     Selected = actor;
-    Building->Init(constructionPlan);
-    Name->SetText(constructionPlan->Name);
+    Building->Init(actor->GetConstructionPlan());
+    Name->SetText(actor->GetConstructionPlan()->Name);
 
     actor->InitSelectedUI(Components);
     for (const auto component : Components)

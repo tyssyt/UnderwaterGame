@@ -24,8 +24,8 @@ void AIndoorBuilding::Rotate() {
     Orientation = static_cast<EGridOrientation>(i);
 }
 
-const TArray<Coordinate>* AIndoorBuilding::GetGridOffsets() {
-    return nullptr; // should be overriden by child classes
+TArray<Coordinate>* AIndoorBuilding::GetGridOffsets() {
+    return &ConstructionPlan->Shape[static_cast<int>(Orientation)];
 }
 
 void AIndoorBuilding::SetCoordinates(int x, int y, AHabitat* habitat) {

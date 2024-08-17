@@ -34,11 +34,9 @@ protected:
     TArray<UNeedSatisfier*> NeedSatisfiers;
 
     UPROPERTY()
-    TMap<UClass*, UConstructionPlan*> ClassToBuildings;
-    UPROPERTY()
     TMap<UClass*, UNaturalResource*> ClassToNaturalResources;
     
-    TMap<UClass*, TArray<URecipe*>> RecipesByBuilding;
+    TMap<UConstructionPlan*, TArray<URecipe*>> RecipesByBuilding;
     TMap<UResource*, TArray<URecipe*>> RecipesByIngredient;
     TMap<UResource*, TArray<URecipe*>> RecipesByResult;
     TMap<UResource*, TArray<UConstructionPlan*>> BuildingByMaterial;
@@ -88,9 +86,8 @@ public:
     TArray<UNeed*>& GetAllNeeds() { return Needs; }
 
     UNaturalResource* GetNaturalResource(const UClass* building);
-    UConstructionPlan* GetBuilding(const UClass* building);
 
-    TArray<URecipe*>& GetRecipes(UClass* building);
+    TArray<URecipe*>& GetRecipes(UConstructionPlan* building);
     TArray<URecipe*>& GetRecipesByIngredient(UResource* resource);
     TArray<URecipe*>& GetRecipesByResult(UResource* resource);
     TArray<UConstructionPlan*>& GetBuildingsByMaterial(UResource* resource);

@@ -13,7 +13,7 @@
 UBuildingBuilderMode* UBuildingBuilderMode::Init(UConstructionPlan* constructionPlan) {
     PreInit();
     ConstructionPlan = constructionPlan;
-    Preview = GetWorld()->SpawnActor<ABuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
+    Preview = ABuilding::Spawn(GetWorld(), constructionPlan);
     Preview->AddCondition(NewObject<UInBuilderMode>(this)->WithSource(this));
 
     TInlineComponentArray<UStaticMeshComponent*> meshes;

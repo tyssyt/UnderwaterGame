@@ -8,7 +8,6 @@
 #include "IndoorBuilding.generated.h"
 
 class AHabitat;
-typedef TPair<int, int> Coordinate;
 
 enum class EGridOrientation { North, East, West, South };
 
@@ -24,7 +23,7 @@ public:
     EGridOrientation Orientation;
 
     void Rotate();
-    virtual const TArray<Coordinate>* GetGridOffsets();
+    TArray<Coordinate>* GetGridOffsets();
     virtual void SetCoordinates(int x, int y, AHabitat* habitat);
 
     AIndoorBuilding();

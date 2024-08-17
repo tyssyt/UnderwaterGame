@@ -11,7 +11,7 @@
 UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan) {
     PreInit();
     ConstructionPlan = constructionPlan;
-    Preview = GetWorld()->SpawnActor<AIndoorBuilding>(constructionPlan->BuildingClass)->Init(constructionPlan);
+    Preview = Cast<AIndoorBuilding>(ABuilding::Spawn(GetWorld(), constructionPlan));
     Preview->AddCondition(NewObject<UInBuilderMode>(this)->WithSource(this));
     
     const auto playerController = The::PlayerController(this);
@@ -30,6 +30,8 @@ UIndoorBuilderMode* UIndoorBuilderMode::Init(UConstructionPlan* constructionPlan
     // bind keys
     const auto inputComponent = playerController->InputComponent;
     inputComponent->BindAction("Select", IE_Pressed, this, &UIndoorBuilderMode::ConfirmPosition);
+    inputComponent->BindAction("RotateBlueprint90", IE_Pressed, this, &UIndoorBuilderMode::Rotate);
+
     return this;
 }
 
@@ -120,6 +122,7 @@ void UIndoorBuilderMode::Stop(bool cancelled) {
     // undo all input bindings
     const TObjectPtr<UInputComponent> inputComponent = playerController->InputComponent;
     inputComponent->RemoveActionBinding("Select", IE_Pressed);
+    inputComponent->RemoveActionBinding("RotateBlueprint90", IE_Pressed);
 }
 
 UClass* UIndoorBuilderMode::IDK() {
@@ -141,4 +144,8 @@ void UIndoorBuilderMode::SetBuildable() {
     Buildable = true;
     Preview->SetActorHiddenInGame(false);
     Preview->RemoveCondition(HighlightedInvalid);
+}
+
+void UIndoorBuilderMode::Rotate() {
+    Preview->Rotate();
 }

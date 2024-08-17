@@ -30,8 +30,6 @@ public:
     
     static constexpr int RESIDENT_LIMIT = 20;
 
-    virtual const TArray<Coordinate>* GetGridOffsets() override;
-
     virtual void InitSelectedUI(TArray<UBuildingSelectedUIComponent*>& components) override;
 };
 

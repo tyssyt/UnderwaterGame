@@ -22,5 +22,11 @@ public:
     UConveyorGate();
 
     bool IsInput() const { return bIsInput; }
+    UFUNCTION()
     void SetInput(bool isInput) { bIsInput = isInput; }
+
+    UFUNCTION()
+    void SetLocation(FVector location) { SetRelativeLocation(location); }
+    UFUNCTION()
+    void SetRotation(double rotation) { SetRelativeRotation(FRotator(0., rotation, 0.)); }
 };

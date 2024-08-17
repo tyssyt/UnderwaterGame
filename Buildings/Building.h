@@ -58,12 +58,18 @@ class XD_API ABuilding : public AXActor {
 
 protected:
     UPROPERTY()
-    TArray<UCondition*> Conditions;
+    TArray<UCondition*> Conditions;    
+    UPROPERTY()
+    UConstructionPlan* ConstructionPlan;
+    
+    virtual ABuilding* Init(UConstructionPlan* constructionPlan);
 
 public:
+    static ABuilding* Spawn(UWorld* world, UConstructionPlan* constructionPlan);
     ABuilding() {}
 
-    virtual ABuilding* Init(UConstructionPlan* constructionPlan);
+    UConstructionPlan* GetConstructionPlan() { return ConstructionPlan; }
+
     virtual void OnConstructionComplete(UBuilderModeExtensions* extensions);
     virtual void OnDismantleStart();
     virtual void OnDismantleFinish();

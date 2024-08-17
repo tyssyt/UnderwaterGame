@@ -35,4 +35,6 @@ private:
     void SetInvisible();
     void SetNotBuildable();
     void SetBuildable();
+
+    void Rotate();
 };
