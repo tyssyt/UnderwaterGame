@@ -53,6 +53,8 @@ public:
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UConstructionUI> ConstructionUIClass;
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UConstructionSiteUI> ConstructionSiteUIClass;
 
     // TODO move into parent blueprint, also consider implementing in pure c++
     UPROPERTY(EditDefaultsOnly)

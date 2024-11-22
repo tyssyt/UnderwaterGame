@@ -68,13 +68,16 @@ void APlayerControllerX::TickUI() const {
         SelectedUI->Tick();
 }
 
-void APlayerControllerX::UpdateSelected(AXActor* actor) {
-    USelectedUI* ui = BlueprintHolder->GetUI(actor);
+void APlayerControllerX::Select(USelectedUI* ui) {    
     if (ui && SelectedUI != ui) {
         SelectedUI = ui;
         //		ui->Tick();
         BlueprintHolder->MainUI->SetContentForSlot(TEXT("Selection"), ui);
     }
+}
+
+void APlayerControllerX::UpdateSelected(AXActor* actor) {
+    Select(BlueprintHolder->GetUI(actor));
 }
 
 void APlayerControllerX::Deselect() {

@@ -256,6 +256,7 @@ void UBuildingBuilderMode::OnClickConfirm() {
 
     // create and add construction site
     NewObject<UConstructionSite>(Preview)->Init(Preview, ConstructionPlan, Extensions)->QueueTasks();
+    The::PlayerController(this)->UpdateSelected(Preview);
 }
 
 void UBuildingBuilderMode::OnClickCancel() {

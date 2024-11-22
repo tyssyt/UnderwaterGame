@@ -4,6 +4,8 @@
 
 #include "ConstructionManager.h"
 #include "The.h"
+#include "XD/BlueprintHolder.h"
+#include "XD/PlayerControllerX.h"
 #include "XD/Buildings/Habitat.h"
 #include "XD/Buildings/IndoorBuilding.h"
 
@@ -11,6 +13,17 @@ UUnderConstruction::UUnderConstruction() {
     const static ConstructorHelpers::FObjectFinder<UMaterial> ConstructionOverlayFinder(TEXT("/Game/Assets/Materials/GhostMaterials/ConstructionOverlay"));
     OverlayMaterial = UMaterialInstanceDynamic::Create(ConstructionOverlayFinder.Object, this, FName(TEXT("ConstructionOverlay Material")));
     Type = EType::NonInteractable;
+}
+
+USelectedUI* UUnderConstruction::GetSelectedUI() {
+    if (Ui == nullptr) {
+        const auto constructionSite = Cast<UConstructionSite>(Source);
+        Ui = CreateWidget<UConstructionSiteUI>(
+            The::PlayerController(constructionSite),
+            The::BPHolder(constructionSite)->ConstructionSiteUIClass
+        )->Init(constructionSite);
+    }
+    return Ui;
 }
 
 void UUnderConstruction::SetProgress(float progress) const {   
@@ -31,6 +44,15 @@ UConstructionSite* UConstructionSite::Init(ABuilding* building, int time, const 
     Condition = Cast<UUnderConstruction>(NewObject<UUnderConstruction>(this)->WithSource(this));
     building->AddCondition(Condition);
     return this;
+}
+
+bool UConstructionSite::IsDelivered(const UResource* resource) {
+    check(Material::Find(Materials, resource));
+
+    for (const auto task : Tasks)
+        if (task->RequiredMaterial.resource == resource && task->NextCommand != UDeliverResource::EState::Done)
+            return false;
+    return true;
 }
 
 void UConstructionSite::QueueTasks() {
@@ -72,6 +94,7 @@ void UConstructionSite::FinishConstruction() {
     State = EState::Finished;
     Building->RemoveConditions(this);
     Building->OnConstructionComplete(Extensions);
+    The::PlayerController(this)->UpdateSelected(Building);
 }
 
 void UDeliverResource::PickupMaterial() const {

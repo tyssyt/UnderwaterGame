@@ -99,6 +99,7 @@ void UIndoorBuilderMode::ConfirmPosition() {
     Preview->RemoveConditions(this);
     Preview->Habitat->PlaceBuilding(Preview);
     NewObject<UConstructionSite>(Preview)->Init(Preview, ConstructionPlan, Extensions)->QueueTasks();
+    The::PlayerController(this)->UpdateSelected(Preview);
     Preview = nullptr;
 }
 

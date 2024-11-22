@@ -30,8 +30,6 @@ protected:
     UMaterialInterface* Material;
     UPROPERTY()
     UMaterialInterface* OverlayMaterial;
-    UPROPERTY()
-    USelectedUI* SelectedUI; // only for Type NonInteractable
     EType Type;
     // TODO maybe a text that shows when hovered
     // TODO maybe even a link into the encyclopedia
@@ -46,7 +44,7 @@ public:
     UTexture2D* GetSymbol() const { return Symbol; }
     UMaterialInterface* GetMaterial() const { return Material; }
     UMaterialInterface* GetOverlayMaterial() const { return OverlayMaterial; }
-    USelectedUI* GetSelectedUI() const { return SelectedUI; }
+    virtual USelectedUI* GetSelectedUI() { return nullptr; } // only for Type NonInteractable
     EType GetType() const { return Type; }
 
     bool DisablesTick() const;

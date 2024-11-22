@@ -32,6 +32,7 @@ public:
     void TickUI() const;
 
     void ShowMouseCursor(bool isControlledByMouse);
+    void Select(USelectedUI* ui);
     void UpdateSelected(AXActor* actor);
     void Deselect();
 

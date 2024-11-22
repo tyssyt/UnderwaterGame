@@ -11,8 +11,12 @@ class UDeliverResource;
 UCLASS()
 class UUnderConstruction : public UCondition {
     GENERATED_BODY()
+protected:
+    USelectedUI* Ui;
+    
 public:
     UUnderConstruction();
+    virtual USelectedUI* GetSelectedUI() override;
     void SetProgress(float progress) const;
 };
 
@@ -43,6 +47,8 @@ public:
     UConstructionSite* Init(ABuilding* building, const UConstructionPlan* constructionPlan, UBuilderModeExtensions* extensions); 
     UConstructionSite* Init(ABuilding* building, int time, const TArray<Material>& materials, UBuilderModeExtensions* extensions);
 
+    bool IsDelivered(const UResource* resource);
+    
     void QueueTasks();
     void StartConstruction();
 

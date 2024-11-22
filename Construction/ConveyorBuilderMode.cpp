@@ -827,7 +827,8 @@ void UConveyorBuilderMode::OnClickConfirm() {
         1, // TODO make time scale with length, or better do a cool building animation where the ship flies along the conveyor
         AConveyor::ComputeCosts(nodes, AConveyor::ESourceTargetType::Building, AConveyor::ESourceTargetType::Building, encyclopedia),
         NewObject<UBuilderModeExtensions>()
-    )->QueueTasks(); 
+    )->QueueTasks();
+    The::PlayerController(this)->UpdateSelected(conveyor);
 
     Stop(false);
 }
