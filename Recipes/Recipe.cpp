@@ -7,7 +7,7 @@
 
 bool HasProductionComponent(UConstructionPlan* building) {
     for (const auto component : building->ComponentLoaders)
-        if (component->ComponentInfo->ComponentClass == UProductionComponent::StaticClass())
+        if (component->ComponentInfo->GetClassInfo()->GetBaseClass() == UProductionComponent::StaticClass())
             return true;
     return false;
 }

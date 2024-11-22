@@ -9,6 +9,7 @@ void UBlueprintHolder::Init(APlayerController* controller) {
 
     MainUI = CreateWidget<UMainUI>(controller, MainUIClass);
     EncyclopediaUI = CreateWidget<UEncyclopediaUI>(controller, EncyclopediaUIClass);
+    MapUI = CreateWidget<UMapUI>(controller, MapUIClass);
     ConveyorUI = CreateWidget<UConveyorUI>(controller, ConveyorUIClass);
     PowerOverlayUI = CreateWidget<UPowerOverlayUI>(controller, PowerOverlayUIClass);
 }

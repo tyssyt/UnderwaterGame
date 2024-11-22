@@ -12,6 +12,7 @@ UEncyclopedia* UEncyclopedia::Init(
     TMap<FString, UResource*>& resources,
     TMap<FString, UNaturalResource*>& naturalResources,
     TMap<FString, UConstructionPlan*>& buildings,
+    TMap<FString, UEvent*>& events,
     const TArray<URecipe*>& recipes,
     TMap<FString, UNeed*>& needs,
     const TArray<UNeedSatisfier*>& needSatisfiers
@@ -22,6 +23,8 @@ UEncyclopedia* UEncyclopedia::Init(
         NaturalResources.Add(naturalResource.Value);
     for (const auto& building : buildings)
         Buildings.Add(building.Value);
+    for (const auto& event : events)
+        Events.Add(event.Value);
     Recipes.Append(recipes);
 
     for (const auto& need : needs)
@@ -105,7 +108,6 @@ TArray<URecipe*>& UEncyclopedia::GetRecipesByIngredient(UResource* resource) {
 TArray<URecipe*>& UEncyclopedia::GetRecipesByResult(UResource* resource) {
     return MultiMaps::Find(RecipesByResult, resource);
 }
-
 
 TArray<UConstructionPlan*>& UEncyclopedia::GetBuildingsByMaterial(UResource* resource) {
     return MultiMaps::Find(BuildingByMaterial, resource);

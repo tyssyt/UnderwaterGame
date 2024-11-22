@@ -13,6 +13,7 @@ class UResource;
 class UConstructionPlan;
 class UNeed;
 class UNeedSatisfier;
+class UEvent;
 
 UCLASS()
 class XD_API UEncyclopedia : public UObject {
@@ -32,6 +33,8 @@ protected:
     TArray<UNeed*> Needs;
     UPROPERTY()
     TArray<UNeedSatisfier*> NeedSatisfiers;
+    UPROPERTY()
+    TArray<UEvent*> Events;
 
     UPROPERTY()
     TMap<UClass*, UNaturalResource*> ClassToNaturalResources;
@@ -54,6 +57,7 @@ public:
         TMap<FString, UResource*>& resources,
         TMap<FString, UNaturalResource*>& naturalResources,
         TMap<FString, UConstructionPlan*>& buildings,
+        TMap<FString, UEvent*>& events,
         const TArray<URecipe*>& recipes,
         TMap<FString, UNeed*>& needs,
         const TArray<UNeedSatisfier*>& needSatisfiers
@@ -84,6 +88,7 @@ public:
     TArray<UConstructionPlan*>& GetAllBuildings() { return Buildings; }
     TArray<URecipe*>& GetAllRecipes() { return Recipes; }
     TArray<UNeed*>& GetAllNeeds() { return Needs; }
+    TArray<UEvent*>& GetAllEvents() { return Events; }
 
     UNaturalResource* GetNaturalResource(const UClass* building);
 

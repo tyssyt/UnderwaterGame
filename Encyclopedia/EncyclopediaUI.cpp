@@ -41,6 +41,12 @@ UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddNeedPage(const UEncyclopediaCat
         EncyclopediaPageNeedClass)->Init(need, Encyclopedia);
     return AddPage(category, need->Name, page);
 }
+UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddEventPage(const UEncyclopediaCategory* category, UEvent* event) {    
+    const auto page = CreateWidget<UEncyclopediaPageEvent>(
+        GetOwningPlayer(),
+        EncyclopediaPageEventClass)->Init(event);
+    return AddPage(category, event->Name, page);
+}
 UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddTextPage(const UEncyclopediaCategory* category, const FText& title, const FText& text) {
     const auto page = CreateWidget<UEncyclopediaPageText>(
     GetOwningPlayer(),
@@ -177,6 +183,12 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
                     building->EncyclopediaEntry = CreateAndAddBuildingPage(category, building);
             }
         }
+    }
+
+    {
+        const auto events = AddCategory(TEXT("Events"));        
+        for (const auto event : encyclopedia->GetAllEvents())
+            event->EncyclopediaEntry = CreateAndAddEventPage(events, event);
     }
 
     CollapseAll();

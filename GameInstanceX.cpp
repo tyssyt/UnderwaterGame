@@ -11,6 +11,7 @@ void UGameInstanceX::Init() {
     TheConstructionManager = NewObject<UConstructionManager>(this);
     TheElectricityManager = NewObject<UElectricityManager>(this);
     ThePopulationManager = NewObject<UBiomePopulationManager>(this);
+    TheMap = NewObject<UMap>(this)->Init();
     TheCheats = NewObject<UCheats>(this);
     TheTickTimer = NewObject<UTickTimer>(this);
 }

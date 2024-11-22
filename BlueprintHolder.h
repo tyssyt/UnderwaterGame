@@ -11,10 +11,12 @@
 #include "Buildings/BuildingSelectedUI.h"
 #include "Buildings/ConditionListUI.h"
 #include "Buildings/Substation.h"
+#include "Construction/ConstructionSiteUI.h"
 #include "Construction/ConstructionUI.h"
 #include "Electricity/PowerOverlayUI.h"
 #include "Encyclopedia/EncyclopediaUI.h"
 #include "Inventory/InventoryUI.h"
+#include "Map/MapUI.h"
 #include "NaturalResources/NaturalResourceSelectedUI.h"
 #include "PopulationManager/NeedsSummaryUI.h"
 #include "Recipes/RecipeSelectorUI.h"
@@ -34,6 +36,11 @@ public:
     TSubclassOf<UEncyclopediaUI> EncyclopediaUIClass;
     UPROPERTY(BlueprintReadOnly)
     UEncyclopediaUI* EncyclopediaUI;
+    
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UMapUI> MapUIClass;
+    UPROPERTY(BlueprintReadOnly)
+    UMapUI* MapUI;
 
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UNaturalResourceSelectedUI> NaturalResourceUIClass;
@@ -55,6 +62,9 @@ public:
     TSubclassOf<UConstructionUI> ConstructionUIClass;
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<UConstructionSiteUI> ConstructionSiteUIClass;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UEventUI> UEventUIClass;
 
     // TODO move into parent blueprint, also consider implementing in pure c++
     UPROPERTY(EditDefaultsOnly)

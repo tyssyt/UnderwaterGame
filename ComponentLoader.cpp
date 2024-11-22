@@ -5,23 +5,10 @@
 #include "ComponentX.h"
 #include "Buildings/Building.h"
 
-UComponentInfo::~UComponentInfo() {
-    for (const auto& property : Properties)
-        if (property.Value.DefaultValue && property.Value.Property->IsA<FObjectProperty>())
-            static_cast<UObject*>(property.Value.DefaultValue)->RemoveFromRoot();
-}
-
-UComponentInfo* UComponentInfo::Init(const FText& name, const TSubclassOf<UActorComponent> componentClass) {
+UComponentInfo* UComponentInfo::Init(const FText& name, UClassInfo* classInfo) {
     Name = name;
-    ComponentClass = componentClass;
+    ClassInfo = classInfo;
     return this;
-}
-
-void UComponentInfo::AddProperty(const FString& name, UFunction* setter, FProperty* prop, bool required, void* defaultValue) {    
-    if (defaultValue && prop->IsA<FObjectProperty>())
-        static_cast<UObject*>(defaultValue)->AddToRoot();
-
-    Properties.Emplace(name, {setter, prop, required, defaultValue});
 }
 
 void UComponentInfo::AddNeed(UResource* resource, PropertyInfo* amountRef) {    
@@ -47,23 +34,8 @@ void UComponentLoader::SetProperty(PropertyInfo* property, void* value) {
     PropertyValues.Add(property, value);
 }
 
-void CopyValue(FProperty* prop, void* container, void* val) {
-    if (prop->IsA<FObjectProperty>())
-        prop->CopySingleValue(prop->ContainerPtrToValuePtr<void>(container), &val);
-    else
-        prop->CopySingleValue(prop->ContainerPtrToValuePtr<void>(container), val);
-}
-
-void CallSingleParamFunction(UFunction* function, UObject* self, FProperty* param, void* arg) {
-    uint8* params = static_cast<uint8*>(FMemory_Alloca(function->ParmsSize));
-    FMemory::Memzero(params, function->ParmsSize);
-    CopyValue(param, params, arg);
-
-    self->ProcessEvent(function, params);
-}
-
 UActorComponent* UComponentLoader::AddComponentToBuilding(ABuilding* building) const {
-    const auto component = NewObject<UActorComponent>(building, ComponentInfo->ComponentClass);
+    const auto component = NewObject<UActorComponent>(building, ComponentInfo->GetClassInfo()->GetBaseClass());
     if (const auto componentX = Cast<UComponentX>(component))
         componentX->Init(ComponentInfo);
     component->RegisterComponent(); // TODO figure out what this does and when it is needed
@@ -78,12 +50,8 @@ UActorComponent* UComponentLoader::AddComponentToBuilding(ABuilding* building) c
             building->SetRootComponent(sceneComponent);
     }
 
-    for (const auto& val : PropertyValues) {
-        if (const auto function = val.Key->Function)
-            CallSingleParamFunction(function, component, val.Key->Property, val.Value);
-        else if (const auto prop = val.Key->Property)
-            CopyValue(prop, component, val.Value);
-    }
+    for (const auto& val : PropertyValues)
+        val.Key->SetValueIn(component, val.Value);
     return component;
 }
 

@@ -2,6 +2,8 @@
 
 
 #include "Blueprint/WidgetTree.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
+#include "Components/TextBlock.h"
 
 USizeBox* UX::Sized(UWidgetTree* tree, UWidget* inner, float width, float height) {
     if (const auto innerSizeBox = Cast<USizeBox>(inner)) {
@@ -51,4 +53,25 @@ UButton* UX::CreateImageButton(UWidgetTree* tree, UTexture2D* texture, FVector2d
     }
     button->SetStyle(style);
     return button;
+}
+
+UBorder* UX::CreateToken(UWidgetTree* tree, const FText& text) {
+    const auto textBlock = tree->ConstructWidget<UTextBlock>();
+    textBlock->SetText(text);
+    auto font = textBlock->GetFont();
+    font.Size = 12;
+    textBlock->SetFont(font);
+    textBlock->SetJustification(ETextJustify::Center);
+
+    const auto border = tree->ConstructWidget<UBorder>();
+    border->SetBrush(FSlateRoundedBoxBrush(
+        FLinearColor(0.f, 0.1f, 0.6f),
+        FLinearColor(1.f, 1.f, 1.f),
+        2.f
+    ));
+
+    border->SetContent(textBlock);
+    border->SetHorizontalAlignment(HAlign_Center);
+    border->SetVerticalAlignment(VAlign_Center);
+    return border;
 }

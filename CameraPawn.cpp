@@ -79,6 +79,9 @@ void ACameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("OpenEncyclopedia", EKeys::B));
     PlayerInputComponent->BindAction("OpenEncyclopedia", EInputEvent::IE_Pressed, this, &ACameraPawn::OpenEncyclopedia);
 
+    UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("OpenMap", EKeys::M));
+    PlayerInputComponent->BindAction("OpenMap", EInputEvent::IE_Pressed, this, &ACameraPawn::OpenMap);
+
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("Hotbar1", EKeys::One));
     PlayerInputComponent->BindAction("Hotbar1", EInputEvent::IE_Pressed, this, &ACameraPawn::Hotbar1);
     UPlayerInput::AddEngineDefinedActionMapping(FInputActionKeyMapping("Hotbar2", EKeys::Two));
@@ -199,6 +202,10 @@ void ACameraPawn::TogglePowerOverlay() {
 
 void ACameraPawn::OpenEncyclopedia() {
     The::BPHolder(this)->EncyclopediaUI->Open();
+}
+
+void ACameraPawn::OpenMap() {
+    The::BPHolder(this)->MapUI->Open();
 }
 
 void ACameraPawn::ActivateHotbar(const int i) const {

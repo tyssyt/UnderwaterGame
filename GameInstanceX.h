@@ -10,6 +10,7 @@
 #include "Electricity/ElectricityManager.h"
 #include "Encyclopedia/Encyclopedia.h"
 #include "Engine/GameInstance.h"
+#include "Map/Map.h"
 #include "PopulationManager/BiomePopulationManager.h"
 #include "GameInstanceX.generated.h"
 
@@ -36,6 +37,9 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UBiomePopulationManager* ThePopulationManager;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    UMap* TheMap;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UCheats* TheCheats;

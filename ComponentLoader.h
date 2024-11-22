@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ClassInfo.h"
 #include "Resources/Resource.h"
 #include "UObject/Object.h"
 #include "ComponentLoader.generated.h"
@@ -11,12 +12,6 @@ class ABuilding;
 struct Material;
 class UComponentLoader;
 
-struct PropertyInfo {
-    UFunction* Function;
-    FProperty* Property;
-    bool Required;
-    void* DefaultValue;
-};
 
 struct XD_API MaterialRef {
     MaterialRef(UResource* resource, PropertyInfo* amountRef) : Resource(resource), AmountRef(amountRef) {}
@@ -28,22 +23,21 @@ UCLASS()
 class XD_API UComponentInfo : public UObject {
     GENERATED_BODY()
 
-public:
-    virtual ~UComponentInfo() override;
-
+protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FText Name;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    TSubclassOf<UActorComponent> ComponentClass;
+    UClassInfo* ClassInfo;
 
-    TMap<FString, PropertyInfo> Properties;
-
+public:
     // TODO consider renaming, because need is now used for the population growth needs
     TArray<MaterialRef> Needs;
+
+    UComponentInfo* Init(const FText& name, UClassInfo* classInfo);
+
+    UClassInfo* GetClassInfo() const { return ClassInfo; }
     
-    UComponentInfo* Init(const FText& name, const TSubclassOf<UActorComponent> componentClass);
-    void AddProperty(const FString& name, UFunction* setter, FProperty* prop, bool required, void* defaultValue);
     void AddNeed(UResource* resource, PropertyInfo* amountRef);
 };
 

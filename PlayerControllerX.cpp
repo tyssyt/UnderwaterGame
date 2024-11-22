@@ -18,30 +18,83 @@ void APlayerControllerX::BeginPlay() {
     BlueprintHolder->MainUI->AddToViewport();
 
     // TODO there probably is a better place to put this, but for now it can live here
-    auto loadedData = ConfigLoader::Load(BlueprintHolder->MainUI->HotbarDock);
+    auto loadedData = ConfigLoader::Load(BlueprintHolder->MainUI->HotbarDock, GetWorld());
     GetGameInstance<UGameInstanceX>()->TheEncyclopedia = loadedData.Key;
-    UEncyclopedia* encyclopedia = The::Encyclopedia(this);
+    const auto encyclopedia = The::Encyclopedia(this);
     BlueprintHolder->EncyclopediaUI->Fill(encyclopedia, loadedData.Value);
     UConstructionManager* constructionManager = The::ConstructionManager(this);
     constructionManager->ConstructionResources->SetResources(encyclopedia->FindConstructionResources());
 
+    // generate map
+    {
+        const auto map = The::Map(this);
+        BlueprintHolder->MapUI->Init();
+
+        const auto startChunk = map->CurrentChunk;
+        constexpr int startSector = UMapChunk::CHUNK_SIZE/2;
+
+        startChunk->Reveal(startSector,startSector);
+        map->AddScout({ startChunk, startSector, startSector });
+
+        int i = 5;
+        for (const auto event : encyclopedia->GetAllEvents()) {
+            UE_LOG(LogTemp, Error, TEXT("Creating Event %s at: (%i,%d)"), *event->Name.ToString(), i, 5);
+            event->CreateInstance({startChunk, i++, 6});
+        }
+    }
+
+    // replace pre placed Buildings
+    {
+        TArray<ABuilding*> buildings;
+        for (const auto building : TActorRange<ABuilding>(GetWorld()))
+            buildings.Add(building);
+
+        for (const auto preplaced : buildings) {            
+            UConstructionPlan* constructionPlan = nullptr;
+            for (const auto c : encyclopedia->GetAllBuildings()) {
+                if (c->BuildingClass == preplaced->GetClass()) {
+                    constructionPlan = c;
+                    break;
+                }
+            }
+            if (!constructionPlan) {
+                UE_LOG(LogTemp, Error, TEXT("Could not find construction Plan for preplaced building %s"), *preplaced->GetName());
+                continue;
+            }
+
+            const auto newBuilding = ABuilding::Spawn(GetWorld(), constructionPlan);
+            newBuilding->SetActorLocation(preplaced->GetActorLocation());
+            newBuilding->SetActorRotation(preplaced->GetActorRotation());
+            preplaced->Destroy();
+        }
+    }
+
     // generate initial resources
-    for (const auto ship : TActorRange<ABuilderShip>(GetWorld())) 
-        constructionManager->AddIdleBuilder(ship);
-    
-    TActorIterator<APickupPad> it(GetWorld());
-    constructionManager->AddPickupPad(*it);
-    
-    int i = 0;
-    for (const auto& startResource : encyclopedia->GetStartResources()) {
-        auto& slot = it->Inventory->GetInputs()[i];
-        slot.Current = startResource.Value;
-        slot.Resource = startResource.Key;
-        i++;
-        if (i == 4) {
-            i = 0;
-            ++it;
+    {
+        for (const auto ship : TActorRange<ABuilderShip>(GetWorld())) 
+            constructionManager->AddIdleBuilder(ship);
+
+
+        TActorIterator<APickupPad> it(GetWorld());
+        constructionManager->AddPickupPad(*it);
+
+        int i = 0;
+        for (const auto& startResource : encyclopedia->GetStartResources()) {
+            auto& slot = it->Inventory->GetInputs()[i];
+            slot.Current = startResource.Value;
+            slot.Resource = startResource.Key;
+            i++;
+            if (i == 4) {
+                i = 0;
+                ++it;
+                constructionManager->AddPickupPad(*it);
+            }
+        }
+
+        ++it;
+        while (it) {
             constructionManager->AddPickupPad(*it);
+            ++it;
         }
     }
 }

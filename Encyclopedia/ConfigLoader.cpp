@@ -17,6 +17,12 @@
 // TODO use one error mechanism like a result class or exceptions and use it everywhere in here instead of mix & match
 DEFINE_LOG_CATEGORY(LogConfigLoader);
 
+struct RewardInfo {
+    FText Name;
+    TSubclassOf<UReward> RewardClass;
+    TMap<FString, PropertyInfo> Properties;
+};
+
 struct Config {
     UObject* ObjOwner;
     APlayerControllerX* UIOwner;
@@ -29,6 +35,8 @@ struct Config {
     TMap<FString, UResource*> Resources;
     TMap<FString, UNaturalResource*> NaturalResources;
     TMap<FString, UConstructionPlan*> Buildings;
+    TMap<FString, UEvent*> Events;
+    TMap<FString, UClassInfo*> Rewards;
     TArray<URecipe*> Recipes;
     TMap<FString, UHotbar*> Hotbars;
     UHotbar* MainHotbar;
@@ -75,6 +83,10 @@ void* LoadFPropertyValue(const FYamlNode& node, FProperty* prop) {
         return new float(node.As<float>());
     if (const auto _ = ExactCastField<FDoubleProperty>(prop))
         return new double(node.As<double>());
+    if (const auto enumProperty = CastField<FEnumProperty>(prop)) {
+        const auto val = enumProperty->GetEnum()->GetValueByNameString(*node.As<FString>(), EGetByNameFlags::ErrorIfNotFound);
+        return new int64(val);
+    }
     if (const auto objProperty = CastField<FObjectProperty>(prop)) {
         const auto obj = StaticLoadObject(objProperty->PropertyClass, nullptr, *node.As<FString>());
         return obj;        
@@ -102,6 +114,39 @@ void* LoadFPropertyValue(const FYamlNode& node, FProperty* prop) {
     return nullptr;
 }
 
+UClass* LoadClass(const FYamlNode& node) {
+    UClass* uClass = FindFirstObjectSafe<UClass>(*node.As<FString>(), EFindFirstObjectOptions::EnsureIfAmbiguous, ELogVerbosity::Warning);
+    if (!uClass)
+        UE_LOG(LogConfigLoader, Error, TEXT("Failed to load UClass: %s in Block: %s, which starts on line %d"), *node["Class"].As<FString>(), *node.GetContent(), node.GetMark().line +1);
+    return uClass;
+}
+UClass* LoadClass(const FYamlNode& node, UClass* defaultValue) {
+    return node ? LoadClass(node) : defaultValue;
+}
+void LoadProperty(const FYamlNode& node, UClassInfo* classInfo) {
+    const auto propertyName = node["Name"].As<FString>();
+    const auto propertyInfo = classInfo->LoadProperty(propertyName);
+    if (!propertyInfo) {                
+        UE_LOG(LogConfigLoader, Error, TEXT("Property %s from line %d was not found in Class %s"), *propertyName, node.GetMark().line +1, *classInfo->GetBaseClass()->GetName());
+        return;
+    }
+
+    propertyInfo->Required = node["Required"].As<bool>(true);
+    if (const auto defaultNode = node["Default"])
+        propertyInfo->SetDefaultValue(LoadFPropertyValue(defaultNode, propertyInfo->Property));
+}
+UClassInfo* LoadClassInfo(const FYamlNode& node, Config& config) {
+    const auto Class = LoadClass(node["Class"]);
+    if (!Class)
+        return nullptr;
+    const auto classInfo = NewObject<UClassInfo>(config.ObjOwner)->Init(Class);
+
+    for (const auto& propertyNode : node["Properties"])
+        LoadProperty(propertyNode, classInfo);        
+
+    return classInfo;
+}
+
 template<class T>
 T* LoadReference(const FYamlNode& node, TMap<FString, T*>& map) {
     const FString name = node.As<FString>();
@@ -121,16 +166,6 @@ TArray<T*> LoadReferences(const FYamlNode& node, TMap<FString, T*>& map) {
         if (auto reference = LoadReference(referenceNode, map))
             references.Add(reference);
     return MoveTemp(references);
-}
-
-UClass* LoadClass(const FYamlNode& node) {
-    UClass* uClass = FindFirstObjectSafe<UClass>(*node.As<FString>(), EFindFirstObjectOptions::EnsureIfAmbiguous, ELogVerbosity::Warning);
-    if (!uClass)
-        UE_LOG(LogConfigLoader, Error, TEXT("Failed to load UClass: %s in Block: %s, which starts on line %d"), *node["Class"].As<FString>(), *node.GetContent(), node.GetMark().line +1);
-    return uClass;
-}
-UClass* LoadClass(const FYamlNode& node, UClass* defaultValue) {
-    return node ? LoadClass(node) : defaultValue;
 }
 
 template<class T>
@@ -159,9 +194,9 @@ void LoadNeed(const FYamlNode& node, UComponentInfo* componentInfo, Config& conf
         if (!resource)
             return;
 
-        const auto prop = componentInfo->Properties.Find(node["AmountRef"].As<FString>());
+        const auto prop = componentInfo->GetClassInfo()->Properties.Find(node["AmountRef"].As<FString>());
         if (!prop) {
-        UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component Need: %s is not a Property in Block: %s, which starts on line %d"), *node["AmountRef"].As<FString>(), *node.GetContent(), node.GetMark().line +1);
+            UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component Need: %s is not a Property in Block: %s, which starts on line %d"), *node["AmountRef"].As<FString>(), *node.GetContent(), node.GetMark().line +1);
             return;
         }
 
@@ -176,76 +211,20 @@ void LoadNeed(const FYamlNode& node, UComponentInfo* componentInfo, Config& conf
         UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component Need: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
     }
 }
-TPair<UFunction*, FProperty*> FindProperty(const FString& name, const TSubclassOf<UActorComponent> componentClass) {
-    for (TFieldIterator<UFunction> it(componentClass, EFieldIterationFlags::IncludeSuper); it; ++it) {
-        const auto rawFunc = *it;
-        if (!rawFunc->GetName().Equals(TEXT("Set") + name))
-            continue;
-        
-        FProperty* param = nullptr;
-        for (TFieldIterator<FProperty> paramIt(rawFunc); paramIt; ++paramIt) {
-            if (!(paramIt->PropertyFlags & CPF_ReturnParm) && paramIt->PropertyFlags & CPF_Parm) {
-                if (param) {
-                    param = nullptr;
-                    break;
-                }
-                param = *paramIt;
-            }
-        }
-        if (!param)
-            continue;
-
-        return MakeTuple(rawFunc, param);
-    }
-
-    for (TFieldIterator<FProperty> it(componentClass, EFieldIterationFlags::IncludeSuper); it; ++it) {
-        const auto rawProp = *it;
-        if (!rawProp->GetName().Equals(name))
-            continue;
-
-        return MakeTuple(nullptr, rawProp);
-    }
-    return MakeTuple(nullptr, nullptr);
-}
-void LoadProperty(const FYamlNode& node, UComponentInfo* component) {    
-    const auto propertyName = node["Name"].As<FString>();
-
-    const auto [setter, prop] = FindProperty(propertyName, component->ComponentClass);
-    if (!prop) {                
-        UE_LOG(LogConfigLoader, Error, TEXT("Property %s from line %d was not found in Class %s"), *propertyName, node.GetMark().line +1, *component->ComponentClass->GetName());
-        return;
-    }
-
-    void* defaultValue = nullptr;
-    if (const auto defaultNode = node["Default"])
-        defaultValue = LoadFPropertyValue(defaultNode, prop);
-
-    if (component->Properties.Find(propertyName))
-        UE_LOG(LogConfigLoader, Warning, TEXT("Property %s was already defined in component %s, replacing old definition"), *propertyName, *component->Name.ToString());
-    component->AddProperty(
-        propertyName,
-        setter,
-        prop,
-        node["Required"].As<bool>(true),
-        defaultValue
-    );
-}
 void LoadComponent(const FYamlNode& node, Config& config) {
     try {
         const auto name = node["Name"].As<FText>();
         UE_LOG(LogConfigLoader, Display, TEXT("Loading Component: %s (Line %d)"), *name.ToString(), node.GetMark().line +1);
 
-        const TSubclassOf<UActorComponent> componentClass = LoadClass(node["Class"]);
-        if (!componentClass)
+        const auto classInfo = LoadClassInfo(node, config);
+        if (!classInfo)
             return;
 
         const auto component = NewObject<UComponentInfo>(config.ObjOwner, FName(TEXT("Component_") + name.ToString()))->Init(
             name,
-            componentClass
+            classInfo
         );
 
-        for (const auto& propertyNode : node["Properties"])
-            LoadProperty(propertyNode, component);        
         for (const auto& need : node["Needs"])
             LoadNeed(need, component, config);
 
@@ -319,15 +298,17 @@ void LoadBiome(const FYamlNode& node, Config& config) {
 UComponentLoader* LoadComponentRef(const FYamlNode& node, Config& config) {
     try {
         const auto component = LoadReference(node["Component"], config.Components);
+        if (!component)
+            return nullptr;
 
         const auto componentLoader = NewObject<UComponentLoader>(config.ObjOwner)->Init(component);
 
-        for (auto& propertyInfo : component->Properties) {
+        for (auto& propertyInfo : component->GetClassInfo()->Properties) {
             if (auto propertyNode = node[propertyInfo.Key]) {
                 auto& propInfo = propertyInfo.Value;
                 componentLoader->SetProperty(&propInfo, LoadFPropertyValue(propertyNode, propInfo.Property));
-            } else if (propertyInfo.Value.DefaultValue) {
-                componentLoader->SetProperty(&propertyInfo.Value, propertyInfo.Value.DefaultValue);
+            } else if (const auto defaultValue = propertyInfo.Value.GetDefaultValue()) {
+                componentLoader->SetProperty(&propertyInfo.Value, defaultValue);
             } else if (propertyInfo.Value.Required) {
                 UE_LOG(LogConfigLoader, Error, TEXT("Error loading Component: Required Property %s not Found. In Block: %s, which starts on line %d"), *propertyInfo.Key, *node.GetContent(), node.GetMark().line +1);
                 return nullptr;
@@ -431,6 +412,94 @@ void LoadNeedSatisfier(const FYamlNode& node, Config& config) {
         config.NeedSatisfiers.Add(satisfier);
     } catch (YAML::Exception e) {
         UE_LOG(LogConfigLoader, Error, TEXT("Error loading NeedSatisfier: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
+    }
+}
+
+void LoadReward(const FYamlNode& node, Config& config) {
+    try {        
+        const auto name = node["Name"].As<FText>();
+        UE_LOG(LogConfigLoader, Display, TEXT("Loading Reward: %s (Line %d)"), *name.ToString(), node.GetMark().line +1);
+
+        const auto classInfo = LoadClassInfo(node, config);
+        if (!classInfo)
+            return;
+
+        if (config.Rewards.Contains(name.ToString()))
+            UE_LOG(LogConfigLoader, Warning, TEXT("Reward %s was already defined, replacing old definition"), *name.ToString());
+        config.Rewards.Add(name.ToString(), classInfo);
+    } catch (YAML::Exception e) {
+        UE_LOG(LogConfigLoader, Error, TEXT("Error loading Reward: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
+    }
+}
+
+UEventStage* ParseContinuation(const FYamlNode& node, UEvent* event) {
+    if (!node)
+        return nullptr;
+    return event->GetStage(node.As<int>());
+}
+UReward* LoadRewardRef(const FYamlNode& node, Config& config) {
+    try {
+        const auto rewardInfo = LoadReference(node["Reward"], config.Rewards);
+        if (!rewardInfo)
+            return nullptr;
+
+        const auto reward = NewObject<UReward>(config.ObjOwner, rewardInfo->GetBaseClass());
+
+        for (auto& propertyInfoT : rewardInfo->Properties) {
+            auto& propInfo = propertyInfoT.Value;
+            if (auto propertyNode = node[propertyInfoT.Key]) {
+                propInfo.SetValueIn(reward, LoadFPropertyValue(propertyNode, propInfo.Property));
+            } else if (const auto defaultValue = propInfo.GetDefaultValue()) {
+                propInfo.SetValueIn(reward, defaultValue);
+            } else if (propInfo.Required) {
+                UE_LOG(LogConfigLoader, Error, TEXT("Error loading Reward: Required Property %s not Found. In Block: %s, which starts on line %d"), *propertyInfoT.Key, *node.GetContent(), node.GetMark().line +1);
+                return nullptr;
+            }
+        }
+
+        return reward;
+    } catch (YAML::Exception e) {
+        UE_LOG(LogConfigLoader, Error, TEXT("Error loading Reward: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
+        return nullptr;
+    }
+    
+}
+TArray<UReward*> LoadRewardRefs(const FYamlNode& node, Config& config) {
+    TArray<UReward*> rewards;
+    for (const auto& rewardNode : node)
+        if (auto reward = LoadRewardRef(rewardNode, config))
+            rewards.Add(reward);
+    return MoveTemp(rewards);
+}
+void LoadEvent(const FYamlNode& node, Config& config) {
+    try {
+        const auto name = node["Name"].As<FText>();
+        UE_LOG(LogConfigLoader, Display, TEXT("Loading Event: %s (Line %d)"), *name.ToString(), node.GetMark().line +1);
+
+        const auto event = NewObject<UEvent>(config.ObjOwner)->Init(
+            name,
+            *node["Image"].As<FString>()
+        );
+
+        for (const auto& stage : node["Stages"])
+            event->AddStage(stage["Text"].As<FText>());
+        
+        for (auto it = node["Stages"].begin(); it != node["Stages"].end(); ++it) {
+            const auto stage = event->GetStage(it.GetIndex());
+            for (const auto& option : (*it)["Options"]) {
+                stage->AddOption(
+                    option["Text"].As<FText>(),
+                    LoadRewardRefs(option["Rewards"], config),
+                    ParseContinuation(option["Continuation"], event)
+                );
+            }
+        }
+
+        if (config.Events.Contains(name.ToString()))
+            UE_LOG(LogConfigLoader, Warning, TEXT("Event %s was already defined, replacing old definition"), *name.ToString());
+        config.Events.Add(name.ToString(), event);
+    } catch (YAML::Exception e) {
+        UE_LOG(LogConfigLoader, Error, TEXT("Error loading Event: %hs in Block: %s, which starts on line %d"), e.what(), *node.GetContent(), node.GetMark().line +1);
     }
 }
 
@@ -581,6 +650,12 @@ void LoadFile(FString& path, Config& config) {
     for (const auto& needSatisfier : root["NeedSatisfiers"]) 
         LoadNeedSatisfier(needSatisfier, config);
 
+    for (const auto& reward : root["Rewards"]) 
+        LoadReward(reward, config);
+
+    for (const auto& event : root["Events"]) 
+        LoadEvent(event, config);
+
     if (const auto hotbars = root["Hotbars"])
         LoadHotbars(hotbars, config);
 
@@ -598,8 +673,8 @@ void LoadFile(FString& path, Config& config) {
     }
 }
 
-TPair<UEncyclopedia*, TArray<TPair<FText, FText>>> ConfigLoader::Load(const UHotbarDock* dock) {
-    const auto encyclopedia = NewObject<UEncyclopedia>();
+TPair<UEncyclopedia*, TArray<TPair<FText, FText>>> ConfigLoader::Load(const UHotbarDock* dock, UObject* Outer) {
+    const auto encyclopedia = NewObject<UEncyclopedia>(Outer);
     Config config(encyclopedia, dock->GetOwningPlayer<APlayerControllerX>(), dock->HotbarUIClass, dock->HotbarSlotSubmenuUIClass, dock->HotbarSlotActionUIClass);
     auto path = FPaths::ProjectDir() + "Content/Config/root.yml"; // TODO there are some other interesting options in FPaths, test how this behaves on a release build
     LoadFile(path, config);
@@ -608,7 +683,7 @@ TPair<UEncyclopedia*, TArray<TPair<FText, FText>>> ConfigLoader::Load(const UHot
         dock->SetMainHotbar(config.MainHotbar);
 
     return MakeTuple(
-        encyclopedia->Init(config.Resources, config.NaturalResources, config.Buildings, config.Recipes, config.Needs, config.NeedSatisfiers),
+        encyclopedia->Init(config.Resources, config.NaturalResources, config.Buildings, config.Events, config.Recipes, config.Needs, config.NeedSatisfiers),
         MoveTemp(config.EncyclopediaPages)
     );
 }
