@@ -42,8 +42,8 @@ void UMapChunk::Reveal(int column, int row) {
             continue;
 
         mapUI->AddEvent(event);
-        Cast<UEncyclopediaPageEvent>(event->Event->EncyclopediaEntry->Page)->AddLocation(event);
+        event->Event->EncyclopediaEntry->Update();
         // pop a message somewhere in the ui
     }
-    
+
 }

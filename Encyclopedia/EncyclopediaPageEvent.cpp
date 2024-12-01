@@ -30,6 +30,9 @@ UEncyclopediaPageEvent* UEncyclopediaPageEvent::Init(UEvent* Event) {
 
     LocationFont = Cast<UTextBlock>(Location->GetChildAt(0))->GetFont();
     Location->ClearChildren();
+    for (const auto instance : Event->Instances)
+        if (instance->Coordinate.IsRevealed())
+            AddLocation(instance);
 
     return this;
 }

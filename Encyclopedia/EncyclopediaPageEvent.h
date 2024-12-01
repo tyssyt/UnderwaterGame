@@ -26,9 +26,9 @@ protected:
     UVerticalBox* Rewards;
     UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
     UVerticalBox* Location;
+    
+    void AddLocation(UEventInstance* EventInstance) const;
 
 public:
     UEncyclopediaPageEvent* Init(UEvent* Event);
-
-    void AddLocation(UEventInstance* EventInstance) const;
 };

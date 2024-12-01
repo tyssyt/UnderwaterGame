@@ -5,9 +5,46 @@
 #include "Collections.h"
 #include "EncyclopediaPageNeed.h"
 #include "EncyclopediaPageText.h"
+#include "The.h"
 #include "UI.h"
+#include "XD/Cheats.h"
 #include "XD/Buildings/ConstructionPlan.h"
 #include "XD/Resources/Resource.h"
+
+UEncyclopediaPage* UEncyclopediaUI::CreatePage(UObject* content) const {
+    if (const auto resource = Cast<UResource>(content))
+        return CreateWidget<UEncyclopediaPageResource>(GetOwningPlayer(),EncyclopediaPageResourceClass)
+            ->Init(resource, Encyclopedia);
+    
+    if (const auto naturalResource = Cast<UNaturalResource>(content))
+        return CreateWidget<UEncyclopediaPageNaturalResource>(GetOwningPlayer(), EncyclopediaPageNaturalResourceClass)
+            ->Init(naturalResource, Encyclopedia);
+
+    if (const auto building = Cast<UConstructionPlan>(content)) {
+        const auto page = CreateWidget<UEncyclopediaPageBuilding>(GetOwningPlayer(), EncyclopediaPageBuildingClass);
+        if (building == Encyclopedia->Conveyor)
+            return page->InitConveyor(Encyclopedia);
+        return page->Init(building, Encyclopedia);
+    }
+
+    if (const auto need = Cast<UNeed>(content))
+        return CreateWidget<UEncyclopediaPageNeed>(GetOwningPlayer(), EncyclopediaPageNeedClass)
+            ->Init(need, Encyclopedia);
+    
+    if (const auto event = Cast<UEvent>(content))
+        return CreateWidget<UEncyclopediaPageEvent>(GetOwningPlayer(), EncyclopediaPageEventClass)
+            ->Init(event);
+
+    if (const auto text = Cast<UTextContent>(content))
+        return CreateWidget<UEncyclopediaPageText>(GetOwningPlayer(), EncyclopediaPageTextClass)
+            ->Init(text->Text);
+
+    if (const auto cheats = Cast<UCheats>(content))
+        return CreateWidget<UEncyclopediaPageCheats>(GetOwningPlayer(), UEncyclopediaPageCheatsClass)->Init();
+
+    checkNoEntry();
+    return nullptr;
+}
 
 UEncyclopediaCategory* UEncyclopediaUI::AddCategory(const FString& name) const {
     const auto category = CreateWidget<UEncyclopediaCategory>(
@@ -17,45 +54,8 @@ UEncyclopediaCategory* UEncyclopediaUI::AddCategory(const FString& name) const {
     return category;
 }
 
-UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddResourcePage(const UEncyclopediaCategory* category, UResource* resource) {
-    const auto page = CreateWidget<UEncyclopediaPageResource>(
-        GetOwningPlayer(),
-        EncyclopediaPageResourceClass)->Init(resource, Encyclopedia);
-    return AddPage(category, resource->Name, page);
-}
-UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddNaturalResourcePage(const UEncyclopediaCategory* category,UNaturalResource* naturalResource) {
-    const auto page = CreateWidget<UEncyclopediaPageNaturalResource>(
-        GetOwningPlayer(),
-        EncyclopediaPageNaturalResourceClass)->Init(naturalResource, Encyclopedia);
-    return AddPage(category, naturalResource->Name, page);
-}
-UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building) {
-    const auto page = CreateWidget<UEncyclopediaPageBuilding>(
-        GetOwningPlayer(),
-        EncyclopediaPageBuildingClass)->Init(building, Encyclopedia);
-    return AddPage(category, building->Name, page);
-}
-UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddNeedPage(const UEncyclopediaCategory* category, UNeed* need) {
-    const auto page = CreateWidget<UEncyclopediaPageNeed>(
-        GetOwningPlayer(),
-        EncyclopediaPageNeedClass)->Init(need, Encyclopedia);
-    return AddPage(category, need->Name, page);
-}
-UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddEventPage(const UEncyclopediaCategory* category, UEvent* event) {    
-    const auto page = CreateWidget<UEncyclopediaPageEvent>(
-        GetOwningPlayer(),
-        EncyclopediaPageEventClass)->Init(event);
-    return AddPage(category, event->Name, page);
-}
-UEncyclopediaEntry* UEncyclopediaUI::CreateAndAddTextPage(const UEncyclopediaCategory* category, const FText& title, const FText& text) {
-    const auto page = CreateWidget<UEncyclopediaPageText>(
-    GetOwningPlayer(),
-    EncyclopediaPageTextClass)->Init(text);
-    return AddPage(category, title, page);
-}
-
-UEncyclopediaEntry* UEncyclopediaUI::AddPage(const UEncyclopediaCategory* category, const FText& title, UEncyclopediaPage* page) {    
-    const auto entry = category->AddEntry(title, page);
+UEncyclopediaEntry* UEncyclopediaUI::AddEntry(const UEncyclopediaCategory* category, const FText& title, UObject* content) {    
+    const auto entry = category->AddEntry(title, content);
     Entries.Add(title.ToString(), entry);
     return entry;
 }
@@ -67,15 +67,16 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
 
     {
         const auto settings = AddCategory(TEXT("Settings"));
-
-        const auto cheatsPage = CreateWidget<UEncyclopediaPageCheats>(GetOwningPlayer(), UEncyclopediaPageCheatsClass)->Init();
-        AddPage(settings, FText::FromString(TEXT("Cheats")), cheatsPage);
+        AddEntry(settings, FText::FromString(TEXT("Cheats")), The::Cheats(this));
     }
 
     {
         const auto concepts = AddCategory(TEXT("Concepts"));
-        for (const auto& page : additionalPages)
-            CreateAndAddTextPage(concepts, page.Key, page.Value);
+        for (const auto& page : additionalPages) {
+            const auto content = NewObject<UTextContent>(this);
+            content->Text = page.Value;
+            AddEntry(concepts, page.Key, content);
+        }
     }
 
     {
@@ -116,23 +117,23 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
 
         const auto rawCategory = resources->AddSubCategory(TEXT("Raw Materials"));
         for (const auto resource : rawMaterials)
-            resource->EncyclopediaEntry = CreateAndAddResourcePage(rawCategory, resource);
+            resource->EncyclopediaEntry = AddEntry(rawCategory, resource->Name, resource);
         
         const auto intermediateCategory = resources->AddSubCategory(TEXT("Intermediate Products"));
         for (const auto resource : intermediateProducts)
-            resource->EncyclopediaEntry = CreateAndAddResourcePage(intermediateCategory, resource);
+            resource->EncyclopediaEntry = AddEntry(intermediateCategory, resource->Name, resource);
         
         const auto constructionCategory = resources->AddSubCategory(TEXT("Construction Materials"));
         for (const auto resource : constructionResources)
-            resource->EncyclopediaEntry = CreateAndAddResourcePage(constructionCategory, resource);
+            resource->EncyclopediaEntry = AddEntry(constructionCategory, resource->Name, resource);
 
         const auto goodsCategory = resources->AddSubCategory(TEXT("Goods"));
         for (const auto resource : goods)
-            resource->EncyclopediaEntry = CreateAndAddResourcePage(goodsCategory, resource);
+            resource->EncyclopediaEntry = AddEntry(goodsCategory, resource->Name, resource);
 
         const auto needsCategory = resources->AddSubCategory(TEXT("Needs"));
         for (const auto resource : needs)
-            resource->EncyclopediaEntry = CreateAndAddResourcePage(needsCategory, resource);
+            resource->EncyclopediaEntry = AddEntry(needsCategory, resource->Name, resource);
     }
 
     {
@@ -140,7 +141,7 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
         
         const auto naturalResources = biomes->AddSubCategory(TEXT("Natural Resources"));
         for (const auto naturalResource : encyclopedia->GetAllNaturalResources())
-            naturalResource->EncyclopediaEntry = CreateAndAddNaturalResourcePage(naturalResources, naturalResource);
+            naturalResource->EncyclopediaEntry = AddEntry(naturalResources, naturalResource->Name, naturalResource);
     }
 
     {
@@ -148,7 +149,7 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
 
         const auto needs = people->AddSubCategory(TEXT("Needs"));
         for (const auto need : encyclopedia->GetAllNeeds())
-            need->EncyclopediaEntry = CreateAndAddNeedPage(needs, need);
+            need->EncyclopediaEntry = AddEntry(needs, need->Name, need);
 
         const auto policies = people->AddSubCategory(TEXT("Policies"));
     }
@@ -171,16 +172,12 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
 
             for (const auto building : MultiMaps::Find(categories, categoryName)) {
                 if (building == encyclopedia->Conveyor) { // special handling for conveyor page
-                    const auto conveyorPage = CreateWidget<UEncyclopediaPageBuilding>(
-                        GetOwningPlayer(),
-                        EncyclopediaPageBuildingClass)->InitConveyor(Encyclopedia);
-
-                    const auto conveyorEntry = AddPage(category, building->Name, conveyorPage);            
+                    const auto conveyorEntry = AddEntry(category, building->Name, building);            
                     encyclopedia->Conveyor->EncyclopediaEntry = conveyorEntry;
                     encyclopedia->ConveyorNode->EncyclopediaEntry = conveyorEntry;
                     encyclopedia->ConveyorLink->EncyclopediaEntry = conveyorEntry;
                 } else
-                    building->EncyclopediaEntry = CreateAndAddBuildingPage(category, building);
+                    building->EncyclopediaEntry = AddEntry(category, building->Name, building);
             }
         }
     }
@@ -188,7 +185,7 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
     {
         const auto events = AddCategory(TEXT("Events"));        
         for (const auto event : encyclopedia->GetAllEvents())
-            event->EncyclopediaEntry = CreateAndAddEventPage(events, event);
+            event->EncyclopediaEntry = AddEntry(events, event->Name, event);
     }
 
     CollapseAll();
@@ -197,6 +194,7 @@ void UEncyclopediaUI::Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FTex
 void UEncyclopediaUI::Open() {
     AddToViewport();
     GetOwningPlayer()->InputComponent->BindAction("Deselect", IE_Pressed, this, &UEncyclopediaUI::Close);
+    RefreshPage();
 }
 void UEncyclopediaUI::Close() {
     RemoveFromParent();
@@ -204,19 +202,19 @@ void UEncyclopediaUI::Close() {
 }
 
 void UEncyclopediaUI::OpenPage(UEncyclopediaEntry* entry) {
+    if (entry != OpenedEntry)
+        ClosePage();
+
     if (!IsVisible())
         Open();
 
-    if (entry == OpenedEntry)
+    if (!entry || entry == OpenedEntry)
         return;
 
-    ClosePage();
-    if (!entry)
-        return;
-
+    OpenedEntry = entry;
     entry->SetOpen(true);
     Title->SetText(entry->GetTitle());
-    SetContentForSlot(TEXT("Page"), entry->Page);
+    SetContentForSlot(TEXT("Page"), CreatePage(entry->GetContent()));
 
     UEncyclopediaCategory* oldCat = nullptr;
     UEncyclopediaCategory* currentCat = UX::GetParentWidget<UEncyclopediaCategory>(entry);
@@ -227,8 +225,6 @@ void UEncyclopediaUI::OpenPage(UEncyclopediaEntry* entry) {
         currentCat = UX::GetParentWidget<UEncyclopediaCategory>(currentCat);
     }
     CollapseAll(oldCat);
-
-    OpenedEntry = entry;
 }
 
 void UEncyclopediaUI::OpenPageByName(FText name) {
@@ -246,6 +242,11 @@ void UEncyclopediaUI::ClosePage() {
     SetContentForSlot(TEXT("Page"), nullptr);
 
     OpenedEntry = nullptr;
+}
+
+void UEncyclopediaUI::RefreshPage() {
+    if (OpenedEntry)
+        SetContentForSlot(TEXT("Page"), CreatePage(OpenedEntry->GetContent()));
 }
 
 UEncyclopediaEntry* UEncyclopediaUI::FindPage(const FText& name) const {
@@ -267,11 +268,11 @@ UEncyclopediaCategory* UEncyclopediaCategory::Init(const FText& label) {
     return this;
 }
 
-UEncyclopediaEntry* UEncyclopediaCategory::AddEntry(const FText& title, UEncyclopediaPage* page) const {
+UEncyclopediaEntry* UEncyclopediaCategory::AddEntry(const FText& title, UObject* content) const {
     const auto encyclopedia = UX::GetParentWidget<UEncyclopediaUI>(this);
     const auto entry = CreateWidget<UEncyclopediaEntry>(
         GetOwningPlayer(),
-        encyclopedia->EncyclopediaEntryClass)->Init(title, page);
+        encyclopedia->EncyclopediaEntryClass)->Init(title, content);
     Entries->AddChild(entry);
     return entry;
 }
@@ -294,9 +295,9 @@ void UEncyclopediaCategory::CollapseAll(UEncyclopediaCategory* ignore, bool incl
         ExpandableArea->SetIsExpanded(false);
 }
 
-UEncyclopediaEntry* UEncyclopediaEntry::Init(const FText& label, UEncyclopediaPage* page) {
+UEncyclopediaEntry* UEncyclopediaEntry::Init(const FText& label, UObject* content) {
     Title->SetText(label);
-    Page = page;
+    Content = content;
     return this;
 }
 
@@ -323,6 +324,9 @@ void UEncyclopediaEntry::SetOpen(bool open) {
     Opened = open;
 }
 
-FText UEncyclopediaEntry::GetTitle() const {
-    return Title->GetText();
+void UEncyclopediaEntry::Update() {
+    const auto encyclopedia = UX::GetParentWidget<UEncyclopediaUI>(this);
+    if (encyclopedia->GetOpenedEntry() == this) {
+        encyclopedia->RefreshPage();
+    }
 }

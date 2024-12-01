@@ -27,14 +27,9 @@ UCLASS(Abstract)
 class XD_API UEncyclopediaUI : public UUserWidget {
     GENERATED_BODY()
 
+    UEncyclopediaPage* CreatePage(UObject* content) const;
     UEncyclopediaCategory* AddCategory(const FString& name) const;
-    UEncyclopediaEntry* CreateAndAddResourcePage(const UEncyclopediaCategory* category, UResource* resource);
-    UEncyclopediaEntry* CreateAndAddNaturalResourcePage(const UEncyclopediaCategory* category, UNaturalResource* naturalResource);
-    UEncyclopediaEntry* CreateAndAddBuildingPage(const UEncyclopediaCategory* category, UConstructionPlan* building);
-    UEncyclopediaEntry* CreateAndAddNeedPage(const UEncyclopediaCategory* category, UNeed* need);
-    UEncyclopediaEntry* CreateAndAddEventPage(const UEncyclopediaCategory* category, UEvent* event);
-    UEncyclopediaEntry* CreateAndAddTextPage(const UEncyclopediaCategory* category, const FText& name, const FText& text);
-    UEncyclopediaEntry* AddPage(const UEncyclopediaCategory* category, const FText& title, UEncyclopediaPage* page);
+    UEncyclopediaEntry* AddEntry(const UEncyclopediaCategory* category, const FText& title, UObject* content);
 
 protected:
     UPROPERTY()
@@ -51,6 +46,7 @@ protected:
     UScrollBox* Categories;
 
 public:
+    UEncyclopediaEntry* GetOpenedEntry() const { return IsVisible() ? OpenedEntry : nullptr; }
     void Fill(UEncyclopedia* encyclopedia, TArray<TPair<FText, FText>>& additionalPages);
 
     UFUNCTION(BlueprintCallable)
@@ -64,6 +60,8 @@ public:
     void OpenPageByName(FText name);
     UFUNCTION(BlueprintCallable)
     void ClosePage();
+    UFUNCTION(BlueprintCallable)
+    void RefreshPage();
 
     UEncyclopediaEntry* FindPage(const FText& name) const;
 
@@ -107,7 +105,7 @@ public:
 
     UEncyclopediaCategory* Init(const FText& label);
 
-    UEncyclopediaEntry* AddEntry(const FText& title, UEncyclopediaPage* page) const;
+    UEncyclopediaEntry* AddEntry(const FText& title, UObject* content) const;
     UEncyclopediaCategory* AddSubCategory(const FString& name) const;
 
     void CollapseAll(UEncyclopediaCategory* ignore = nullptr, bool includeSelf = true) const;
@@ -121,6 +119,9 @@ protected:
     UPROPERTY(BlueprintReadOnly)
     bool Opened;
 
+    UPROPERTY(BlueprintReadOnly)
+    UObject* Content;
+
     UPROPERTY(BlueprintReadWrite)
     FSlateColor HighlightColor;
 
@@ -131,10 +132,10 @@ protected:
     UButton* Button;
 
 public:
-    UPROPERTY(BlueprintReadWrite)
-    UEncyclopediaPage* Page;
+    UEncyclopediaEntry* Init(const FText& label, UObject* content);
 
-    UEncyclopediaEntry* Init(const FText& label, UEncyclopediaPage* page);
+    FText GetTitle() const { return Title->GetText(); }
+    UObject* GetContent() const { return Content; }
 
     UFUNCTION(BlueprintCallable)
     void SetHighlight(bool highlight) const;
@@ -144,5 +145,12 @@ public:
 
     void SetOpen(bool open);
 
-    FText GetTitle() const;
+    void Update();
+};
+
+UCLASS()
+class XD_API UTextContent : public UObject {
+    GENERATED_BODY()
+public:
+    FText Text;
 };

@@ -17,4 +17,6 @@ struct XD_API FMapCoordinate {
     int Row;
     UPROPERTY()
     int Column;
+
+    bool IsRevealed() const;
 };
